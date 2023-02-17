@@ -103,6 +103,14 @@ static void _vmx_initVT(VCPU *vcpu){
 	  hva_t gdtstart = (hva_t)x_gdt_start;
 	  u16 trselector = 	__TRSEL;
 	  static volatile u32 lock = 1;
+	  /*
+	   * The following assembly code modifies the GDT shared by all CPUs. Race
+	   * condition between CPUs will cause a CPU to see incorrect value in the
+	   * LTR instruction. Thus, locking is required.
+	   *
+	   * TODO: all code other than the LTR instruction can be converted to C.
+	   * TODO: can probably change GDT before SMP to elimiate race condition.
+	   */
 	  spin_lock(&lock);
 	  #ifndef __XMHF_VERIFICATION__
 #ifdef __AMD64__
