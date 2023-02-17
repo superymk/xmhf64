@@ -445,7 +445,7 @@ static void vmx_prepare_msr_bitmap(VCPU *vcpu) {
 	set_msrbitmap(bitmap, IA32_VMX_VMFUNC_MSR);
 	// Note: IA32_VMX_VMFUNC_MSR temporarily not supported
 	//set_msrbitmap(bitmap, IA32_VMX_VMFUNC_MSR);
-#endif /* !__NESTED_VIRTUALIZATION__ */
+#endif /* __NESTED_VIRTUALIZATION__ */
 }
 
 // Remove IA32_X2APIC_ICR from vmx_msr_bitmaps for the current VCPU. This
@@ -763,7 +763,7 @@ void vmx_initunrestrictedguestVMCS(VCPU *vcpu){
 
 #ifdef __NESTED_VIRTUALIZATION__
 	xmhf_nested_arch_x86vmx_vcpu_init(vcpu);
-#endif /* !__NESTED_VIRTUALIZATION__ */
+#endif /* __NESTED_VIRTUALIZATION__ */
 
 	//flush guest TLB to start with
 	{
@@ -897,7 +897,7 @@ void __vmx_vmentry_fail_callback(ulong_t is_resume, ulong_t valid)
 			xmhf_nested_arch_x86vmx_handle_vmentry_fail(vcpu, is_resume);
 			HALT_ON_ERRORCOND(0 && "Should not return");
 		}
-#endif /* !__NESTED_VIRTUALIZATION__ */
+#endif /* __NESTED_VIRTUALIZATION__ */
 		{
 			unsigned long code;
 			HALT_ON_ERRORCOND(__vmx_vmread(VMCSENC_info_vminstr_error, &code));
