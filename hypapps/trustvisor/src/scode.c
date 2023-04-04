@@ -1301,7 +1301,7 @@ u32 scode_unmarshall(VCPU * vcpu, struct regs *r)
 
     } //end for loop
 
-  /* clear caller saved registers to prevent leaking PLA's secret */
+  /* clear caller saved registers to prevent leaking PAL's secret */
   if (VCPU_g64(vcpu)) {
 #ifdef __AMD64__
     r->rcx = 0;
