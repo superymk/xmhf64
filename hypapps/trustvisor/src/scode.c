@@ -1156,7 +1156,7 @@ u32 hpt_scode_switch_scode(VCPU * vcpu, struct regs *r)
     VCPU_grflags_set(vcpu, rflags & ~EFLAGS_IF);
   }
 
-  /* save CR0.EM */
+  /* save and set CR0.EM, which disables FPU (not supported by TrustVisor) */
   {
     ulong_t cr0 = VCPU_gcr0(vcpu);
     whitelist[curr].saved_cr0_em = !!(cr0 & CR0_EM);
