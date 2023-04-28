@@ -152,6 +152,7 @@ u64 _vmx_get_guest_efer(VCPU *vcpu)
 static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 	//printf("CPU(0x%02x): CPUID\n", vcpu->id);
 	u32 old_eax = r->eax;
+	u32 old_ecx = r->ecx;
 	u32 app_ret_status = xmhf_app_handlecpuid(vcpu, r);
 
 	switch (app_ret_status) {
@@ -182,6 +183,17 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 			 */
 			r->ecx |= (1U << 31);
 #endif /* !__UPDATE_INTEL_UCODE__ */
+		}
+		/*
+		 * Hide Intel Processor Trace (Intel PT).
+		 * If Intel PT is not hidden, an attacker can set IA32_RTIT_OUTPUT_BASE
+		 * to XMHF memory, which violates XMHF memory integrity. For now we
+		 * hide Intel PT. It is possible to virtualize Intel PT using the
+		 * "Intel PT uses guest physical addresses" bit in VMCS. However,
+		 * implementing this is left as future work.
+		 */
+		if (old_eax == 0x7U && old_ecx == 0x0U) {
+			r->ebx &= ~(1U << 25);
 		}
 #ifdef __I386__
 		/*
@@ -518,6 +530,22 @@ u32 xmhf_parteventhub_arch_x86vmx_handle_wrmsr(VCPU *vcpu, u32 index, u64 value)
 				wrmsr64(index, value);
 			}
 			break;
+		case IA32_RTIT_OUTPUT_BASE: /* fallthrough */
+		case IA32_RTIT_OUTPUT_MASK_PTRS: /* fallthrough */
+		case IA32_RTIT_CTL: /* fallthrough */
+		case IA32_RTIT_STATUS: /* fallthrough */
+		case IA32_RTIT_CR3_MATCH: /* fallthrough */
+		case IA32_RTIT_ADDR0_A: /* fallthrough */
+		case IA32_RTIT_ADDR0_B: /* fallthrough */
+		case IA32_RTIT_ADDR1_A: /* fallthrough */
+		case IA32_RTIT_ADDR1_B: /* fallthrough */
+		case IA32_RTIT_ADDR2_A: /* fallthrough */
+		case IA32_RTIT_ADDR2_B: /* fallthrough */
+		case IA32_RTIT_ADDR3_A: /* fallthrough */
+		case IA32_RTIT_ADDR3_B:
+			/* See related comments in _vmx_handle_intercept_cpuid() */
+			HALT_ON_ERRORCOND(0 && "Writing Intel PT disabled");
+			break;
 #ifdef __NESTED_VIRTUALIZATION__
 		case IA32_VMX_BASIC_MSR: /* fallthrough */
 		case IA32_VMX_PINBASED_CTLS_MSR: /* fallthrough */
@@ -540,7 +568,7 @@ u32 xmhf_parteventhub_arch_x86vmx_handle_wrmsr(VCPU *vcpu, u32 index, u64 value)
 		// case IA32_VMX_VMFUNC_MSR:
 			HALT_ON_ERRORCOND(0 && "Writing to VMX MSRs (read-only)");
 			break;
-#endif /* !__NESTED_VIRTUALIZATION__ */
+#endif /* __NESTED_VIRTUALIZATION__ */
 		default:{
 			if (wrmsr_safe(index, value) != 0) {
 				return 1;
@@ -668,6 +696,7 @@ u32 xmhf_parteventhub_arch_x86vmx_handle_rdmsr(VCPU *vcpu, u32 index, u64 *value
 			// TODO: we can probably just forward it to hardware x2APIC
 			HALT_ON_ERRORCOND(0 && "TODO: x2APIC ICR read not implemented");
 			break;
+		/* Note: reading Intel PT related MSRs is not disabled */
 #ifdef __NESTED_VIRTUALIZATION__
 		case IA32_VMX_BASIC_MSR: /* fallthrough */
 		case IA32_VMX_PINBASED_CTLS_MSR: /* fallthrough */
@@ -690,7 +719,7 @@ u32 xmhf_parteventhub_arch_x86vmx_handle_rdmsr(VCPU *vcpu, u32 index, u64 *value
 		// case IA32_VMX_VMFUNC_MSR:
 			*value = vcpu->vmx_nested_msrs[index - IA32_VMX_BASIC_MSR];
 			break;
-#endif /* !__NESTED_VIRTUALIZATION__ */
+#endif /* __NESTED_VIRTUALIZATION__ */
 		default:{
 			if (rdmsr_safe(index, value) != 0) {
 				return 1;
@@ -1165,7 +1194,7 @@ static u32 _optimize_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 		_OPT_VMWRITE(NW, guest_RIP);
 		_OPT_VMWRITE(NW, guest_RFLAGS);
 		return 1;
-#endif /* !__NESTED_VIRTUALIZATION__ */
+#endif /* __NESTED_VIRTUALIZATION__ */
 	default:
 		return 0;
 	}
@@ -1238,7 +1267,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 		xmhf_nested_arch_x86vmx_handle_vmexit(vcpu, r);
 		return 1;
 	}
-#endif /* !__NESTED_VIRTUALIZATION__ */
+#endif /* __NESTED_VIRTUALIZATION__ */
 	/*
 	 * The intercept handler access VMCS fields using vcpu->vmcs, but the NMI
 	 * exception handler relies on the hardware VMCS (i.e. use __vmx_vmread()).
@@ -1362,7 +1391,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 		case VMX_VMEXIT_VMXON:
 			xmhf_nested_arch_x86vmx_handle_vmxon(vcpu, r);
 			break;
-#endif /* !__NESTED_VIRTUALIZATION__ */
+#endif /* __NESTED_VIRTUALIZATION__ */
 
 		case VMX_VMEXIT_IOIO:{
 			_vmx_handle_intercept_ioportaccess(vcpu, r);
