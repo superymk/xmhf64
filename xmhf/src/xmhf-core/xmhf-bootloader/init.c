@@ -50,10 +50,12 @@
 //---includes-------------------------------------------------------------------
 #include <xmhf.h>
 
+#ifdef __UEFI__
+#include "xmhf_efi.h"
+#endif /* __UEFI__ */
 
 //---forward prototypes---------------------------------------------------------
 u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus);
-void cstartup(multiboot_info_t *mbi);
 MPFP * MP_GetFPStructure(void);
 u32 _MPFPComputeChecksum(u32 spaddr, u32 size);
 u32 isbsp(void);
@@ -995,16 +997,22 @@ bool svm_prepare_tpm(void) {
 }
 
 //---init main----------------------------------------------------------------
-void cstartup(multiboot_info_t *mbi){
+#ifdef __UEFI__
+void cstartup(xmhf_efi_info_t *xei)
+#else /* !__UEFI__ */
+void cstartup(multiboot_info_t *mbi)
+#endif /* __UEFI__ */
+{
+#ifndef __UEFI__
     module_t *mod_array;
     u32 mods_count;
     size_t sl_rt_nonzero_size;
+#endif /* !__UEFI__ */
 
     /* parse command line */
     memset(g_cmdline, '\0', sizeof(g_cmdline));
 #ifdef __UEFI__
-    (void)mbi;
-    HALT_ON_ERRORCOND(0 && "TODO");
+    strncpy(g_cmdline, xei->cmdline, sizeof(g_cmdline)-1);
 #else /* !__UEFI__ */
     strncpy(g_cmdline, (char*)mbi->cmdline, sizeof(g_cmdline)-1);
 #endif /* __UEFI__ */
@@ -1025,12 +1033,10 @@ void cstartup(multiboot_info_t *mbi){
 	xmhf_debug_init((char *)&g_uart_config);
 #endif
 
-#ifdef __UEFI__
-    HALT_ON_ERRORCOND(0 && "TODO");
-#else /* !__UEFI__ */
+#ifndef __UEFI__
     mod_array = (module_t*)mbi->mods_addr;
     mods_count = mbi->mods_count;
-#endif /* __UEFI__ */
+#endif /* !__UEFI__ */
 
 	//welcome banner
 	printf("eXtensible Modular Hypervisor Framework (XMHF) %s\n", ___XMHF_BUILD_VERSION___);
@@ -1047,7 +1053,8 @@ void cstartup(multiboot_info_t *mbi){
 //	HALT();
 
 #ifdef __UEFI__
-    HALT_ON_ERRORCOND(0 && "TODO");
+    printf("INIT(early): initializing, total modules=%u\n",
+    	   xei->sinit_end == 0 ? 1 : 2);
 #else /* !__UEFI__ */
     printf("INIT(early): initializing, total modules=%u\n", mods_count);
 #endif /* __UEFI__ */
@@ -1059,15 +1066,16 @@ void cstartup(multiboot_info_t *mbi){
         printf("INIT(early): detected an Intel CPU\n");
 
 #ifdef __DRT__
-#ifdef __UEFI__
-        HALT_ON_ERRORCOND(0 && "TODO");
-#else /* !__UEFI__ */
         /* Intel systems require an SINIT module */
-        if(!txt_parse_sinit(mod_array, mods_count)) {
+#ifdef __UEFI__
+        if (xei->sinit_end == 0)
+#else /* !__UEFI__ */
+        if(!txt_parse_sinit(mod_array, mods_count))
+#endif /* __UEFI__ */
+        {
             printf("INIT(early): FATAL ERROR: Intel CPU without SINIT module!\n");
             HALT();
         }
-#endif /* __UEFI__ */
 #endif /* __DRT__ */
     } else if(CPU_VENDOR_AMD == cpu_vendor) {
         printf("INIT(early): detected an AMD CPU\n");
@@ -1091,6 +1099,9 @@ void cstartup(multiboot_info_t *mbi){
     //deal with MP and get CPU table
     dealwithMP();
 
+#ifdef __UEFI__
+    HALT_ON_ERRORCOND(0 && "TODO");
+#else /* !__UEFI__ */
     //check number of elements in mod_array. Currently bootloader assumes that
     //mod_array[0] is SL+RT, mod_array[1] is guest OS boot module.
     HALT_ON_ERRORCOND(mods_count >= 2);
@@ -1099,6 +1110,7 @@ void cstartup(multiboot_info_t *mbi){
     //binary must be moved to
     sl_rt_nonzero_size = mod_array[0].mod_end - mod_array[0].mod_start;
     sl_rt_size = sl_rt_nonzero_size;
+#endif /* __UEFI__ */
 
 #ifdef __SKIP_RUNTIME_BSS__
 #ifdef __UEFI__
@@ -1179,6 +1191,9 @@ void cstartup(multiboot_info_t *mbi){
         slpb->numCPUEntries = pcpus_numentries;
         //memcpy((void *)&slpb->pcpus, (void *)&pcpus, (sizeof(PCPU) * pcpus_numentries));
         memcpy((void *)&slpb->cpuinfobuffer, (void *)&pcpus, (sizeof(PCPU) * pcpus_numentries));
+#ifdef __UEFI__
+        HALT_ON_ERRORCOND(0 && "TODO");
+#else /* !__UEFI__ */
         slpb->runtime_size = (mod_array[0].mod_end - mod_array[0].mod_start) - PAGE_SIZE_2M;
         slpb->runtime_osbootmodule_base = mod_array[1].mod_start;
         slpb->runtime_osbootmodule_size = (mod_array[1].mod_end - mod_array[1].mod_start);
@@ -1209,6 +1224,7 @@ void cstartup(multiboot_info_t *mbi){
 				break;
 			}
 		}
+#endif /* __UEFI__ */
 
 #if defined (__DEBUG_SERIAL__)
         slpb->uart_config = g_uart_config;

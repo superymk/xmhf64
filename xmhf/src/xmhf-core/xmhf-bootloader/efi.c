@@ -3,6 +3,7 @@
 #include <wchar.h>
 #include <stdio.h>
 #include <string.h>
+#include "xmhf_efi.h"
 
 /* HALT() contains an infinite loop to indicate that it never exits */
 #define HALT() do { __asm__ __volatile__ ("hlt\r\n"); } while (1)
@@ -192,7 +193,7 @@ void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle, xmhf_efi_config *config)
 	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, buf);
 	XMHF_ASSERT(read_size == size);
 
-#define XMHF_EFI_READ_CONFIG_WHILE_LOOP \
+#define XMHF_EFI_READ_CONFIG_WHILE_LOOP() \
 	do { \
 		while (1) { \
 			XMHF_ASSERT(index < buf_size); \
@@ -210,15 +211,15 @@ void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle, xmhf_efi_config *config)
 	index = 0;
 	config->free_ptr = buf;
 	config->cmdline = buf + index;
-	XMHF_EFI_READ_CONFIG_WHILE_LOOP;
+	XMHF_EFI_READ_CONFIG_WHILE_LOOP();
 
 	/* Second line of config file: runtime file */
 	config->runtime_file = buf + index;
-	XMHF_EFI_READ_CONFIG_WHILE_LOOP;
+	XMHF_EFI_READ_CONFIG_WHILE_LOOP();
 
 	/* Third line of config file: SINIT module */
 	config->sinit_module = buf + index;
-	XMHF_EFI_READ_CONFIG_WHILE_LOOP;
+	XMHF_EFI_READ_CONFIG_WHILE_LOOP();
 
 #undef XMHF_EFI_READ_CONFIG_WHILE_LOOP
 
@@ -231,6 +232,8 @@ EFI_STATUS
 EFIAPI
 efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
+	xmhf_efi_config config;
+	xmhf_efi_info_t efi_info = {};
 	EFI_LOADED_IMAGE *loaded_image = NULL;
 
 	InitializeLib(ImageHandle, SystemTable);
@@ -249,9 +252,8 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	{
 		EFI_FILE_HANDLE volume = xmhf_efi_open_volume(loaded_image);
 		EFI_FILE_HANDLE conf = xmhf_efi_open_config(volume, loaded_image);
-		xmhf_efi_config config;
 		xmhf_efi_read_config(conf, &config);
-		XMHF_ASSERT(0 && "TODO");
+		efi_info.cmdline = config.cmdline;
 	}
 
 	/* Allocate memory */
@@ -264,9 +266,12 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	/* Call XMHF init */
 	{
-		// TODO: pass arguments
-		extern void cstartup(void *mbi);
-		cstartup(NULL);
+		cstartup(&efi_info);
+	}
+
+	/* Clean up */
+	{
+		FreePool(config.free_ptr);
 	}
 
 	return EFI_SUCCESS;
