@@ -186,6 +186,9 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 		rpb->runtime_appmodule_base = (hva_t)(slpb.runtime_appmodule_base);
 		rpb->runtime_appmodule_size = (hva_t)(slpb.runtime_appmodule_size);
 
+		//pass ACPI RSDP
+		rpb->uefi_acpi_rsdp = (hva_t)(slpb.uefi_acpi_rsdp);
+
 		rpb->XtGuestOSBootDrive = slpb.runtime_osbootdrive;
 
 	#if defined (__DEBUG_SERIAL__)

@@ -1211,12 +1211,13 @@ void cstartup(multiboot_info_t *mbi)
 #ifdef __UEFI__
 
         slpb->runtime_size = sl_rt_size - PAGE_SIZE_2M;
-        /* TODO: UEFI boots guest OS differently */
+        /* TODO UEFI: UEFI boots guest OS differently */
         slpb->runtime_osbootmodule_base = 0;
         slpb->runtime_osbootmodule_size = 0;
         slpb->runtime_osbootdrive = 0;
 		slpb->runtime_appmodule_base = 0;
 		slpb->runtime_appmodule_size = 0;
+		slpb->uefi_acpi_rsdp = xei->acpi_rsdp;
 #ifdef __DRT__
 		{
 			uintptr_t start = xei->sinit_start;
