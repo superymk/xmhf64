@@ -367,11 +367,11 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 }
 
 /*
- * Find RDSP from SystemTable.
+ * Find RSDP from SystemTable.
  *
- * Return pointer to RDSP.
+ * Return pointer to RSDP.
  */
-static void *xmhf_efi_find_acpi_rdsp(void)
+static void *xmhf_efi_find_acpi_rsdp(void)
 {
 	EFI_GUID guid = ACPI_20_TABLE_GUID;
 	for (UINTN i = 0; i < ST->NumberOfTableEntries; i++) {
@@ -380,8 +380,8 @@ static void *xmhf_efi_find_acpi_rdsp(void)
 			return t->VendorTable;
 		}
 	}
-	/* Require ACPI RDSP to be found */
-	XMHF_ASSERT(0 && "ACPI RDSP not found");
+	/* Require ACPI RSDP to be found */
+	XMHF_ASSERT(0 && "ACPI RSDP not found");
 }
 
 /* Main function for UEFI service, follow https://wiki.osdev.org/GNU-EFI */
@@ -424,9 +424,9 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	// TODO: load SINIT module
 
-	/* Find ACPI RDSP */
+	/* Find ACPI RSDP */
 	{
-		efi_info.acpi_rsdp = (uintptr_t)xmhf_efi_find_acpi_rdsp();
+		efi_info.acpi_rsdp = (uintptr_t)xmhf_efi_find_acpi_rsdp();
 	}
 
 	/* Call XMHF init */
