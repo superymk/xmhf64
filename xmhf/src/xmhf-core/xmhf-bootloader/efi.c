@@ -91,7 +91,7 @@ EFI_FILE_HANDLE xmhf_efi_open_config(EFI_FILE_HANDLE volume,
 	XMHF_ASSERT(loaded_image->FilePath->SubType == MEDIA_FILEPATH_DP);
 	fp = (FILEPATH_DEVICE_PATH *)loaded_image->FilePath;
 	fp_size = *(UINT16 *)fp->Header.Length;
-	Print(L"fp: %s\n", fp->PathName);
+	//Print(L"fp: %s\n", fp->PathName);
 
 	/* Compute size */
 	XMHF_ASSERT(fp_size > END_DEVICE_PATH_LENGTH);
@@ -256,7 +256,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	InitializeLib(ImageHandle, SystemTable);
 
-	Print(L"Hello, world from %p!\n", efi_main);
+	Print(L"Hello, world from console!\n");
 	printf("Hello, world from serial!\n");
 
 	/* https://wiki.osdev.org/Debugging_UEFI_applications_with_GDB */
@@ -272,6 +272,13 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 		EFI_FILE_HANDLE conf = xmhf_efi_open_config(volume, loaded_image);
 		xmhf_efi_read_config(conf, &config);
 		efi_info.cmdline = config.cmdline;
+	}
+
+	/* Load XMHF secure loader and runtime */
+	{
+		// TODO
+		// efi_info.rt_start = __TARGET_BASE_SL;
+		// efi_info.rt_end = __TARGET_BASE_SL;
 	}
 
 	/* Find ACPI RDSP */
