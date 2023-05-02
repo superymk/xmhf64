@@ -227,6 +227,24 @@ void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle, xmhf_efi_config *config)
 	XMHF_ASSERT(index == size);
 }
 
+/*
+ * Find RDSP from SystemTable.
+ *
+ * Return pointer to RDSP.
+ */
+void *xmhf_efi_find_acpi_rdsp(void)
+{
+	EFI_GUID guid = ACPI_20_TABLE_GUID;
+	for (UINTN i = 0; i < ST->NumberOfTableEntries; i++) {
+		EFI_CONFIGURATION_TABLE *t = &ST->ConfigurationTable[i];
+		if (CompareGuid(&guid, &t->VendorGuid) == 0) {
+			return t->VendorTable;
+		}
+	}
+	/* Require ACPI RDSP to be found */
+	XMHF_ASSERT(0 && "ACPI RDSP not found");
+}
+
 /* Main function for UEFI service, follow https://wiki.osdev.org/GNU-EFI */
 EFI_STATUS
 EFIAPI
@@ -254,6 +272,11 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 		EFI_FILE_HANDLE conf = xmhf_efi_open_config(volume, loaded_image);
 		xmhf_efi_read_config(conf, &config);
 		efi_info.cmdline = config.cmdline;
+	}
+
+	/* Find ACPI RDSP */
+	{
+		efi_info.acpi_rsdp = (uintptr_t)xmhf_efi_find_acpi_rdsp();
 	}
 
 	/* Allocate memory */
