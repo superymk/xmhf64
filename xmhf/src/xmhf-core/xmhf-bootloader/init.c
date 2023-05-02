@@ -55,7 +55,7 @@
 #endif /* __UEFI__ */
 
 //---forward prototypes---------------------------------------------------------
-u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus);
+u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp);
 MPFP * MP_GetFPStructure(void);
 u32 _MPFPComputeChecksum(u32 spaddr, u32 size);
 u32 isbsp(void);
@@ -117,8 +117,8 @@ size_t sl_rt_size;
 
 
 //---MP config table handling---------------------------------------------------
-void dealwithMP(void){
-    if(!smp_getinfo(pcpus, &pcpus_numentries)){
+void dealwithMP(void *uefi_rsdp){
+    if(!smp_getinfo(pcpus, &pcpus_numentries, uefi_rsdp)){
         printf("Fatal error with SMP detection. Halting!\n");
         HALT();
     }
@@ -1100,7 +1100,7 @@ void cstartup(multiboot_info_t *mbi)
 #endif /* !defined(__XMHF_I386__) */
 
     //deal with MP and get CPU table
-    dealwithMP();
+    dealwithMP((void *)(uintptr_t)xei->acpi_rsdp);
 
 #ifdef __UEFI__
 
