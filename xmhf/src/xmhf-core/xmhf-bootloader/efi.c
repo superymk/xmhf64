@@ -282,20 +282,21 @@ static void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle,
  *
  * volume: root of the current file system.
  * pathname: pathname of file in UEFI to load SL+RT from.
- * start: start address for SL+RT.
- * Return end address for SL+RT.
+ * efi_info: this function will set rt_* fields.
  *
  * This function also allocates memory in UEFI to hide memory from guest.
  */
-static UINT64 xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
-								 UINT64 start)
+static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
+							   xmhf_efi_info_t *efi_info)
 {
 	EFI_FILE_HANDLE file_handle;
 	wchar_t *wpathname;
-	UINT64 size;
+	UINT64 file_size;
 	UINT64 buf_size;
 	UINT64 read_size;
+	UINT64 start;
 	UINT64 end;
+	UINT64 nonzero_end;
 
 	/* Convert pathname to wchar_t */
 	wpathname = xmhf_efi_bs2wcs(pathname);
@@ -310,14 +311,34 @@ static UINT64 xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	FreePool(wpathname);
 
 	/* Get file size */
-	// TODO: this does not account for __SKIP_RUNTIME_BSS__
-	size = xmhf_efi_get_file_size(file_handle);
-	end = start + size;
-	XMHF_ASSERT(end > start);
+	start = __TARGET_BASE_SL;
+	file_size = xmhf_efi_get_file_size(file_handle);
+	nonzero_end = start + file_size;
+	XMHF_ASSERT(nonzero_end > start);
+
+	/* If Runtime bss is not in the file, read RPB to get runtime size */
+#ifdef __SKIP_RUNTIME_BSS__
+	{
+		UINT64 read_rpb_size = sizeof(RPB);
+		RPB rpb;
+
+		/* Read RPB */
+		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0x200000);
+		UEFI_CALL(file_handle->Read, 3, file_handle, &read_rpb_size, &rpb);
+		XMHF_ASSERT(read_rpb_size == sizeof(RPB));
+		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0);
+
+		/* Set end */
+		XMHF_ASSERT(nonzero_end <= rpb.XtVmmRuntimeBssBegin);
+		end = rpb.XtVmmRuntimeBssEnd;
+	}
+#else /* !__SKIP_RUNTIME_BSS__ */
+	end = nonzero_end;
+#endif /* __SKIP_RUNTIME_BSS__ */
 
 	/* Compute buffer size (larger than file size, 4K aligned) */
-	buf_size = PA_PAGE_ALIGN_UP_4K(size + 1);
-	XMHF_ASSERT(buf_size > size);
+	buf_size = PA_PAGE_ALIGN_UP_4K((end - start) + 1);
+	XMHF_ASSERT(buf_size > (end - start));
 
 	/* Allocate memory */
 	{
@@ -335,9 +356,11 @@ static UINT64 xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	XMHF_ASSERT((UINT64)(void *)start == start);
 	read_size = buf_size;
 	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, start);
-	XMHF_ASSERT(read_size == size);
+	XMHF_ASSERT(read_size == file_size);
 
-	return end;
+	/* Set efi_info */
+	efi_info->rt_start = start;
+	efi_info->rt_end = end;
 }
 
 /*
@@ -393,9 +416,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	/* Load XMHF secure loader and runtime */
 	{
-		efi_info.rt_start = __TARGET_BASE_SL;
-		efi_info.rt_end = xmhf_efi_load_slrt(volume, config.runtime_file,
-											 efi_info.rt_start);
+		xmhf_efi_load_slrt(volume, config.runtime_file, &efi_info);
 	}
 
 	// TODO: load SINIT module

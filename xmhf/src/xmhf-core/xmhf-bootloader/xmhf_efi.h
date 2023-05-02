@@ -6,6 +6,10 @@ typedef struct {
 	/* Start and end of XMHF runtime */
 	uint64_t rt_start;
 	uint64_t rt_end;
+	/* End of nonzero part of XMHF runtime */
+#ifdef __SKIP_RUNTIME_BSS__
+	uint64_t rt_nonzero_end;
+#endif /* __SKIP_RUNTIME_BSS__ */
 	/* Start and end of SINIT module. Not exist if both 0. */
 	uint64_t sinit_start;
 	uint64_t sinit_end;
