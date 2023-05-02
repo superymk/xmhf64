@@ -106,16 +106,16 @@ our C main*/
     .global _sl_start
     _sl_start:
 
-    .code32
+    .code64
 
     /* get (physical location of secure loader - link location) in EBP */
     call 1f
-1:  popl %ebp // put EIP into EAX
-    subl $1b, %ebp
+1:  popq %rbp // put EIP into EAX
+    subq $1b, %rbp
 
     /* XXX require EBP to be 2M-aligned, or page table will mis-align */
-    movl $0x1fffff, %eax
-    testl %ebp, %eax
+    movq $0x1fffff, %rax
+    testq %rbp, %rax
     je 5f
 6:  hlt
     jmp 6b
@@ -127,59 +127,59 @@ our C main*/
      * Need to follow sl-x86-entry.S to query CPUID.
      * See "Cross-processor challenge:" comment in that file.
      */
-    addl %ebp, %ds:sl_gdt_ptr(%ebp)
-    lgdt %ds:sl_gdt(%ebp)
+    addq %rbp, %ds:sl_gdt_ptr(%rbp)
+    lgdt %ds:sl_gdt(%rbp)
 
     /* set CR4 (enable PAE) */
-    movl %cr4, %eax
-    orl $(CR4_PAE), %eax
-    movl %eax, %cr4
+    movq %cr4, %rax
+    orq $(CR4_PAE), %rax
+    movq %rax, %cr4
 
     /* set up identity-map page table */
 
     /* clear memory, because page table is in untrusted region */
-    leal sl_long_pt_begin(%ebp), %eax
-    leal sl_long_pt_end(%ebp), %ebx
-2:  cmpl %eax, %ebx
+    leaq sl_long_pt_begin(%rbp), %rax
+    leaq sl_long_pt_end(%rbp), %rbx
+2:  cmpq %rax, %rbx
     jbe 3f
-    movl $0, %ds:(%eax)
-    addl $4, %eax
+    movq $0, %ds:(%rax)
+    addq $8, %rax
     jmp 2b
 3:
 
     /* set PML4T (1 entry, 512 GiB per entry) */
-    leal sl_pdpt(%ebp), %eax
-    orl $0x3, %eax                  /* set P and R/W bits */
-    movl %eax, %ds:sl_pml4t(%ebp)   /* store PML4T[0] */
+    leaq sl_pdpt(%rbp), %rax
+    orq $0x3, %rax                  /* set P and R/W bits */
+    movq %rax, %ds:sl_pml4t(%rbp)   /* store PML4T[0] */
 
     /* set PDPT (4 entries, 1 GiB per entry) */
-    leal sl_pdt_0(%ebp), %eax
-    orl $0x3, %eax                      /* set P and R/W bits */
-    movl %eax, %ds:sl_pdpt+8*0(%ebp)    /* store PDPT[0] */
-    leal sl_pdt_1(%ebp), %eax
-    orl $0x3, %eax
-    movl %eax, %ds:sl_pdpt+8*1(%ebp)    /* store PDPT[1] */
-    leal sl_pdt_2(%ebp), %eax
-    orl $0x3, %eax
-    movl %eax, %ds:sl_pdpt+8*2(%ebp)    /* store PDPT[2] */
-    leal sl_pdt_3(%ebp), %eax
-    orl $0x3, %eax
-    movl %eax, %ds:sl_pdpt+8*3(%ebp)    /* store PDPT[3] */
+    leaq sl_pdt_0(%rbp), %rax
+    orq $0x3, %rax                      /* set P and R/W bits */
+    movq %rax, %ds:sl_pdpt+8*0(%rbp)    /* store PDPT[0] */
+    leaq sl_pdt_1(%rbp), %rax
+    orq $0x3, %rax
+    movq %rax, %ds:sl_pdpt+8*1(%rbp)    /* store PDPT[1] */
+    leaq sl_pdt_2(%rbp), %rax
+    orq $0x3, %rax
+    movq %rax, %ds:sl_pdpt+8*2(%rbp)    /* store PDPT[2] */
+    leaq sl_pdt_3(%rbp), %rax
+    orq $0x3, %rax
+    movq %rax, %ds:sl_pdpt+8*3(%rbp)    /* store PDPT[3] */
 
     /* set PDT (512*4 = 2048 entries, 2 MiB per entry) */
-    movl $0, %eax
-    movl $2048, %ecx
-4:  movl %eax, %ebx
-    shll $21, %ebx
-    orl $0x83, %ebx
-    movl %ebx, %ds:sl_pdt(%ebp, %eax, 8)    /* store PDT[EAX] */
-    incl %eax
-    cmpl %eax, %ecx
+    movq $0, %rax
+    movq $2048, %rcx
+4:  movq %rax, %rbx
+    shlq $21, %rbx
+    orq $0x83, %rbx
+    movq %rbx, %ds:sl_pdt(%rbp, %rax, 8)    /* store PDT[EAX] */
+    incq %rax
+    cmpq %rax, %rcx
     ja 4b
 
     /* set CR3 (location of PML4T) */
-    leal sl_pml4t(%ebp), %eax
-    movl %eax, %cr3
+    leaq sl_pml4t(%rbp), %rax
+    movq %rax, %cr3
 
     /* set EFER MSR LME */
     movl $(MSR_EFER), %ecx
@@ -188,17 +188,18 @@ our C main*/
     wrmsr
 
     /* setup jump to 64-bit mode */
-    pushl $(__CS)           /* 2nd entry in GDT (64-bit CODE) */
-    leal _sl_start_64(%ebp), %eax
-    pushl %eax
+    pushq $(__CS)           /* 2nd entry in GDT (64-bit CODE) */
+    leaq _sl_start_64(%rbp), %rax
+    pushq %rax
 
     /* enable paging */
-    movl %cr0, %eax
-    orl $(CR0_PG), %eax
-    movl %eax, %cr0
+    movq $(CR0_PG), %rbx
+    movq %cr0, %rax
+    orq %rbx, %rax
+    movq %rax, %cr0
 
     /* jump to 64-bit mode */
-    lret
+    lretq
 
     .code64
 
