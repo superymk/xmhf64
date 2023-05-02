@@ -112,6 +112,8 @@ EFI_CFLAGS += -Wall -Werror
 EFI_CFLAGS += -g
 EFI_CFLAGS += -fpic -ffreestanding -fno-stack-protector -fno-stack-check
 EFI_CFLAGS += -fshort-wchar -mno-red-zone -maccumulate-outgoing-args
+EFI_CFLAGS += $(BCFLAGS)
+EFI_CFLAGS += -Wno-strict-prototypes
 
 # LD flags from gnu-efi tutorial
 EFI_LDFLAGS = -shared -Bsymbolic -L$(GNUEFI_BUILD)/x86_64/lib

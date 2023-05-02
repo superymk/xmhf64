@@ -1,8 +1,16 @@
+/* Hack: GCC cannot find <wchar.h>, so manually define wchar_t here */
+typedef short unsigned int wchar_t;
+/* Hack: tomcrypt assumes wchar_t is 4 bytes, so don't include it */
+#define TOMCRYPT_H_
+/* Include XMHF headers */
+#include <xmhf.h>
+/* Hack: gnu-efi provides efistdarg.h, so undefine related macros here */
+#undef va_start
+#undef va_arg
+#undef va_end
+
 #include <efi.h>
 #include <efilib.h>
-#include <wchar.h>
-#include <stdio.h>
-#include <string.h>
 #include "xmhf_efi.h"
 
 /* HALT() contains an infinite loop to indicate that it never exits */
@@ -228,6 +236,20 @@ void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle, xmhf_efi_config *config)
 }
 
 /*
+ * Load XMHF secure loader (SL) and runtime (RT) to memory.
+ *
+ * start: start address for SL+RT.
+ * Return end address for SL+RT.
+ *
+ * This function also allocates memory in UEFI to hide memory from guest.
+ */
+UINT64 xmhf_efi_load_slrt(UINT64 start)
+{
+	// TODO
+	return start + 1;
+}
+
+/*
  * Find RDSP from SystemTable.
  *
  * Return pointer to RDSP.
@@ -276,9 +298,8 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	/* Load XMHF secure loader and runtime */
 	{
-		// TODO
-		// efi_info.rt_start = __TARGET_BASE_SL;
-		// efi_info.rt_end = __TARGET_BASE_SL;
+		efi_info.rt_start = __TARGET_BASE_SL;
+		efi_info.rt_end = xmhf_efi_load_slrt(efi_info.rt_start);
 	}
 
 	/* Find ACPI RDSP */
