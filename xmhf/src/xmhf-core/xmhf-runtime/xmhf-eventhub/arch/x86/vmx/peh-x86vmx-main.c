@@ -238,6 +238,7 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 }
 
 
+#ifndef __UEFI__
 //---vmx int 15 intercept handler-----------------------------------------------
 static void _vmx_int15_handleintercept(VCPU *vcpu, struct regs *r){
 	u16 cs, ip;
@@ -418,8 +419,7 @@ static void _vmx_int15_handleintercept(VCPU *vcpu, struct regs *r){
 	vcpu->vmcs.guest_CS_base = cs * 16;
 	vcpu->vmcs.guest_CS_selector = cs;
 }
-
-
+#endif /* !__UEFI__ */
 
 
 //------------------------------------------------------------------------------
@@ -1326,6 +1326,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 		//--------------------------------------------------------------
 
 		case VMX_VMEXIT_VMCALL:{
+#ifndef __UEFI__
 			//if INT 15h E820 hypercall, then let the xmhf-core handle it
 			if(vcpu->vmcs.guest_CS_base == (VMX_UG_E820HOOK_CS << 4) &&
 				vcpu->vmcs.guest_RIP == VMX_UG_E820HOOK_IP){
@@ -1335,7 +1336,10 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 					( (vcpu->vmcs.guest_CR0 & CR0_PE) && (vcpu->vmcs.guest_CR0 & CR0_PG) &&
 						(vcpu->vmcs.guest_RFLAGS & EFLAGS_VM)  ) );
 				_vmx_int15_handleintercept(vcpu, r);
-			}else{	//if not E820 hook, give hypapp a chance to handle the hypercall
+			}else
+#endif /* !__UEFI__ */
+			//if not E820 hook, give hypapp a chance to handle the hypercall
+			{
 				xmhf_smpguest_arch_x86vmx_quiesce(vcpu);
 				if( xmhf_app_handlehypercall(vcpu, r) != APP_SUCCESS){
 					printf("CPU(0x%02x): error(halt), unhandled hypercall 0x%08x!\n", vcpu->id, r->eax);

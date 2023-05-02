@@ -296,6 +296,7 @@ static void _vmx_initVT(VCPU *vcpu){
 
 }
 
+#ifndef __UEFI__
 //---vmx int 15 hook enabling function------------------------------------------
 static void	_vmx_int15_initializehook(VCPU *vcpu){
 	//we should only be called from the BSP
@@ -344,6 +345,7 @@ static void	_vmx_int15_initializehook(VCPU *vcpu){
 		}
 	}
 }
+#endif /* !__UEFI__ */
 
 // Set msr to cause VMEXIT when read or write in bitmap
 static void set_msrbitmap(u8 *bitmap, u32 msr) {
@@ -837,12 +839,14 @@ void xmhf_partition_arch_x86vmx_initializemonitor(VCPU *vcpu){
   memset((void *)&vcpu->vmcs, 0, sizeof(struct _vmx_vmcsfields));
    #endif
 
+#ifndef __UEFI__
 	//INT 15h E820 hook enablement for VMX unrestricted guest mode
 	//note: this only happens for the BSP
 	if(vcpu->isbsp){
 		printf("CPU(0x%02x, BSP): initializing INT 15 hook for UG mode...\n", vcpu->id);
 		_vmx_int15_initializehook(vcpu);
 	}
+#endif /* !__UEFI__ */
 
 }
 
