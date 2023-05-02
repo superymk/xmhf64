@@ -359,8 +359,11 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	XMHF_ASSERT(read_size == file_size);
 
 	/* Set efi_info */
-	efi_info->rt_start = start;
-	efi_info->rt_end = end;
+	efi_info->slrt_start = start;
+	efi_info->slrt_end = end;
+#ifdef __SKIP_RUNTIME_BSS__
+	efi_info->slrt_nonzero_end = nonzero_end;
+#endif /* __SKIP_RUNTIME_BSS__ */
 }
 
 /*

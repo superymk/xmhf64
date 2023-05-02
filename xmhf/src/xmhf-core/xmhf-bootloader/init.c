@@ -1103,8 +1103,30 @@ void cstartup(multiboot_info_t *mbi)
     dealwithMP();
 
 #ifdef __UEFI__
-    HALT_ON_ERRORCOND(0 && "TODO");
+
+	/*
+	 * In UEFI, SL+RT is already moved to correct memory location by efi.c.
+	 *
+	 * We also do not need to deal with E820, because UEFI AllocatePages will
+	 * hide SL+RT memory from guest for us.
+	 *
+	 * When __SKIP_RUNTIME_BSS__, the zero part of SL+RT is not initialized
+	 * here. It is initialized in secure loader.
+	 *
+	 * Just set global variables, e.g. hypervisor_image_baseaddress.
+	 */
+	hypervisor_image_baseaddress = xei->slrt_start;
+	HALT_ON_ERRORCOND((u64)hypervisor_image_baseaddress == xei->slrt_start);
+
+	/* Set sl_rt_size */
+	{
+		u64 size64 = xei->slrt_end - xei->slrt_start;
+		sl_rt_size = size64;
+		HALT_ON_ERRORCOND((u64)sl_rt_size == size64);
+	}
+
 #else /* !__UEFI__ */
+
     //check number of elements in mod_array. Currently bootloader assumes that
     //mod_array[0] is SL+RT, mod_array[1] is guest OS boot module.
     HALT_ON_ERRORCOND(mods_count >= 2);
@@ -1113,22 +1135,14 @@ void cstartup(multiboot_info_t *mbi)
     //binary must be moved to
     sl_rt_nonzero_size = mod_array[0].mod_end - mod_array[0].mod_start;
     sl_rt_size = sl_rt_nonzero_size;
-#endif /* __UEFI__ */
 
 #ifdef __SKIP_RUNTIME_BSS__
-#ifdef __UEFI__
-    HALT_ON_ERRORCOND(0 && "TODO");
-#else /* !__UEFI__ */
     {
         RPB *rpb = (RPB *) (mod_array[0].mod_start + 0x200000);
         sl_rt_size = PAGE_ALIGN_UP_2M((u32)rpb->XtVmmRuntimeBssEnd - __TARGET_BASE_SL);
     }
-#endif /* __UEFI__ */
 #endif /* __SKIP_RUNTIME_BSS__ */
 
-#ifdef __UEFI__
-    HALT_ON_ERRORCOND(0 && "TODO");
-#else /* !__UEFI__ */
     hypervisor_image_baseaddress = dealwithE820(mbi, PAGE_ALIGN_UP_2M((sl_rt_size)));
 
     //check whether multiboot modules overlap with SL+RT. mod_array[0] can
@@ -1150,6 +1164,7 @@ void cstartup(multiboot_info_t *mbi)
     //relocate the hypervisor binary to the above calculated address
     HALT_ON_ERRORCOND(sl_rt_nonzero_size <= sl_rt_size);
     memmove((void*)hypervisor_image_baseaddress, (void*)mod_array[0].mod_start, sl_rt_nonzero_size);
+
 #endif /* __UEFI__ */
 
     HALT_ON_ERRORCOND(sl_rt_size > 0x200000); /* 2M */
@@ -1172,14 +1187,12 @@ void cstartup(multiboot_info_t *mbi)
                  (u8*)hypervisor_image_baseaddress+0x10000, 0x200000-0x10000);
 #endif /* !__SKIP_BOOTLOADER_HASH__ */
 
-#ifdef __UEFI__
-    HALT_ON_ERRORCOND(0 && "TODO");
-#else /* !__UEFI__ */
+#ifndef __UEFI__
     //print out stats
     printf("INIT(early): relocated hypervisor binary image to 0x%08lx\n", hypervisor_image_baseaddress);
     printf("INIT(early): 2M aligned size = 0x%08lx\n", PAGE_ALIGN_UP_2M((mod_array[0].mod_end - mod_array[0].mod_start)));
     printf("INIT(early): un-aligned size = 0x%08x\n", mod_array[0].mod_end - mod_array[0].mod_start);
-#endif /* __UEFI__ */
+#endif /* !__UEFI__ */
 
     //fill in "sl" parameter block
     {
@@ -1194,9 +1207,26 @@ void cstartup(multiboot_info_t *mbi)
         slpb->numCPUEntries = pcpus_numentries;
         //memcpy((void *)&slpb->pcpus, (void *)&pcpus, (sizeof(PCPU) * pcpus_numentries));
         memcpy((void *)&slpb->cpuinfobuffer, (void *)&pcpus, (sizeof(PCPU) * pcpus_numentries));
+
 #ifdef __UEFI__
-        HALT_ON_ERRORCOND(0 && "TODO");
+
+        slpb->runtime_size = sl_rt_size - PAGE_SIZE_2M;
+        /* TODO: UEFI boots guest OS differently */
+        slpb->runtime_osbootmodule_base = 0;
+        slpb->runtime_osbootmodule_size = 0;
+        slpb->runtime_osbootdrive = 0;
+		slpb->runtime_appmodule_base = 0;
+		slpb->runtime_appmodule_size = 0;
+#ifdef __DRT__
+		{
+			uintptr_t start = xei->sinit_start;
+			uintptr_t bytes = start - xei->sinit_end;
+			HALT_ON_ERRORCOND(is_sinit_acmod((void *)start, bytes, false));
+		}
+#endif /* __DRT__ */
+
 #else /* !__UEFI__ */
+
         slpb->runtime_size = (mod_array[0].mod_end - mod_array[0].mod_start) - PAGE_SIZE_2M;
         slpb->runtime_osbootmodule_base = mod_array[1].mod_start;
         slpb->runtime_osbootmodule_size = (mod_array[1].mod_end - mod_array[1].mod_start);
@@ -1227,13 +1257,14 @@ void cstartup(multiboot_info_t *mbi)
 				break;
 			}
 		}
+
 #endif /* __UEFI__ */
 
 #if defined (__DEBUG_SERIAL__)
         slpb->uart_config = g_uart_config;
 #endif
 #ifdef __UEFI__
-        HALT_ON_ERRORCOND(0 && "TODO");
+        strncpy(slpb->cmdline, xei->cmdline, sizeof(slpb->cmdline));
 #else /* !__UEFI__ */
         strncpy(slpb->cmdline, (const char *)mbi->cmdline, sizeof(slpb->cmdline));
 #endif /* __UEFI__ */
