@@ -1291,11 +1291,25 @@ void cstartup(multiboot_info_t *mbi)
     //setup vcpus
     setupvcpus(cpu_vendor, midtable, midtable_numentries);
 
+#ifdef __UEFI__
+	/* Need C code help to set *init_gdt_base = init_gdt_start */
+	{
+		extern u64 init_gdt_base[];
+		extern u64 init_gdt_start[];
+		*init_gdt_base = (uintptr_t)init_gdt_start;
+	}
+#endif /* __UEFI__ */
+
 #ifndef __SKIP_INIT_SMP__
     //wakeup all APs
     if(midtable_numentries > 1)
         wakeupAPs();
 #endif /* __SKIP_INIT_SMP__ */
+
+#ifdef __UEFI__
+	/* UEFI services run with interrupts enabled, so disable interrupts here. */
+	disable_intr();
+#endif /* __UEFI__ */
 
     //fall through and enter mp_cstartup via init_core_lowlevel_setup
     init_core_lowlevel_setup();

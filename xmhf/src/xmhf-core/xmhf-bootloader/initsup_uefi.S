@@ -66,18 +66,18 @@
     _ap_gdt_start:
       .quad 0x0000000000000000
       .quad 0x00cf9a000000ffff
-        .quad   0x00cf92000000ffff
+      .quad 0x00cf92000000ffff
     _ap_gdt_end:
       .word 0
   ap_bootstrap_bypassdata:
       movw $0x1000, %ax
-        movw %ax, %ds
-        movw %ax, %es
-        movw $0xFFFF, %sp
-        movw $0x4000, %ax
-        movw %ax, %ss
+      movw %ax, %ds
+      movw %ax, %es
+      movw $0xFFFF, %sp
+      movw $0x4000, %ax
+      movw %ax, %ss
 
-        movw $0x0002, %si
+      movw $0x0002, %si
 
       lgdt (%si)
 
@@ -113,91 +113,92 @@ ud2
 
 //---init_core_lowlevel_setup---------------------------------------------------
 .section .text
-  .global init_core_lowlevel_setup
-  init_core_lowlevel_setup:
+.code64
+.global init_core_lowlevel_setup
+init_core_lowlevel_setup:
 
-    //load our gdt
-#ifdef __UEFI__
-// TODO UEFI
-ud2
-#else /* !__UEFI__ */
-  lgdt init_gdt
-#endif /* __UEFI__ */
+	//load our gdt
+	leaq	init_gdt(%rip), %rax
+	lgdt	(%rax)
 
-  //get hold of local APIC id
-  mov $(MSR_APIC_BASE), %ecx
-  rdmsr
-  andl $0xFFFFF000, %eax
-  addl $0x20, %eax
-  movl (%eax), %eax
-  shr $24, %eax
+	//load segment registers (probably unnecessary)
+	movw	$0x18, %ax
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %fs
+	movw	%ax, %gs
+	movw	%ax, %ss
 
-#ifdef __UEFI__
-  call 0f
-0:popl %edx
-  addl $(midtable_numentries-0b), %edx
-#else /* !__UEFI__ */
-  movl midtable_numentries, %edx
-#endif /* __UEFI__ */
+	//get hold of local APIC id
+	movl	$(MSR_APIC_BASE), %ecx
+	rdmsr
+	andl	$0xFFFFF000, %eax
+	orl		$0x20, %eax
+	movl	(%eax), %eax
+	shrl	$24, %eax
 
-  //get vcpu virtual address of this CPU/core
-#ifdef __UEFI__
-    call 0f
-0:  popl %ebx
-    addl $(midtable-0b), %ebx
-#else /* !__UEFI__ */
-    movl $(midtable), %ebx
-#endif /* __UEFI__ */
-    xorl %ecx, %ecx
+	//get vcpu virtual address of this CPU/core
+	movl	midtable_numentries(%rip), %edx
+	leaq	midtable(%rip), %rbx
+	xorq	%rcx, %rcx
+
 getvcpuloop:
 #ifdef __XMHF_I386__
-    movl 0x0(%ebx, %ecx, 8), %ebp  //ebp contains the lapic id
+	movl	0x0(%rbx, %rcx, 8), %ebp	//ebp contains the lapic id
 #elif defined(__XMHF_AMD64__)
-    leal 0x0(%ebx, %ecx, 8), %esp
-    movl 0x0(%esp, %ecx, 8), %ebp  //ebp contains the lapic id
+	leaq	0x0(%rbx, %rcx, 8), %rsp
+	movl	0x0(%rsp, %rcx, 8), %ebp	//ebp contains the lapic id
 #else
     #error "Unsupported Arch"
 #endif /* __I386__ */
-    cmpl %eax, %ebp
-    jz gotvcpu
-    incl %ecx
-    cmpl %edx, %ecx
-    jb getvcpuloop
+	cmpl	%eax, %ebp
+	jz		gotvcpu
+	incq	%rcx
+	cmpq	%rdx, %rcx
+    jb		getvcpuloop
+0:
     //we should never get here, if so just halt
     hlt
+    jmp		0b
+
 gotvcpu:
 #ifdef __XMHF_I386__
-   movl 0x4(%ebx, %ecx, 8), %esi //esi contains vcpu pointer
+	movq	0x4(%rbx, %rcx, 8), %rdi	//rdi contains vcpu pointer
 #elif defined(__XMHF_AMD64__)
-   movl 0x8(%esp, %ecx, 8), %esi //esi contains vcpu pointer
+	movq	0x8(%rsp, %rcx, 8), %rdi	//rdi contains vcpu pointer
 #else
     #error "Unsupported Arch"
 #endif /* __I386__ */
-   movl 0x0(%esi), %esp     //load stack for this CPU
-   pushl %esi
-   call mp_cstartup
-   //we should never get here, if so just halt
-   hlt
+	movq	(%rdi), %rsp	//load stack for this CPU
+	call	mp_cstartup
+0:
+	//we should never get here, if so just halt
+	hlt
+    jmp		0b
 
 
 
 //------------------------------------------------------------------------------
 .section  .data
 
+.global init_gdt
+.global init_gdt_base
+.global init_gdt_start
+
     //the GDT
-    init_gdt:
+  init_gdt:
     .word   init_gdt_end - init_gdt_start - 1
-#ifdef __UEFI__
-  // TODO UEFI: Will be set up by C code.
-  .long 0
-#else /* !__UEFI__ */
-    .long   init_gdt_start
-#endif /* __UEFI__ */
+  init_gdt_base:
+    // Should be init_gdt_start, but 0 here and will be set up by C code later,
+    // because UEFI applications/drivers need to be relocatable.
+    .quad 0
 
     .align  16
-    init_gdt_start:
-    .quad   0x0000000000000000
-    .quad   0x00cf9a000000ffff
-    .quad   0x00cf92000000ffff
-    .quad   0x0000000000000000
-    init_gdt_end:
+  init_gdt_start:
+    .quad   0x0000000000000000  /* 0x00: NULL selector */
+    .quad   0x00af9a000000ffff  /* 0x08: 64-bit CODE selector */
+    .quad   0x00cf9a000000ffff  /* 0x10: 32-bit CODE selector */
+    .quad   0x00cf92000000ffff  /* 0x18: 32-bit DATA selector */
+    .quad   0x0000000000000000  /* 0x20: TSS low (unused) */
+    .quad   0x0000000000000000  /* 0x28: TSS high (unused) */
+  init_gdt_end:
