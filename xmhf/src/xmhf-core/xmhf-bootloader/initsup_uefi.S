@@ -44,8 +44,8 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-// init low-level support routines
-// author: amit vasudevan (amitvasudevan@acm.org)
+// init low-level support routines for UEFI
+// author: Eric Li (xiaoyili@andrew.cmu.edu)
 
 #include <xmhf.h>
 
@@ -65,19 +65,19 @@
     .align 16
     _ap_gdt_start:
       .quad 0x0000000000000000
-      .quad	0x00cf9a000000ffff
-	    .quad	0x00cf92000000ffff
+      .quad 0x00cf9a000000ffff
+        .quad   0x00cf92000000ffff
     _ap_gdt_end:
       .word 0
   ap_bootstrap_bypassdata:
       movw $0x1000, %ax
-    	movw %ax, %ds
-    	movw %ax, %es
-    	movw $0xFFFF, %sp
-    	movw $0x4000, %ax
-    	movw %ax, %ss
+        movw %ax, %ds
+        movw %ax, %es
+        movw $0xFFFF, %sp
+        movw $0x4000, %ax
+        movw %ax, %ss
 
-    	movw $0x0002, %si
+        movw $0x0002, %si
 
       lgdt (%si)
 
@@ -116,7 +116,7 @@ ud2
   .global init_core_lowlevel_setup
   init_core_lowlevel_setup:
 
-	//load our gdt
+    //load our gdt
 #ifdef __UEFI__
 // TODO UEFI
 ud2
@@ -184,20 +184,20 @@ gotvcpu:
 //------------------------------------------------------------------------------
 .section  .data
 
-	//the GDT
-	init_gdt:
-	.word	init_gdt_end - init_gdt_start - 1
+    //the GDT
+    init_gdt:
+    .word   init_gdt_end - init_gdt_start - 1
 #ifdef __UEFI__
   // TODO UEFI: Will be set up by C code.
   .long 0
 #else /* !__UEFI__ */
-	.long	init_gdt_start
+    .long   init_gdt_start
 #endif /* __UEFI__ */
 
-	.align	16
-	init_gdt_start:
-	.quad	0x0000000000000000
-	.quad	0x00cf9a000000ffff
-	.quad	0x00cf92000000ffff
-	.quad	0x0000000000000000
-	init_gdt_end:
+    .align  16
+    init_gdt_start:
+    .quad   0x0000000000000000
+    .quad   0x00cf9a000000ffff
+    .quad   0x00cf92000000ffff
+    .quad   0x0000000000000000
+    init_gdt_end:

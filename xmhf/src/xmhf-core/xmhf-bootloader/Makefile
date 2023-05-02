@@ -6,11 +6,11 @@ ASFLAGS := $(BASFLAGS)
 CCLIB := $(BCCLIB)
 
 # source files
-AS_SOURCES =
-ifneq ($(TARGET_UEFI), y)
-AS_SOURCES += header.S
+ifeq ($(TARGET_UEFI), y)
+AS_SOURCES = initsup_uefi.S
+else
+AS_SOURCES = header.S initsup_bios.S
 endif
-AS_SOURCES += initsup.S
 C_SOURCES = init.c smp.c cmdline.c
 ifeq ($(DRT), y)
 C_SOURCES += txt.c txt_acmod.c txt_heap.c txt_hash.c
