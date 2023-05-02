@@ -55,61 +55,75 @@
 
 //---AP boot-strap code---------------------------------------------------------
 .section .text
-  .code16
-  .global _ap_bootstrap_start
-  _ap_bootstrap_start:
-    jmp ap_bootstrap_bypassdata
-    _ap_gdtdesc:
-      .word _ap_gdt_end - _ap_gdt_start - 1
-      .long _ap_gdt_start - _ap_bootstrap_start + 0x10000
+.code16
+.global _ap_bootstrap_start
+_ap_bootstrap_start:
+	jmp		ap_bootstrap_bypassdata
+_ap_gdtdesc:
+	.word	_ap_gdt_end - _ap_gdt_start - 1
+	.long	_ap_gdt_start - _ap_bootstrap_start + (AP_BOOTSTRAP_CODE_SEG << 4)
     .align 16
-    _ap_gdt_start:
-      .quad 0x0000000000000000
-      .quad 0x00cf9a000000ffff
-      .quad 0x00cf92000000ffff
-    _ap_gdt_end:
-      .word 0
-  ap_bootstrap_bypassdata:
-      movw $0x1000, %ax
-      movw %ax, %ds
-      movw %ax, %es
-      movw $0xFFFF, %sp
-      movw $0x4000, %ax
-      movw %ax, %ss
+_ap_gdt_start:
+	.quad	0x0000000000000000  /* 0x00: NULL selector */
+	.quad	0x00af9a000000ffff  /* 0x08: 64-bit CODE selector */
+	.quad	0x00cf9a000000ffff  /* 0x10: 32-bit CODE selector */
+	.quad	0x00cf92000000ffff  /* 0x18: 32-bit DATA selector */
+	.quad	0x0000000000000000  /* 0x20: TSS low (unused) */
+	.quad	0x0000000000000000  /* 0x28: TSS high (unused) */
+_ap_gdt_end:
+	.word	0
 
-      movw $0x0002, %si
+ap_bootstrap_bypassdata:
 
-      lgdt (%si)
+	/*
+	 * Starting APs in bootloader in UEFI is not supported. The following code
+	 * until init_core_lowlevel_setup() is not tested.
+	 */
+	ud2
 
-      movl %cr0, %eax
-      orl $0x1, %eax
-      movl %eax, %cr0
+	/* Set segment registers for real mode */
+	movw	$AP_BOOTSTRAP_CODE_SEG, %ax
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	$0xFFFF, %sp
+	movw	$0x4000, %ax
+	movw	%ax, %ss
 
-      jmpl $0x08, $(_ap_clear_pipe - _ap_bootstrap_start + (AP_BOOTSTRAP_CODE_SEG << 4))
-    .code32
-    _ap_clear_pipe:
-      movw $0x10, %ax
-      movw %ax, %ds
-      movw %ax, %es
-      movw %ax, %ss
-      movw %ax, %fs
-      movw %ax, %gs
+	/* Load GDT */
+	movw	$(_ap_gdtdesc - _ap_bootstrap_start), %si
+	lgdt	(%si)
 
-#ifdef __UEFI__
-// TODO UEFI
-ud2
-#else /* !__UEFI__ */
-      movl $init_core_lowlevel_setup, %eax
-#endif /* __UEFI__ */
-      jmpl *%eax
-      hlt
+	/* Enable protected mode */
+	movl	%cr0, %eax
+	orl		$0x1, %eax
+	movl	%eax, %cr0
 
-  .global _ap_bootstrap_end
-  _ap_bootstrap_end:
-    nop
-    nop
-    nop
-    nop
+	/* Jump to 32-bit code */
+	jmpl	$0x10, $(_ap_clear_pipe - _ap_bootstrap_start + (AP_BOOTSTRAP_CODE_SEG << 4))
+
+.code32
+_ap_clear_pipe:
+	/* Set segment registers for protected mode */
+	movw	$0x18, %ax
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %ss
+	movw	%ax, %fs
+	movw	%ax, %gs
+
+	//TODO: movl $init_core_lowlevel_setup, %eax
+	jmpl	*%eax
+0:
+    //we should never get here, if so just halt
+    hlt
+    jmp		0b
+
+.global _ap_bootstrap_end
+_ap_bootstrap_end:
+	nop
+	nop
+	nop
+	nop
 
 //---init_core_lowlevel_setup---------------------------------------------------
 .section .text

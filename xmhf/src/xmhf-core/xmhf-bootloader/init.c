@@ -1298,13 +1298,18 @@ void cstartup(multiboot_info_t *mbi)
 		extern u64 init_gdt_start[];
 		*init_gdt_base = (uintptr_t)init_gdt_start;
 	}
+
+#ifndef __SKIP_INIT_SMP__
+    #error "INIT SMP in UEFI is not supported"
+#endif /* __SKIP_INIT_SMP__ */
+
 #endif /* __UEFI__ */
 
 #ifndef __SKIP_INIT_SMP__
     //wakeup all APs
     if(midtable_numentries > 1)
         wakeupAPs();
-#endif /* __SKIP_INIT_SMP__ */
+#endif /* !__SKIP_INIT_SMP__ */
 
 #ifdef __UEFI__
 	/* UEFI services run with interrupts enabled, so disable interrupts here. */

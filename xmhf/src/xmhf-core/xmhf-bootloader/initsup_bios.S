@@ -77,7 +77,7 @@
     	movw $0x4000, %ax
     	movw %ax, %ss
 
-    	movw $0x0002, %si
+    	movw $(_ap_gdtdesc - _ap_bootstrap_start), %si
 
       lgdt (%si)
 
