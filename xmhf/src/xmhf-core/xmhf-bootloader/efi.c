@@ -53,12 +53,52 @@ typedef struct {
 } xmhf_efi_config;
 
 /*
+ * Convert char string to wchar_t string.
+ *
+ * src: char string to be converted.
+ * Return wchar_t string. Need to be freed with FreePool.
+ */
+static wchar_t *xmhf_efi_bs2wcs(const char *src)
+{
+	size_t len = strlen(src);
+	UINTN bufsize = len;
+	wchar_t *dst;
+
+	/* Check for overflow when casing size_t to UINTN */
+	XMHF_ASSERT((size_t)bufsize == len);
+
+	/* bufsize++ but check for overflow */
+	{
+		UINTN tmp = bufsize;
+		bufsize++;
+		XMHF_ASSERT(bufsize > tmp);
+	}
+
+	/* bufsize *= 2 but check for overflow */
+	{
+		UINTN tmp = bufsize;
+		bufsize *= 2;
+		XMHF_ASSERT(bufsize > tmp);
+	}
+
+	/* Allocate for new buffer */
+	XMHF_ASSERT((dst = AllocatePool(bufsize)) != NULL);
+
+	for (size_t i = 0; i < len; i++) {
+		dst[i] = (wchar_t)src[i];
+	}
+	dst[len] = 0;
+
+	return dst;
+}
+
+/*
  * Open the root directory of the volume (e.g. FS0:).
  *
  * loaded_image: loaded image of this UEFI service.
  * Return opened root directory, no need to close.
  */
-EFI_FILE_HANDLE xmhf_efi_open_volume(EFI_LOADED_IMAGE *loaded_image)
+static EFI_FILE_HANDLE xmhf_efi_open_volume(EFI_LOADED_IMAGE *loaded_image)
 {
 	EFI_FILE_IO_INTERFACE *io_volume;
 	EFI_FILE_HANDLE volume;
@@ -74,6 +114,7 @@ EFI_FILE_HANDLE xmhf_efi_open_volume(EFI_LOADED_IMAGE *loaded_image)
 /*
  * Open configuration for XMHF.
  *
+ * volume: root of the current file system.
  * loaded_image: loaded image of this UEFI service.
  * Return opened config file, need to close with EFI_FILE_HANDLE->Close().
  *
@@ -81,8 +122,8 @@ EFI_FILE_HANDLE xmhf_efi_open_volume(EFI_LOADED_IMAGE *loaded_image)
  * Thus, we add ".conf" suffix to the pathname of the executable.
  * e.g. "\EFI\BOOT\init-x86-amd64.efi" -> "\EFI\BOOT\init-x86-amd64.efi.conf"
  */
-EFI_FILE_HANDLE xmhf_efi_open_config(EFI_FILE_HANDLE volume,
-									 EFI_LOADED_IMAGE *loaded_image)
+static EFI_FILE_HANDLE xmhf_efi_open_config(EFI_FILE_HANDLE volume,
+											EFI_LOADED_IMAGE *loaded_image)
 {
 	FILEPATH_DEVICE_PATH *fp = NULL;
 	UINT16 fp_size = 0;
@@ -145,7 +186,7 @@ EFI_FILE_HANDLE xmhf_efi_open_config(EFI_FILE_HANDLE volume,
  * file_handle: opened file handle.
  * Return size of file.
  */
-UINT64 xmhf_efi_get_file_size(EFI_FILE_HANDLE file_handle)
+static UINT64 xmhf_efi_get_file_size(EFI_FILE_HANDLE file_handle)
 {
 	UINTN size = 0;
 	EFI_FILE_INFO *info = NULL;
@@ -182,7 +223,8 @@ UINT64 xmhf_efi_get_file_size(EFI_FILE_HANDLE file_handle)
  * xmhf_efi_config: will be filled with config information.
  *                  After use, call FreePool on free_ptr.
  */
-void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle, xmhf_efi_config *config)
+static void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle,
+								 xmhf_efi_config *config)
 {
 	UINT64 size;
 	UINTN buf_size;
@@ -238,15 +280,64 @@ void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle, xmhf_efi_config *config)
 /*
  * Load XMHF secure loader (SL) and runtime (RT) to memory.
  *
+ * volume: root of the current file system.
+ * pathname: pathname of file in UEFI to load SL+RT from.
  * start: start address for SL+RT.
  * Return end address for SL+RT.
  *
  * This function also allocates memory in UEFI to hide memory from guest.
  */
-UINT64 xmhf_efi_load_slrt(UINT64 start)
+static UINT64 xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
+								 UINT64 start)
 {
-	// TODO
-	return start + 1;
+	EFI_FILE_HANDLE file_handle;
+	wchar_t *wpathname;
+	UINT64 size;
+	UINT64 buf_size;
+	UINT64 read_size;
+	UINT64 end;
+
+	/* Convert pathname to wchar_t */
+	wpathname = xmhf_efi_bs2wcs(pathname);
+	Print(L"wpathname = %s\n", wpathname);
+
+	/* Open new file, ref: https://wiki.osdev.org/Loading_files_under_UEFI */
+	UEFI_CALL(volume->Open, 5, volume, &file_handle, wpathname,
+			  EFI_FILE_MODE_READ,
+			  EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
+
+	/* Free converted pathname to wchar_t */
+	FreePool(wpathname);
+
+	/* Get file size */
+	// TODO: this does not account for __SKIP_RUNTIME_BSS__
+	size = xmhf_efi_get_file_size(file_handle);
+	end = start + size;
+	XMHF_ASSERT(end > start);
+
+	/* Compute buffer size (larger than file size, 4K aligned) */
+	buf_size = PA_PAGE_ALIGN_UP_4K(size + 1);
+	XMHF_ASSERT(buf_size > size);
+
+	/* Allocate memory */
+	{
+		UINTN pages;
+		EFI_PHYSICAL_ADDRESS addr = start;
+
+		pages = buf_size >> PAGE_SHIFT_4K;
+		XMHF_ASSERT((pages << PAGE_SHIFT_4K) == buf_size);
+		UEFI_CALL(BS->AllocatePages, 4, AllocateAddress, EfiRuntimeServicesData,
+				  pages, &addr);
+		XMHF_ASSERT(addr == start);
+	}
+
+	/* Copy file */
+	XMHF_ASSERT((UINT64)(void *)start == start);
+	read_size = buf_size;
+	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, start);
+	XMHF_ASSERT(read_size == size);
+
+	return end;
 }
 
 /*
@@ -254,7 +345,7 @@ UINT64 xmhf_efi_load_slrt(UINT64 start)
  *
  * Return pointer to RDSP.
  */
-void *xmhf_efi_find_acpi_rdsp(void)
+static void *xmhf_efi_find_acpi_rdsp(void)
 {
 	EFI_GUID guid = ACPI_20_TABLE_GUID;
 	for (UINTN i = 0; i < ST->NumberOfTableEntries; i++) {
@@ -275,6 +366,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	xmhf_efi_config config;
 	xmhf_efi_info_t efi_info = {};
 	EFI_LOADED_IMAGE *loaded_image = NULL;
+	EFI_FILE_HANDLE volume = NULL;
 
 	InitializeLib(ImageHandle, SystemTable);
 
@@ -290,29 +382,27 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	/* Read command line arguments from file */
 	{
-		EFI_FILE_HANDLE volume = xmhf_efi_open_volume(loaded_image);
-		EFI_FILE_HANDLE conf = xmhf_efi_open_config(volume, loaded_image);
+		EFI_FILE_HANDLE conf;
+
+		volume = xmhf_efi_open_volume(loaded_image);
+		conf = xmhf_efi_open_config(volume, loaded_image);
 		xmhf_efi_read_config(conf, &config);
+		UEFI_CALL(conf->Close, 1, conf);
 		efi_info.cmdline = config.cmdline;
 	}
 
 	/* Load XMHF secure loader and runtime */
 	{
 		efi_info.rt_start = __TARGET_BASE_SL;
-		efi_info.rt_end = xmhf_efi_load_slrt(efi_info.rt_start);
+		efi_info.rt_end = xmhf_efi_load_slrt(volume, config.runtime_file,
+											 efi_info.rt_start);
 	}
+
+	// TODO: load SINIT module
 
 	/* Find ACPI RDSP */
 	{
 		efi_info.acpi_rsdp = (uintptr_t)xmhf_efi_find_acpi_rdsp();
-	}
-
-	/* Allocate memory */
-	{
-		EFI_PHYSICAL_ADDRESS addr = 0x10000000;
-		UEFI_CALL(BS->AllocatePages, 4, AllocateAddress, EfiRuntimeServicesData,
-				  32768, &addr);
-		Print(L"Allocated: %p\n", addr);
 	}
 
 	/* Call XMHF init */
