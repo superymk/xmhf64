@@ -1100,7 +1100,11 @@ void cstartup(multiboot_info_t *mbi)
 #endif /* !defined(__XMHF_I386__) */
 
     //deal with MP and get CPU table
+#ifdef __UEFI__
     dealwithMP((void *)(uintptr_t)xei->acpi_rsdp);
+#else /* !__UEFI__ */
+    dealwithMP(NULL);
+#endif /* __UEFI__ */
 
 #ifdef __UEFI__
 
@@ -1258,6 +1262,8 @@ void cstartup(multiboot_info_t *mbi)
 				break;
 			}
 		}
+
+		slpb->uefi_acpi_rsdp = 0;
 
 #endif /* __UEFI__ */
 
