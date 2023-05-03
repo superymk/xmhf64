@@ -1218,6 +1218,7 @@ void cstartup(multiboot_info_t *mbi)
 		slpb->runtime_appmodule_base = 0;
 		slpb->runtime_appmodule_size = 0;
 		slpb->uefi_acpi_rsdp = xei->acpi_rsdp;
+		slpb->uefi_info = (uintptr_t)xei;
 #ifdef __DRT__
 		{
 			uintptr_t start = xei->sinit_start;

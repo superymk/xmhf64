@@ -192,6 +192,7 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 
 		//pass ACPI RSDP
 		rpb->uefi_acpi_rsdp = (hva_t)(slpb.uefi_acpi_rsdp);
+		rpb->uefi_info = (hva_t)(slpb.uefi_info);
 
 		rpb->XtGuestOSBootDrive = slpb.runtime_osbootdrive;
 
