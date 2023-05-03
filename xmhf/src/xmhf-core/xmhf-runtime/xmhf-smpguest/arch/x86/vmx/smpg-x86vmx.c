@@ -401,6 +401,7 @@ void xmhf_smpguest_arch_x86vmx_eventhandler_dbexception(VCPU *vcpu, struct regs 
     printf("%s: delinking LAPIC interception since all cores have SIPI\n", __FUNCTION__);
 	vmx_lapic_changemapping(vcpu, g_vmx_lapic_base, g_vmx_lapic_base, VMX_LAPIC_MAP);
 	xmhf_partition_arch_x86vmx_clear_msrbitmap_x2apic_icr(vcpu);
+    g_all_cores_booted_up = 1;
   }else{
 	vmx_lapic_changemapping(vcpu, g_vmx_lapic_base, g_vmx_lapic_base, VMX_LAPIC_UNMAP);
   }
