@@ -296,6 +296,7 @@ static void _vmx_initVT(VCPU *vcpu){
 
 }
 
+#ifndef __UEFI__
 //---vmx int 15 hook enabling function------------------------------------------
 static void	_vmx_int15_initializehook(VCPU *vcpu){
 	//we should only be called from the BSP
@@ -344,6 +345,7 @@ static void	_vmx_int15_initializehook(VCPU *vcpu){
 		}
 	}
 }
+#endif /* !__UEFI__ */
 
 // Set msr to cause VMEXIT when read or write in bitmap
 static void set_msrbitmap(u8 *bitmap, u32 msr) {
@@ -754,6 +756,84 @@ void vmx_initunrestrictedguestVMCS(VCPU *vcpu){
 	vcpu->vmcs.control_CR4_mask = vcpu->vmx_msrs[INDEX_IA32_VMX_CR4_FIXED0_MSR];
 	vcpu->vmcs.control_CR4_shadow = 0;
 
+#ifdef __UEFI__
+	/*
+	 * For UEFI, BSP needs to resume the EFI service. Thus, load guest state
+	 * from bootloader data (untrusted).
+	 */
+	if (vcpu->isbsp) {
+		xmhf_efi_info_t *xei = (xmhf_efi_info_t *)(uintptr_t)rpb->uefi_info;
+
+#define LOAD_XEI(x) do { vcpu->vmcs.x = xei->x; } while (0)
+		LOAD_XEI(guest_ES_selector);
+		LOAD_XEI(guest_CS_selector);
+		LOAD_XEI(guest_SS_selector);
+		LOAD_XEI(guest_DS_selector);
+		LOAD_XEI(guest_FS_selector);
+		LOAD_XEI(guest_GS_selector);
+		LOAD_XEI(guest_LDTR_selector);
+		LOAD_XEI(guest_TR_selector);
+		LOAD_XEI(guest_PDPTE0);
+		LOAD_XEI(guest_PDPTE1);
+		LOAD_XEI(guest_PDPTE2);
+		LOAD_XEI(guest_PDPTE3);
+		LOAD_XEI(guest_ES_limit);
+		LOAD_XEI(guest_CS_limit);
+		LOAD_XEI(guest_SS_limit);
+		LOAD_XEI(guest_DS_limit);
+		LOAD_XEI(guest_FS_limit);
+		LOAD_XEI(guest_GS_limit);
+		LOAD_XEI(guest_LDTR_limit);
+		LOAD_XEI(guest_TR_limit);
+		LOAD_XEI(guest_GDTR_limit);
+		LOAD_XEI(guest_IDTR_limit);
+		LOAD_XEI(guest_ES_access_rights);
+		LOAD_XEI(guest_CS_access_rights);
+		LOAD_XEI(guest_SS_access_rights);
+		LOAD_XEI(guest_DS_access_rights);
+		LOAD_XEI(guest_FS_access_rights);
+		LOAD_XEI(guest_GS_access_rights);
+		LOAD_XEI(guest_LDTR_access_rights);
+		LOAD_XEI(guest_TR_access_rights);
+		LOAD_XEI(guest_SYSENTER_CS);
+		LOAD_XEI(guest_CR0);
+		LOAD_XEI(guest_CR3);
+		LOAD_XEI(guest_CR4);
+		LOAD_XEI(guest_ES_base);
+		LOAD_XEI(guest_CS_base);
+		LOAD_XEI(guest_SS_base);
+		LOAD_XEI(guest_DS_base);
+		LOAD_XEI(guest_FS_base);
+		LOAD_XEI(guest_GS_base);
+		LOAD_XEI(guest_LDTR_base);
+		LOAD_XEI(guest_TR_base);
+		LOAD_XEI(guest_GDTR_base);
+		LOAD_XEI(guest_IDTR_base);
+		LOAD_XEI(guest_DR7);
+		LOAD_XEI(guest_RSP);
+		LOAD_XEI(guest_RIP);
+		LOAD_XEI(guest_RFLAGS);
+		LOAD_XEI(guest_SYSENTER_ESP);
+		LOAD_XEI(guest_SYSENTER_EIP);
+#undef LOAD_XEI
+
+		/* Handle MSR load area */
+		{
+			msr_entry_t *gmsr = (msr_entry_t *)vcpu->vmx_vaddr_msr_area_guest;
+			HALT_ON_ERRORCOND(vmx_msr_area_msrs_count == 2);
+			HALT_ON_ERRORCOND(gmsr[0].index == MSR_EFER);
+			gmsr[0].data = xei->guest_IA32_EFER;
+			HALT_ON_ERRORCOND(gmsr[1].index == MSR_IA32_PAT);
+			gmsr[1].data = xei->guest_IA32_PAT;
+		}
+
+		/* Handle IA-32e guest */
+		if (xei->guest_IA32_EFER & (1U << EFER_LME)) {
+			_vmx_setctl_vmentry_ia_32e_mode_guest(&vmx_ctls);
+		}
+	}
+#endif /* __UEFI__ */
+
 	//write VMX controls to VMCS
 	vcpu->vmcs.control_VMX_pin_based = vmx_ctls.pinbased_ctls;
 	vcpu->vmcs.control_VMX_cpu_based = vmx_ctls.procbased_ctls;
@@ -837,12 +917,14 @@ void xmhf_partition_arch_x86vmx_initializemonitor(VCPU *vcpu){
   memset((void *)&vcpu->vmcs, 0, sizeof(struct _vmx_vmcsfields));
    #endif
 
+#ifndef __UEFI__
 	//INT 15h E820 hook enablement for VMX unrestricted guest mode
 	//note: this only happens for the BSP
 	if(vcpu->isbsp){
 		printf("CPU(0x%02x, BSP): initializing INT 15 hook for UG mode...\n", vcpu->id);
 		_vmx_int15_initializehook(vcpu);
 	}
+#endif /* !__UEFI__ */
 
 }
 
