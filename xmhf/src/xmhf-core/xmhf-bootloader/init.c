@@ -50,10 +50,6 @@
 //---includes-------------------------------------------------------------------
 #include <xmhf.h>
 
-#ifdef __UEFI__
-#include "xmhf_efi.h"
-#endif /* __UEFI__ */
-
 //---forward prototypes---------------------------------------------------------
 u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp);
 MPFP * MP_GetFPStructure(void);

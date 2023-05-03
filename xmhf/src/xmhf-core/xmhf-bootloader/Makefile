@@ -7,7 +7,7 @@ CCLIB := $(BCCLIB)
 
 # source files
 ifeq ($(TARGET_UEFI), y)
-AS_SOURCES = initsup_uefi.S
+AS_SOURCES = efi2init.S initsup_uefi.S
 else
 AS_SOURCES = header.S initsup_bios.S
 endif
