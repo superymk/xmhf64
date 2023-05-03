@@ -47,8 +47,35 @@
 // efi2init.S - Call from efi.c to init.c for UEFI
 // author: Eric Li (xiaoyili@andrew.cmu.edu)
 
+#include <xmhf.h>
+
+/*
+ * Save all GPRs in this function.
+ * Save RSP to memory pointed by RSI.
+ * Save RIP to memory pointed by RDX.
+ * Save RFLAGS to memory pointed by RCX.
+ * Call cstartup with argument RDI.
+ * Restore
+ */
 .global efi2init
 efi2init:
-	// TODO
-	call cstartup
+
+	/* Save GPRs */
+	PUSHAQ
+	movq	%rsp, (%rsi)
+
+	/* Save RIP */
+	leaq	1f(%rip), %rax
+	movq	%rax, (%rdx)
+
+	/* Save RFLAGS */
+	pushfq
+	popq	(%rcx)
+
+	/* Call init.c */
+	call	cstartup
+
+1:
+	/* Restore GPRs */
+	POPAQ
 

@@ -70,6 +70,7 @@ typedef struct {
 	/* ACPI RSDP location */
 	uint64_t acpi_rsdp;
 	/* Guest state fields before calling efi2init */
+	bool interrupt_enabled;
 	struct {
 		uint16_t guest_ES_selector;
 		uint16_t guest_CS_selector;
@@ -111,7 +112,7 @@ typedef struct {
 		uint32_t guest_GS_access_rights;
 		uint32_t guest_LDTR_access_rights;
 		uint32_t guest_TR_access_rights;
-		uint32_t guest_interruptibility;
+		//uint32_t guest_interruptibility;
 		//uint32_t guest_activity_state;
 		//uint32_t guest_SMBASE;
 		uint32_t guest_SYSENTER_CS;
@@ -133,7 +134,7 @@ typedef struct {
 		uintptr_t guest_RSP;
 		uintptr_t guest_RIP;
 		uintptr_t guest_RFLAGS;
-		uintptr_t guest_pending_debug_x;
+		//uintptr_t guest_pending_debug_x;
 		uintptr_t guest_SYSENTER_ESP;
 		uintptr_t guest_SYSENTER_EIP;
 		//uintptr_t guest_IA32_S_CET;
@@ -142,7 +143,8 @@ typedef struct {
 	};
 } xmhf_efi_info_t;
 
-extern void efi2init(xmhf_efi_info_t *xei);
+extern void efi2init(xmhf_efi_info_t *xei, uintptr_t *rsp, uintptr_t *rip,
+					 uintptr_t *rflags);
 extern void cstartup(xmhf_efi_info_t *xei);
 
 #endif /* __UEFI__ */

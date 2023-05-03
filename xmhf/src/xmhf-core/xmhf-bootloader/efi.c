@@ -439,8 +439,110 @@ static void *xmhf_efi_find_acpi_rsdp(void)
  */
 static void xmhf_efi_store_guest_state(xmhf_efi_info_t *efi_info)
 {
-	efi_info->guest_ES_selector = 0;
-	// TODO
+	{
+		uintptr_t eflags;
+		get_eflags(eflags);
+		efi_info->interrupt_enabled = !!(eflags & EFLAGS_IF);
+	}
+	efi_info->guest_ES_selector = read_segreg_es();
+	efi_info->guest_CS_selector = read_segreg_cs();
+	efi_info->guest_SS_selector = read_segreg_ss();
+	efi_info->guest_DS_selector = read_segreg_ds();
+	efi_info->guest_FS_selector = read_segreg_fs();
+	efi_info->guest_GS_selector = read_segreg_gs();
+	{
+		uint16_t ldtr;
+		asm volatile ("sldt %0" : "=g"(ldtr));
+		efi_info->guest_LDTR_selector = ldtr;
+	}
+	{
+		uint16_t tr;
+		asm volatile ("str %0" : "=g"(tr));
+		efi_info->guest_TR_selector = tr;
+	}
+	efi_info->guest_IA32_PAT = rdmsr64(MSR_IA32_PAT);
+	efi_info->guest_IA32_EFER = rdmsr64(MSR_EFER);
+	{
+		/*
+		 * Assume in 64-bit paging, so we ignore PDPTEs (because we are not in
+		 * PAE paging).
+		 */
+		XMHF_ASSERT((efi_info->guest_IA32_EFER & (1U << EFER_LME)) &&
+					(read_cr0() & CR0_PG));
+		efi_info->guest_PDPTE0 = 0;
+		efi_info->guest_PDPTE1 = 0;
+		efi_info->guest_PDPTE2 = 0;
+		efi_info->guest_PDPTE3 = 0;
+		/* In 64-bit paging, most segment registers have limit 0xffffffff. */
+		efi_info->guest_ES_limit = 0xffffffff;
+		efi_info->guest_CS_limit = 0xffffffff;
+		efi_info->guest_SS_limit = 0xffffffff;
+		efi_info->guest_DS_limit = 0xffffffff;
+		efi_info->guest_FS_limit = 0xffffffff;
+		efi_info->guest_GS_limit = 0xffffffff;
+		/* Cannot easily get LDTR and TR limit, using value from QEMU/KVM. */
+		efi_info->guest_LDTR_limit = 0x0000ffff;
+		efi_info->guest_TR_limit = 0x0000ffff;
+	}
+	{
+		struct {
+			uint16_t limit;
+			uintptr_t base;
+		} __attribute__((packed)) gdtr;
+		asm volatile ("sgdt %0" : "=m"(gdtr));
+		efi_info->guest_GDTR_limit = gdtr.limit;
+		efi_info->guest_GDTR_base = gdtr.base;
+	}
+	{
+		struct {
+			uint16_t limit;
+			uintptr_t base;
+		} __attribute__((packed)) idtr;
+		asm volatile ("sidt %0" : "=m"(idtr));
+		efi_info->guest_IDTR_limit = idtr.limit;
+		efi_info->guest_IDTR_base = idtr.base;
+	}
+	{
+		/*
+		 * In 64-bit code, access rights are usually the same. Using QEMU/KVM
+		 * value.
+		 */
+		efi_info->guest_ES_access_rights = 0xc093;
+		efi_info->guest_CS_access_rights = 0xa09b;
+		efi_info->guest_SS_access_rights = 0xc093;
+		efi_info->guest_DS_access_rights = 0xc093;
+		efi_info->guest_FS_access_rights = 0xc093;
+		efi_info->guest_GS_access_rights = 0xc093;
+	}
+	{
+		/* Using QEMU/KVM value. */
+		efi_info->guest_LDTR_access_rights = 0x0082;
+		efi_info->guest_TR_access_rights = 0x008b;
+	}
+	efi_info->guest_SYSENTER_CS = rdmsr64(IA32_SYSENTER_CS_MSR);
+	efi_info->guest_CR0 = read_cr0();
+	efi_info->guest_CR3 = read_cr3();
+	efi_info->guest_CR4 = read_cr4();
+	efi_info->guest_ES_base = 0;
+	efi_info->guest_CS_base = 0;
+	efi_info->guest_SS_base = 0;
+	efi_info->guest_DS_base = 0;
+	efi_info->guest_FS_base = rdmsr64(IA32_MSR_FS_BASE);
+	efi_info->guest_GS_base = rdmsr64(IA32_MSR_GS_BASE);
+	{
+		/* Using QEMU/KVM value. */
+		efi_info->guest_TR_base = 0;
+		efi_info->guest_LDTR_base = 0;
+	}
+	/* guest_GDTR_base and guest_IDTR_base are already set above. */
+	{
+		uintptr_t dr7;
+		asm volatile("mov %%dr7, %0" : "=r"(dr7));
+		efi_info->guest_DR7 = dr7;
+	}
+	/* guest_RSP, guest_RIP, and guest_RFLAGS are set later. */
+	efi_info->guest_SYSENTER_ESP = rdmsr64(IA32_SYSENTER_ESP_MSR);
+	efi_info->guest_SYSENTER_EIP = rdmsr64(IA32_SYSENTER_EIP_MSR);
 }
 
 /* Main function for UEFI service, follow https://wiki.osdev.org/GNU-EFI */
@@ -495,8 +597,12 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	/* Call XMHF init */
 	{
-		efi2init(&efi_info);
+		efi2init(&efi_info, &efi_info.guest_RSP, &efi_info.guest_RIP,
+				 &efi_info.guest_RFLAGS);
 	}
+
+	// TODO: restore efi_info->interrupt_enabled
+	// TODO: reload LDTR, TR, etc. in xmhf_efi_refresh_guest_state()
 
 	/* Clean up */
 	{
