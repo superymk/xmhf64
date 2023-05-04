@@ -796,9 +796,7 @@ void vmx_initunrestrictedguestVMCS(VCPU *vcpu){
 		LOAD_XEI(guest_LDTR_access_rights);
 		LOAD_XEI(guest_TR_access_rights);
 		LOAD_XEI(guest_SYSENTER_CS);
-		LOAD_XEI(guest_CR0);
 		LOAD_XEI(guest_CR3);
-		LOAD_XEI(guest_CR4);
 		LOAD_XEI(guest_ES_base);
 		LOAD_XEI(guest_CS_base);
 		LOAD_XEI(guest_SS_base);
@@ -816,6 +814,27 @@ void vmx_initunrestrictedguestVMCS(VCPU *vcpu){
 		LOAD_XEI(guest_SYSENTER_ESP);
 		LOAD_XEI(guest_SYSENTER_EIP);
 #undef LOAD_XEI
+
+		/* CR0 need to be restored to guest_CR0 and control_CR0_shadow. */
+		{
+			ulong_t fixed0 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR0_FIXED0_MSR];
+			ulong_t fixed1 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR0_FIXED1_MSR];
+			fixed0 &= ~(CR0_PG | CR0_PE);
+			vcpu->vmcs.control_CR0_shadow = xei->guest_CR0;
+			vcpu->vmcs.guest_CR0 = xei->guest_CR0;
+			vcpu->vmcs.guest_CR0 &= fixed0;
+			vcpu->vmcs.guest_CR0 |= fixed1;
+		}
+
+		/* CR4 need to be restored to guest_CR4 and control_CR4_shadow. */
+		{
+			ulong_t fixed0 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR4_FIXED0_MSR];
+			ulong_t fixed1 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR4_FIXED1_MSR];
+			vcpu->vmcs.control_CR4_shadow = xei->guest_CR4;
+			vcpu->vmcs.guest_CR4 = xei->guest_CR4;
+			vcpu->vmcs.guest_CR4 &= fixed0;
+			vcpu->vmcs.guest_CR4 |= fixed1;
+		}
 
 		/* Handle MSR load area */
 		{
