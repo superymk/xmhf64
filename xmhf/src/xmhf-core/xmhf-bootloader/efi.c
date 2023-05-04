@@ -443,6 +443,7 @@ static void xmhf_efi_store_guest_state(xmhf_efi_info_t *efi_info)
 		uintptr_t eflags;
 		get_eflags(eflags);
 		efi_info->interrupt_enabled = !!(eflags & EFLAGS_IF);
+		disable_intr();
 	}
 	efi_info->guest_ES_selector = read_segreg_es();
 	efi_info->guest_CS_selector = read_segreg_cs();
@@ -545,6 +546,33 @@ static void xmhf_efi_store_guest_state(xmhf_efi_info_t *efi_info)
 	efi_info->guest_SYSENTER_EIP = rdmsr64(IA32_SYSENTER_EIP_MSR);
 }
 
+/*
+ * Refresh CPU state in efi_info to current CPU.
+ *
+ * efi_info: data structure that contains state.
+ */
+static void xmhf_efi_refresh_guest_state(xmhf_efi_info_t *efi_info)
+{
+	/* Check presence of XMHF. */
+	{
+		u32 eax, ebx, ecx, edx;
+		printf("Detecting XMHF ...\n");
+		cpuid(0x46484d58U, &eax, &ebx, &ecx, &edx);
+		if (eax == 0x46484d58U) {
+			printf("XMHF detected: %08x %08x %08x %08x\n", eax, ebx, ecx, edx);
+		} else {
+			XMHF_ASSERT(0 && "XMHF not detected");
+		}
+	}
+
+	// TODO: reload LDTR, TR, etc. in xmhf_efi_refresh_guest_state()
+
+	/* Enable interrupts if needed. */
+	if (efi_info->interrupt_enabled) {
+		enable_intr();
+	}
+}
+
 /* Main function for UEFI service, follow https://wiki.osdev.org/GNU-EFI */
 EFI_STATUS
 EFIAPI
@@ -601,8 +629,10 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 				 &efi_info.guest_RFLAGS);
 	}
 
-	// TODO: restore efi_info->interrupt_enabled
-	// TODO: reload LDTR, TR, etc. in xmhf_efi_refresh_guest_state()
+	/* Load guest state */
+	{
+		xmhf_efi_refresh_guest_state(&efi_info);
+	}
 
 	/* Clean up */
 	{

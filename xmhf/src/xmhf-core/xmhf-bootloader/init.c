@@ -1308,11 +1308,6 @@ void cstartup(multiboot_info_t *mbi)
         wakeupAPs();
 #endif /* !__SKIP_INIT_SMP__ */
 
-#ifdef __UEFI__
-	/* UEFI services run with interrupts enabled, so disable interrupts here. */
-	disable_intr();
-#endif /* __UEFI__ */
-
     //fall through and enter mp_cstartup via init_core_lowlevel_setup
     init_core_lowlevel_setup();
 
