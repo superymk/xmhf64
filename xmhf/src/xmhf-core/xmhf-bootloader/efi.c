@@ -564,15 +564,21 @@ static void xmhf_efi_refresh_guest_state(xmhf_efi_info_t *efi_info)
 		printf("Reloaded LDT\n");
 	}
 
-	/* Reload TR */
-#if 0
-	{
+	/*
+	 * Cannot reload TR easily. During the first time loading TR, the hardware
+	 * will set TSSsegmentDescriptor(busy) := 1. The second time loading TR
+	 * will cause #GP(selector). A possible way to do this in the future is to
+	 * clear the TSSsegmentDescriptor(busy) bit, then reload TR.
+	 */
+	if (1) {
+		printf("Warning: not reloading TR. May cause compatibility bugs if "
+			   "UEFI firmware uses TR.\n");
+	} else {
 		uint16_t tr = efi_info->guest_TR_selector;
 		printf("Reloading TR ...\n");
 		asm volatile ("ltr %0" : : "g"(tr));
 		printf("Reloaded TR\n");
 	}
-#endif
 
 	/* Enable interrupts if needed. */
 	if (efi_info->interrupt_enabled) {
