@@ -86,3 +86,6 @@ volatile u32 g_ap_go_signal __attribute__(( section(".data") )) = 0;
 
 //SMP lock for the above variable
 volatile u32 g_lock_ap_go_signal __attribute__(( section(".data") )) = 1;
+
+//Flag of whether all cores have booted up. Set to 1 if so, otherwise 0.
+u32 g_all_cores_booted_up __attribute__(( section(".data") )) = 0;
