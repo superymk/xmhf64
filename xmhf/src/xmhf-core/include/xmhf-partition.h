@@ -125,6 +125,8 @@ bool xmhf_partition_arch_x86vmx_get_xmhf_msr(u32 msr, u32 *index);
 void xmhf_partition_arch_x86vmx_set_msrbitmap_x2apic_icr(VCPU *vcpu);
 void xmhf_partition_arch_x86vmx_clear_msrbitmap_x2apic_icr(VCPU *vcpu);
 
+void xmhf_partition_arch_x86vmx_guestVMCS_INIT(VCPU *vcpu);
+
 //initialize partition monitor for a given CPU
 void xmhf_partition_arch_x86vmx_initializemonitor(VCPU *vcpu);
 

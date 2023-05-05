@@ -543,14 +543,125 @@ void xmhf_partition_arch_x86vmx_guestVMCS_INIT(VCPU *vcpu)
 	vcpu->vmcs.guest_SS_base = 0x0;
 	vcpu->vmcs.guest_SS_limit = 0xFFFF;	//64K
 	vcpu->vmcs.guest_SS_access_rights = 0x93; //present, system, read-write accessed
-	//setup VMCS link pointer
-	vcpu->vmcs.guest_VMCS_link_pointer = (u64)0xFFFFFFFFFFFFFFFFULL;
 }
 
-/* Set the state of guest for BSP when booted by BIOS, as specified by BIOS */
-void xmhf_partition_arch_x86vmx_guestVMCS_BIOS(VCPU *vcpu)
+#ifdef __UEFI__
+
+/*
+ * Set the state of guest for BSP when booted by UEFI, as recorded in
+ * bootloader's efi.c.
+ */
+static void xmhf_partition_arch_x86vmx_guestVMCS_UEFI(VCPU *vcpu,
+													  vmx_ctls_t *vmx_ctls)
 {
+	/*
+	 * For UEFI, BSP needs to resume the EFI service. Thus, load guest state
+	 * from bootloader data (untrusted).
+	 */
+	xmhf_efi_info_t *xei = (xmhf_efi_info_t *)(uintptr_t)rpb->uefi_info;
+
+#define LOAD_XEI(x) do { vcpu->vmcs.x = xei->x; } while (0)
+	LOAD_XEI(guest_ES_selector);
+	LOAD_XEI(guest_CS_selector);
+	LOAD_XEI(guest_SS_selector);
+	LOAD_XEI(guest_DS_selector);
+	LOAD_XEI(guest_FS_selector);
+	LOAD_XEI(guest_GS_selector);
+	LOAD_XEI(guest_LDTR_selector);
+	LOAD_XEI(guest_TR_selector);
+	LOAD_XEI(guest_PDPTE0);
+	LOAD_XEI(guest_PDPTE1);
+	LOAD_XEI(guest_PDPTE2);
+	LOAD_XEI(guest_PDPTE3);
+	LOAD_XEI(guest_ES_limit);
+	LOAD_XEI(guest_CS_limit);
+	LOAD_XEI(guest_SS_limit);
+	LOAD_XEI(guest_DS_limit);
+	LOAD_XEI(guest_FS_limit);
+	LOAD_XEI(guest_GS_limit);
+	LOAD_XEI(guest_LDTR_limit);
+	LOAD_XEI(guest_TR_limit);
+	LOAD_XEI(guest_GDTR_limit);
+	LOAD_XEI(guest_IDTR_limit);
+	LOAD_XEI(guest_ES_access_rights);
+	LOAD_XEI(guest_CS_access_rights);
+	LOAD_XEI(guest_SS_access_rights);
+	LOAD_XEI(guest_DS_access_rights);
+	LOAD_XEI(guest_FS_access_rights);
+	LOAD_XEI(guest_GS_access_rights);
+	LOAD_XEI(guest_LDTR_access_rights);
+	LOAD_XEI(guest_TR_access_rights);
+	LOAD_XEI(guest_SYSENTER_CS);
+	LOAD_XEI(guest_CR3);
+	LOAD_XEI(guest_ES_base);
+	LOAD_XEI(guest_CS_base);
+	LOAD_XEI(guest_SS_base);
+	LOAD_XEI(guest_DS_base);
+	LOAD_XEI(guest_FS_base);
+	LOAD_XEI(guest_GS_base);
+	LOAD_XEI(guest_LDTR_base);
+	LOAD_XEI(guest_TR_base);
+	LOAD_XEI(guest_GDTR_base);
+	LOAD_XEI(guest_IDTR_base);
+	LOAD_XEI(guest_DR7);
+	LOAD_XEI(guest_RSP);
+	LOAD_XEI(guest_RIP);
+	LOAD_XEI(guest_RFLAGS);
+	LOAD_XEI(guest_SYSENTER_ESP);
+	LOAD_XEI(guest_SYSENTER_EIP);
+#undef LOAD_XEI
+
+	/* CR0 need to be restored to guest_CR0 and control_CR0_shadow. */
+	{
+		ulong_t fixed0 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR0_FIXED0_MSR];
+		ulong_t fixed1 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR0_FIXED1_MSR];
+		fixed0 &= ~(CR0_PG | CR0_PE);
+		vcpu->vmcs.control_CR0_mask = fixed0;
+		vcpu->vmcs.control_CR0_mask &= ~(CR0_PE);
+		vcpu->vmcs.control_CR0_mask &= ~(CR0_PG);
+		vcpu->vmcs.control_CR0_mask |= CR0_CD;
+		vcpu->vmcs.control_CR0_mask |= CR0_NW;
+		vcpu->vmcs.control_CR0_shadow = xei->guest_CR0;
+		vcpu->vmcs.guest_CR0 = xei->guest_CR0;
+		vcpu->vmcs.guest_CR0 |= fixed0;
+		vcpu->vmcs.guest_CR0 &= fixed1;
+	}
+
+	/* CR4 need to be restored to guest_CR4 and control_CR4_shadow. */
+	{
+		ulong_t fixed0 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR4_FIXED0_MSR];
+		ulong_t fixed1 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR4_FIXED1_MSR];
+		vcpu->vmcs.control_CR4_mask = fixed0;
+		vcpu->vmcs.control_CR4_shadow = xei->guest_CR4;
+		vcpu->vmcs.guest_CR4 = xei->guest_CR4;
+		vcpu->vmcs.guest_CR4 |= fixed0;
+		vcpu->vmcs.guest_CR4 &= fixed1;
+	}
+
+	/* Handle MSR load area */
+	{
+		msr_entry_t *gmsr = (msr_entry_t *)vcpu->vmx_vaddr_msr_area_guest;
+		HALT_ON_ERRORCOND(vmx_msr_area_msrs_count == 2);
+		HALT_ON_ERRORCOND(gmsr[0].index == MSR_EFER);
+		gmsr[0].data = xei->guest_IA32_EFER;
+		HALT_ON_ERRORCOND(gmsr[1].index == MSR_IA32_PAT);
+		gmsr[1].data = xei->guest_IA32_PAT;
+	}
+
+	/* Handle IA-32e guest */
+	if (xei->guest_IA32_EFER & (1U << EFER_LME)) {
+		_vmx_setctl_vmentry_ia_32e_mode_guest(vmx_ctls);
+	}
+}
+
+#else /* !__UEFI__ */
+
+/* Set the state of guest for BSP when booted by BIOS, as specified by BIOS */
+static void xmhf_partition_arch_x86vmx_guestVMCS_BIOS(VCPU *vcpu)
+{
+	/* Reuse code for setting VMCS to state of INIT */
 	xmhf_partition_arch_x86vmx_guestVMCS_INIT(vcpu);
+
 	// Set CR0 = 0x00000010U (e.g. after QEMU's SeaBIOS jumps to 0x7c00)
 	vcpu->vmcs.control_CR0_shadow = CR0_ET;
 	vcpu->vmcs.guest_IDTR_limit = 0x3ff;	//16-bit IVT
@@ -569,6 +680,8 @@ void xmhf_partition_arch_x86vmx_guestVMCS_BIOS(VCPU *vcpu)
 	memcpy((void *)__GUESTOSBOOTMODULE_BASE, (void *)rpb->XtGuestOSBootModuleBase, rpb->XtGuestOSBootModuleSize);
 	#endif
 }
+
+#endif /* __UEFI__ */
 
 //--initunrestrictedguestVMCS: initializes VMCS for unrestricted guest ---------
 void vmx_initunrestrictedguestVMCS(VCPU *vcpu){
@@ -715,7 +828,11 @@ void vmx_initunrestrictedguestVMCS(VCPU *vcpu){
 
 	//setup guest state
 	if(vcpu->isbsp){
+#ifdef __UEFI__
+		xmhf_partition_arch_x86vmx_guestVMCS_UEFI(vcpu, &vmx_ctls);
+#else /* !__UEFI__ */
 		xmhf_partition_arch_x86vmx_guestVMCS_BIOS(vcpu);
+#endif /* __UEFI__ */
 	} else {
 		xmhf_partition_arch_x86vmx_guestVMCS_INIT(vcpu);
 	}
@@ -749,6 +866,9 @@ void vmx_initunrestrictedguestVMCS(VCPU *vcpu){
 		vcpu->vmcs.control_MSR_Bitmaps_address = hva2spa(vmx_msr_bitmaps[vcpu->idx]);
 	}
 
+	//setup VMCS link pointer
+	vcpu->vmcs.guest_VMCS_link_pointer = (u64)0xFFFFFFFFFFFFFFFFULL;
+
 	//setup NMI intercept for core-quiescing
 	_vmx_setctl_nmi_exiting(&vmx_ctls);
 	_vmx_setctl_virtual_nmis(&vmx_ctls);
@@ -758,103 +878,6 @@ void vmx_initunrestrictedguestVMCS(VCPU *vcpu){
 	vcpu->vmx_guest_nmi_cfg.guest_nmi_block = false;
 	vcpu->vmx_guest_nmi_cfg.guest_nmi_pending = 0;
 	vcpu->vmx_eptlock_reading = false;
-
-#ifdef __UEFI__
-	/*
-	 * For UEFI, BSP needs to resume the EFI service. Thus, load guest state
-	 * from bootloader data (untrusted).
-	 */
-	if (vcpu->isbsp) {
-		xmhf_efi_info_t *xei = (xmhf_efi_info_t *)(uintptr_t)rpb->uefi_info;
-
-#define LOAD_XEI(x) do { vcpu->vmcs.x = xei->x; } while (0)
-		LOAD_XEI(guest_ES_selector);
-		LOAD_XEI(guest_CS_selector);
-		LOAD_XEI(guest_SS_selector);
-		LOAD_XEI(guest_DS_selector);
-		LOAD_XEI(guest_FS_selector);
-		LOAD_XEI(guest_GS_selector);
-		LOAD_XEI(guest_LDTR_selector);
-		LOAD_XEI(guest_TR_selector);
-		LOAD_XEI(guest_PDPTE0);
-		LOAD_XEI(guest_PDPTE1);
-		LOAD_XEI(guest_PDPTE2);
-		LOAD_XEI(guest_PDPTE3);
-		LOAD_XEI(guest_ES_limit);
-		LOAD_XEI(guest_CS_limit);
-		LOAD_XEI(guest_SS_limit);
-		LOAD_XEI(guest_DS_limit);
-		LOAD_XEI(guest_FS_limit);
-		LOAD_XEI(guest_GS_limit);
-		LOAD_XEI(guest_LDTR_limit);
-		LOAD_XEI(guest_TR_limit);
-		LOAD_XEI(guest_GDTR_limit);
-		LOAD_XEI(guest_IDTR_limit);
-		LOAD_XEI(guest_ES_access_rights);
-		LOAD_XEI(guest_CS_access_rights);
-		LOAD_XEI(guest_SS_access_rights);
-		LOAD_XEI(guest_DS_access_rights);
-		LOAD_XEI(guest_FS_access_rights);
-		LOAD_XEI(guest_GS_access_rights);
-		LOAD_XEI(guest_LDTR_access_rights);
-		LOAD_XEI(guest_TR_access_rights);
-		LOAD_XEI(guest_SYSENTER_CS);
-		LOAD_XEI(guest_CR3);
-		LOAD_XEI(guest_ES_base);
-		LOAD_XEI(guest_CS_base);
-		LOAD_XEI(guest_SS_base);
-		LOAD_XEI(guest_DS_base);
-		LOAD_XEI(guest_FS_base);
-		LOAD_XEI(guest_GS_base);
-		LOAD_XEI(guest_LDTR_base);
-		LOAD_XEI(guest_TR_base);
-		LOAD_XEI(guest_GDTR_base);
-		LOAD_XEI(guest_IDTR_base);
-		LOAD_XEI(guest_DR7);
-		LOAD_XEI(guest_RSP);
-		LOAD_XEI(guest_RIP);
-		LOAD_XEI(guest_RFLAGS);
-		LOAD_XEI(guest_SYSENTER_ESP);
-		LOAD_XEI(guest_SYSENTER_EIP);
-#undef LOAD_XEI
-
-		/* CR0 need to be restored to guest_CR0 and control_CR0_shadow. */
-		{
-			ulong_t fixed0 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR0_FIXED0_MSR];
-			ulong_t fixed1 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR0_FIXED1_MSR];
-			fixed0 &= ~(CR0_PG | CR0_PE);
-			vcpu->vmcs.control_CR0_shadow = xei->guest_CR0;
-			vcpu->vmcs.guest_CR0 = xei->guest_CR0;
-			vcpu->vmcs.guest_CR0 |= fixed0;
-			vcpu->vmcs.guest_CR0 &= fixed1;
-		}
-
-		/* CR4 need to be restored to guest_CR4 and control_CR4_shadow. */
-		{
-			ulong_t fixed0 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR4_FIXED0_MSR];
-			ulong_t fixed1 = vcpu->vmx_msrs[INDEX_IA32_VMX_CR4_FIXED1_MSR];
-			vcpu->vmcs.control_CR4_shadow = xei->guest_CR4;
-			vcpu->vmcs.guest_CR4 = xei->guest_CR4;
-			vcpu->vmcs.guest_CR4 |= fixed0;
-			vcpu->vmcs.guest_CR4 &= fixed1;
-		}
-
-		/* Handle MSR load area */
-		{
-			msr_entry_t *gmsr = (msr_entry_t *)vcpu->vmx_vaddr_msr_area_guest;
-			HALT_ON_ERRORCOND(vmx_msr_area_msrs_count == 2);
-			HALT_ON_ERRORCOND(gmsr[0].index == MSR_EFER);
-			gmsr[0].data = xei->guest_IA32_EFER;
-			HALT_ON_ERRORCOND(gmsr[1].index == MSR_IA32_PAT);
-			gmsr[1].data = xei->guest_IA32_PAT;
-		}
-
-		/* Handle IA-32e guest */
-		if (xei->guest_IA32_EFER & (1U << EFER_LME)) {
-			_vmx_setctl_vmentry_ia_32e_mode_guest(&vmx_ctls);
-		}
-	}
-#endif /* __UEFI__ */
 
 	//write VMX controls to VMCS
 	vcpu->vmcs.control_VMX_pin_based = vmx_ctls.pinbased_ctls;
