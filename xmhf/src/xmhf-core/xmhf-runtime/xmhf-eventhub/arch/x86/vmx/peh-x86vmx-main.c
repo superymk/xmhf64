@@ -795,8 +795,13 @@ static void _vmx_handle_intercept_eptviolation(VCPU *vcpu, struct regs *r){
 	errorcode = (ulong_t)vcpu->vmcs.info_exit_qualification;
 	gpa = vcpu->vmcs.guest_paddr;
 	gva = (uintptr_t)vcpu->vmcs.info_guest_linear_address;
-	
+
 	//check if EPT violation is due to LAPIC interception
+	//Before the rich OS boots all CPUs, g_all_cores_booted_up = false, the EPT
+	//violation in LAPIC page is handled by XMHF. After the rich OS boots all
+	//CPUs, g_all_cores_booted_up = true, XMHF modifies EPT to allow the rich
+	//OS direct access to LAPIC page. The EPT violation in LAPIC page is then
+	//handled by hypapp.
 	if(vcpu->isbsp && !g_all_cores_booted_up && 
 		(gpa >= g_vmx_lapic_base) && (gpa < (g_vmx_lapic_base + PAGE_SIZE_4K))
 	)
