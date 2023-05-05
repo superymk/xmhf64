@@ -556,7 +556,23 @@ static void xmhf_efi_refresh_guest_state(xmhf_efi_info_t *efi_info)
 		}
 	}
 
-	// TODO: reload LDTR, TR, etc. in xmhf_efi_refresh_guest_state()
+	/* Reload LDTR */
+	{
+		uint16_t ldtr = efi_info->guest_LDTR_selector;
+		printf("Reloading LDT ...\n");
+		asm volatile ("lldt %0" : : "g"(ldtr));
+		printf("Reloaded LDT\n");
+	}
+
+	/* Reload TR */
+#if 0
+	{
+		uint16_t tr = efi_info->guest_TR_selector;
+		printf("Reloading TR ...\n");
+		asm volatile ("ltr %0" : : "g"(tr));
+		printf("Reloaded TR\n");
+	}
+#endif
 
 	/* Enable interrupts if needed. */
 	if (efi_info->interrupt_enabled) {
