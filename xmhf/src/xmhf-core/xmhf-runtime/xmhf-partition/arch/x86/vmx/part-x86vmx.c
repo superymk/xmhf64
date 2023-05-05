@@ -568,7 +568,6 @@ void xmhf_partition_arch_x86vmx_guestVMCS_BIOS(VCPU *vcpu)
 	#ifndef __XMHF_VERIFICATION__
 	memcpy((void *)__GUESTOSBOOTMODULE_BASE, (void *)rpb->XtGuestOSBootModuleBase, rpb->XtGuestOSBootModuleSize);
 	#endif
-	}
 }
 
 //--initunrestrictedguestVMCS: initializes VMCS for unrestricted guest ---------
