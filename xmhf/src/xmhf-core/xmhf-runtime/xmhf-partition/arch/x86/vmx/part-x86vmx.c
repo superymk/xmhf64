@@ -450,6 +450,13 @@ static void vmx_prepare_msr_bitmap(VCPU *vcpu) {
 #endif /* __NESTED_VIRTUALIZATION__ */
 }
 
+// Add IA32_X2APIC_ICR to vmx_msr_bitmaps for the current VCPU. This function
+// is intended to be called when XMHF needs to intercept SIPI again.
+void xmhf_partition_arch_x86vmx_set_msrbitmap_x2apic_icr(VCPU *vcpu) {
+	u8 *bitmap = vmx_msr_bitmaps[vcpu->idx];
+	set_msrbitmap(bitmap, IA32_X2APIC_ICR);
+}
+
 // Remove IA32_X2APIC_ICR from vmx_msr_bitmaps for the current VCPU. This
 // function is intended to be called after SMP guest bootup completes.
 void xmhf_partition_arch_x86vmx_clear_msrbitmap_x2apic_icr(VCPU *vcpu) {
