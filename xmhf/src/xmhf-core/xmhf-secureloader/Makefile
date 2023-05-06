@@ -4,7 +4,11 @@
 # source files
 AS_SOURCES = ./arch/x86/sl-x86-$(TARGET_SUBARCH)-sup.S
 ifeq ($(TARGET_UEFI), y)
-AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-uefi-entry.S
+ifeq ($(DRT), y)
+AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-entry.S
+else
+AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-uefi-nodrt-entry.S
+endif
 else
 AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-entry.S
 endif

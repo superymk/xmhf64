@@ -164,8 +164,8 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 		 * large amount of space wasted in EFI partition. Thus, we allow
 		 * __SKIP_RUNTIME_BSS__ to decrease size of runtime binary.
 		 */
-		printf("Warning: __SKIP_RUNTIME_BSS__ not recommended when __DRT__.");
-		printf("This changes the trusted booting design of XMHF SL+RT.");
+		printf("Warning: __SKIP_RUNTIME_BSS__ not recommended when __DRT__.\n");
+		printf("This changes the trusted booting design of XMHF SL+RT.\n");
 #else /* !__UEFI__ */
 		/* In BIOS booting, GRUB can easily decompress gzip runtime binary. */
 #ifdef __DRT__
