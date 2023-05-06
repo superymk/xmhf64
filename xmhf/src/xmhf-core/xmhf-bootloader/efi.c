@@ -395,7 +395,7 @@ static void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle,
  *
  * volume: root of the current file system.
  * pathname: pathname of file in UEFI to load SL+RT from.
- * efi_info: this function will set rt_* fields.
+ * efi_info: this function will set slrt_* fields.
  *
  * This function also allocates memory in UEFI to hide memory from guest.
  */
@@ -413,7 +413,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 
 	/* Convert pathname to wchar_t */
 	wpathname = xmhf_efi_bs2wcs(pathname);
-	Print(L"wpathname = %s\n", wpathname);
+	Print(L"SL+RT file name: %s\n", wpathname);
 
 	/* Open new file, ref: https://wiki.osdev.org/Loading_files_under_UEFI */
 	UEFI_CALL(volume->Open, 5, volume, &file_handle, wpathname,
@@ -471,6 +471,9 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, start);
 	HALT_ON_ERRORCOND(read_size == file_size);
 
+	/* Close file */
+	UEFI_CALL(file_handle->Close, 1, file_handle);
+
 	/* Set efi_info */
 	efi_info->slrt_start = start;
 	efi_info->slrt_end = end;
@@ -478,6 +481,74 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	efi_info->slrt_nonzero_end = nonzero_end;
 #endif /* __SKIP_RUNTIME_BSS__ */
 }
+
+#ifdef __DRT__
+/*
+ * Load SINIT module to memory.
+ *
+ * volume: root of the current file system.
+ * pathname: pathname of file in UEFI to load SINIT module from.
+ * efi_info: this function will set sinit_* fields.
+ */
+static void xmhf_efi_load_sinit(EFI_FILE_HANDLE volume, char *pathname,
+								xmhf_efi_info_t *efi_info)
+{
+	EFI_FILE_HANDLE file_handle;
+	wchar_t *wpathname;
+	UINT64 file_size;
+	UINT64 buf_size;
+	UINT64 read_size;
+	UINT64 start;
+	UINT64 end;
+
+	/* Convert pathname to wchar_t */
+	wpathname = xmhf_efi_bs2wcs(pathname);
+	Print(L"SINIT file name: %s\n", wpathname);
+
+	/* Open new file, ref: https://wiki.osdev.org/Loading_files_under_UEFI */
+	UEFI_CALL(volume->Open, 5, volume, &file_handle, wpathname,
+			  EFI_FILE_MODE_READ,
+			  EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
+
+	/* Free converted pathname to wchar_t */
+	FreePool(wpathname);
+
+	/* Get file size */
+	file_size = xmhf_efi_get_file_size(file_handle);
+
+	/* Compute buffer size (larger than file size, 4K aligned) */
+	buf_size = PA_PAGE_ALIGN_UP_4K(file_size + 1);
+	HALT_ON_ERRORCOND(buf_size > file_size);
+
+	/* Allocate memory */
+	{
+		UINTN pages;
+		EFI_PHYSICAL_ADDRESS addr;
+
+		pages = buf_size >> PAGE_SHIFT_4K;
+		HALT_ON_ERRORCOND((pages << PAGE_SHIFT_4K) == buf_size);
+		UEFI_CALL(BS->AllocatePages, 4, AllocateAnyPages,
+				  EfiRuntimeServicesData, pages, &addr);
+
+		start = addr;
+		end = start + file_size;
+		HALT_ON_ERRORCOND(start < end);
+	}
+
+	/* Copy file */
+	HALT_ON_ERRORCOND((UINT64)(void *)start == start);
+	read_size = buf_size;
+	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, start);
+	HALT_ON_ERRORCOND(read_size == file_size);
+
+	/* Close file */
+	UEFI_CALL(file_handle->Close, 1, file_handle);
+
+	/* Set efi_info */
+	efi_info->sinit_start = start;
+	efi_info->sinit_end = end;
+}
+#endif /* __DRT__ */
 
 /*
  * Find RSDP from SystemTable.
@@ -703,7 +774,15 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 		xmhf_efi_load_slrt(volume, config.runtime_file, &efi_info);
 	}
 
-	// TODO: load SINIT module
+	/* Load SINIT module */
+	{
+#ifdef __DRT__
+		xmhf_efi_load_sinit(volume, config.sinit_module, &efi_info);
+#else /* !__DRT__ */
+		efi_info.sinit_start = 0;
+		efi_info.sinit_end = 0;
+#endif /* __DRT__ */
+	}
 
 	/* Find ACPI RSDP */
 	{
