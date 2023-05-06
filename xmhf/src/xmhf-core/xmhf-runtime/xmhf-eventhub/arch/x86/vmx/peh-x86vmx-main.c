@@ -170,10 +170,15 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 			/* Clear VMX capability */
 			r->ecx &= ~(1U << 5);
 #endif /* !__NESTED_VIRTUALIZATION__ */
+
+			/* Clear SMX capability (XMHF does not support GETSEC) */
+			r->ecx &= ~(1U << 6);
+
 #ifdef __HIDE_X2APIC__
 			/* Clear x2APIC capability (not stable in Circle CI and HP 840) */
 			r->ecx &= ~(1U << 21);
 #endif /* __HIDE_X2APIC__ */
+
 #ifndef __UPDATE_INTEL_UCODE__
 			/*
 			 * Set Hypervisor Present bit.
