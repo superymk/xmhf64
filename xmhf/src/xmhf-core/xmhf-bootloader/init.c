@@ -1234,7 +1234,7 @@ void cstartup(multiboot_info_t *mbi)
 #ifdef __DRT__
 		{
 			uintptr_t start = xei->sinit_start;
-			uintptr_t bytes = start - xei->sinit_end;
+			uintptr_t bytes = xei->sinit_end - start;
 			HALT_ON_ERRORCOND(is_sinit_acmod((void *)start, bytes, false));
 		}
 #endif /* __DRT__ */
