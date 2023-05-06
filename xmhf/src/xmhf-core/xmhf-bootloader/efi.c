@@ -168,6 +168,8 @@ static void xmhf_efi_check_max_phys_mem(void)
 
 	/* Iterate through memory map */
 	{
+		bool error_flag = false;
+
 		printf("Begin UEFI GetMemoryMap result\n");
 		printf("Type PhysicalStart      VirtualStart       NumberOfPages      "
 			   "Attribute\n");
@@ -185,9 +187,16 @@ static void xmhf_efi_check_max_phys_mem(void)
 			PhysEnd = (desc->PhysicalStart +
 					   (desc->NumberOfPages << PAGE_SHIFT_4K));
 			HALT_ON_ERRORCOND(desc->PhysicalStart < PhysEnd);
+			if (PhysEnd > MAX_PHYS_ADDR) {
+				printf("The entry above exceeds MAX_PHYS_ADDR (%016llx)\n",
+					   (UINT64)MAX_PHYS_ADDR);
+				error_flag = true;
+			}
 			HALT_ON_ERRORCOND(PhysEnd <= MAX_PHYS_ADDR);
 		}
 		printf("End UEFI GetMemoryMap result\n");
+
+		HALT_ON_ERRORCOND(!error_flag && "MAX_PHYS_ADDR too small");
 	}
 
 	/* Free buffer */
