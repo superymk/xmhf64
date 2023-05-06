@@ -523,11 +523,11 @@ static void xmhf_efi_load_sinit(EFI_FILE_HANDLE volume, char *pathname,
 	/* Allocate memory */
 	{
 		UINTN pages;
-		EFI_PHYSICAL_ADDRESS addr;
+		EFI_PHYSICAL_ADDRESS addr = ADDR_4GB;
 
 		pages = buf_size >> PAGE_SHIFT_4K;
 		HALT_ON_ERRORCOND((pages << PAGE_SHIFT_4K) == buf_size);
-		UEFI_CALL(BS->AllocatePages, 4, AllocateAnyPages,
+		UEFI_CALL(BS->AllocatePages, 4, AllocateMaxAddress,
 				  EfiRuntimeServicesData, pages, &addr);
 
 		start = addr;

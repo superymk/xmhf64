@@ -157,9 +157,21 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 		rpb->XtVmmRuntimeSize = slpb.runtime_size;
 
 #ifdef __SKIP_RUNTIME_BSS__
+#ifdef __UEFI__
+		/*
+		 * In UEFI booting, decompressing gzip runtime binary requires
+		 * additional code. Not compressing runtime binary will result in
+		 * large amount of space wasted in EFI partition. Thus, we allow
+		 * __SKIP_RUNTIME_BSS__ to decrease size of runtime binary.
+		 */
+		printf("Warning: __SKIP_RUNTIME_BSS__ not recommended when __DRT__.");
+		printf("This changes the trusted booting design of XMHF SL+RT.");
+#else /* !__UEFI__ */
+		/* In BIOS booting, GRUB can easily decompress gzip runtime binary. */
 #ifdef __DRT__
 	#error "__SKIP_RUNTIME_BSS__ not supported when __DRT__"
 #endif /* __DRT__ */
+#endif /* __UEFI__ */
 
 		{
 			u32 rt_bss_phys_begin = rpb->XtVmmRuntimeBssBegin - __TARGET_BASE_SL;

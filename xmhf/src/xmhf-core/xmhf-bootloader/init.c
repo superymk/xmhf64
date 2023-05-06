@@ -681,6 +681,7 @@ bool txt_do_senter(void *phys_mle_start, size_t mle_size) {
     return false; /* unreachable if launch is successful, thus should return failure */
 }
 
+#ifndef __UEFI__
 /**
  * Check each module to see if it is an SINIT module.  If it is, set
  * the globals g_sinit_module_ptr and g_sinit_module_size to point to
@@ -714,6 +715,7 @@ static bool txt_parse_sinit(module_t *mod_array, unsigned int mods_count) {
 
     return false;
 }
+#endif /* !__UEFI__ */
 
 //---svm_verify_platform-------------------------------------------------------
 //do some basic checks on SVM platform to ensure DRTM should work as expected
