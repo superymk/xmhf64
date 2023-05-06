@@ -132,6 +132,71 @@ static wchar_t *xmhf_efi_bs2wcs(const char *src)
 }
 
 /*
+ * Make sure MAX_PHYS_ADDR covers all memory on the system.
+ *
+ * This function never returns when MAX_PHYS_ADDR is too low.
+ */
+static void xmhf_efi_check_max_phys_mem(void)
+{
+	UINTN buf_size = 0;
+	UINT8 *memory_map;
+	UINTN map_key;
+	UINTN desc_size;
+	UINT32 desc_ver;
+
+	/* Get buffer size */
+	{
+		EFI_STATUS status;
+		EFI_MEMORY_DESCRIPTOR tmp;
+		status = uefi_call_wrapper(BS->GetMemoryMap, 5, &buf_size,
+								   &tmp, &map_key, &desc_size, &desc_ver);
+		HALT_ON_ERRORCOND(status == EFI_BUFFER_TOO_SMALL);
+	}
+
+	/* Allocate buffer */
+	{
+		HALT_ON_ERRORCOND((memory_map = AllocatePool(buf_size)) != NULL);
+	}
+
+	/* Get memory map */
+	{
+		UEFI_CALL(BS->GetMemoryMap, 5, &buf_size, memory_map, &map_key,
+				  &desc_size, &desc_ver);
+		HALT_ON_ERRORCOND(desc_size >= sizeof(EFI_MEMORY_DESCRIPTOR));
+		HALT_ON_ERRORCOND(desc_ver == EFI_MEMORY_DESCRIPTOR_VERSION);
+	}
+
+	/* Iterate through memory map */
+	{
+		printf("Begin UEFI GetMemoryMap result\n");
+		printf("Type PhysicalStart      VirtualStart       NumberOfPages      "
+			   "Attribute\n");
+		for (UINTN i = 0; i * desc_size < buf_size; i++) {
+			EFI_MEMORY_DESCRIPTOR *desc;
+			UINT64 PhysEnd;
+
+			/* Print memory map entry */
+			desc = (EFI_MEMORY_DESCRIPTOR *)(memory_map + i * desc_size);
+			printf("  %2d 0x%016llx 0x%016llx 0x%016llx 0x%016llx\n",
+				   desc->Type, desc->PhysicalStart, desc->VirtualStart,
+				   desc->NumberOfPages, desc->Attribute);
+
+			/* Check the highest memory map is lower than MAX_PHYS_ADDR */
+			PhysEnd = (desc->PhysicalStart +
+					   (desc->NumberOfPages << PAGE_SHIFT_4K));
+			HALT_ON_ERRORCOND(desc->PhysicalStart < PhysEnd);
+			HALT_ON_ERRORCOND(PhysEnd <= MAX_PHYS_ADDR);
+		}
+		printf("End UEFI GetMemoryMap result\n");
+	}
+
+	/* Free buffer */
+	{
+		FreePool(memory_map);
+	}
+}
+
+/*
  * Open the root directory of the volume (e.g. FS0:).
  *
  * loaded_image: loaded image of this UEFI service.
@@ -607,6 +672,11 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	/* For debugging using GDB */
 	Print(L"Image base: 0x%lx\n", loaded_image->ImageBase);
+
+	/* Check maximum physical memory */
+	{
+		xmhf_efi_check_max_phys_mem();
+	}
 
 	/* Read command line arguments from file */
 	{
