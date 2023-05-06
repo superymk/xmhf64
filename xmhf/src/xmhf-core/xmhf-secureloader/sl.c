@@ -174,8 +174,9 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 #endif /* __UEFI__ */
 
 		{
-			u32 rt_bss_phys_begin = rpb->XtVmmRuntimeBssBegin - __TARGET_BASE_SL;
-			u32 rt_bss_size = rpb->XtVmmRuntimeBssEnd - rpb->XtVmmRuntimeBssBegin;
+			uintptr_t rt_bss_phys_begin, rt_bss_size;
+			rt_bss_phys_begin = rpb->XtVmmRuntimeBssBegin - __TARGET_BASE_SL;
+			rt_bss_size = rpb->XtVmmRuntimeBssEnd - rpb->XtVmmRuntimeBssBegin;
 			// memset((void *)(uintptr_t)rt_bss_phys_begin, 0, rt_bss_size);
 			asm volatile ("cld; rep stosb;" : : "a" (0), "c" (rt_bss_size),
 						  "D" (rt_bss_phys_begin) : "memory", "cc");
