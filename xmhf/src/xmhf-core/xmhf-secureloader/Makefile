@@ -2,7 +2,9 @@
 # author: amit vasudevan (amitvasudevan@acm.org)
 
 # source files
-AS_SOURCES = ./arch/x86/sl-x86-$(TARGET_SUBARCH)-sup.S
+# Note: the first AS_SOURCES must be *-entry.S, because the start of .text must
+# be _mle_hdr. Otherwise, there will be problems in DRT.
+AS_SOURCES =
 ifeq ($(TARGET_UEFI), y)
 ifeq ($(DRT), y)
 AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-entry.S
@@ -12,6 +14,7 @@ endif
 else
 AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-entry.S
 endif
+AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-sup.S
 
 C_SOURCES = sl.c
 C_SOURCES += ./arch/x86/sl-x86.c
