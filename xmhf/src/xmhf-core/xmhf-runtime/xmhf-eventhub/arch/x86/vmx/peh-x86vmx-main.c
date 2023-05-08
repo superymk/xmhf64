@@ -230,6 +230,42 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 			}
 		}
 
+		if (old_eax == 0x19U) {
+			/*
+			 * Set CPUID.19H:EBX.AESKLE[bit 0] to guest's value. Because guest
+			 * CR4 and host CR4 can be different.
+			 */
+			bool aeskle = false;
+
+			if ((get_guest_cr4(vcpu) & CR4_KL) != 0) {
+				/*
+				 * Temporarily set host CR4 to enable CR4.KL, and execute CPUID
+				 * again.
+				 */
+				u32 eax, ebx, ecx, edx;
+				ulong_t host_cr4_old = read_cr4();
+				ulong_t host_cr4_new = host_cr4_old | CR4_KL;
+				if (host_cr4_old != host_cr4_new) {
+					write_cr4(host_cr4_new);
+				}
+
+				cpuid(0x19U, &eax, &ebx, &ecx, &edx);
+				if (ebx & (1U << 0)) {
+					aeskle = true;
+				}
+
+				if (host_cr4_old != host_cr4_new) {
+					write_cr4(host_cr4_old);
+				}
+			}
+
+			if (aeskle) {
+				r->ebx |= (1U << 0);
+			} else {
+				r->ebx &= ~(1U << 0);
+			}
+		}
+
 #ifdef __I386__
 		/*
 		 * For i386 XMHF running on an AMD64 CPU, make the guest think that the
