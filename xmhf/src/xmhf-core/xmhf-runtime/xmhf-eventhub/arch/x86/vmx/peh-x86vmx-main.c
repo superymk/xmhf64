@@ -217,6 +217,17 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 			 * future work.
 			 */
 			r->ebx &= ~(1U << 25);
+
+			/*
+			 * Set CPUID.(EAX=07H,ECX=0H):ECX.OSPKE[bit 4] to guest
+			 * CR4.PKE[bit 22]. Because guest CR4 and host CR4 can be
+			 * different.
+			 */
+			if ((get_guest_cr4(vcpu) & CR4_PKE) != 0) {
+				r->ecx |= (1U << 4);
+			} else {
+				r->ecx &= ~(1U << 4);
+			}
 		}
 
 #ifdef __I386__
