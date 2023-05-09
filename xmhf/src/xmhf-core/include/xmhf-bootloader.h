@@ -117,9 +117,9 @@ typedef struct {
 		//uint32_t guest_SMBASE;
 		uint32_t guest_SYSENTER_CS;
 		//uint32_t guest_VMX_preemption_timer_value;
-		uintptr_t guest_CR0;
+		uintptr_t guest_CR0;	/* Note: guest_CR0 and control_CR0_shadow. */
 		uintptr_t guest_CR3;
-		uintptr_t guest_CR4;
+		uintptr_t guest_CR4;	/* Note: guest_CR4 and control_CR4_shadow. */
 		uintptr_t guest_ES_base;
 		uintptr_t guest_CS_base;
 		uintptr_t guest_SS_base;

@@ -79,3 +79,5 @@ efi2init:
 	/* Restore GPRs */
 	POPAQ
 
+	ret
+

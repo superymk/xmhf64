@@ -147,6 +147,12 @@ u64 _vmx_get_guest_efer(VCPU *vcpu)
 	}
 }
 
+/* Return the CR4 register value perceived by the guest. */
+static ulong_t get_guest_cr4(VCPU *vcpu)
+{
+	return ((vcpu->vmcs.control_CR4_shadow & vcpu->vmcs.control_CR4_mask) |
+			(vcpu->vmcs.guest_CR4 & ~vcpu->vmcs.control_CR4_mask));
+}
 
 //---intercept handler (CPUID)--------------------------------------------------
 static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
@@ -170,10 +176,25 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 			/* Clear VMX capability */
 			r->ecx &= ~(1U << 5);
 #endif /* !__NESTED_VIRTUALIZATION__ */
+
+			/* Clear SMX capability (XMHF does not support GETSEC) */
+			r->ecx &= ~(1U << 6);
+
 #ifdef __HIDE_X2APIC__
 			/* Clear x2APIC capability (not stable in Circle CI and HP 840) */
 			r->ecx &= ~(1U << 21);
 #endif /* __HIDE_X2APIC__ */
+
+			/*
+			 * Set CPUID.01H:ECX.OSXSAVE[bit 27] to guest CR4.OSXSAVE[bit 18].
+			 * Because guest CR4 and host CR4 can be different.
+			 */
+			if ((get_guest_cr4(vcpu) & CR4_OSXSAVE) != 0) {
+				r->ecx |= (1U << 27);
+			} else {
+				r->ecx &= ~(1U << 27);
+			}
+
 #ifndef __UPDATE_INTEL_UCODE__
 			/*
 			 * Set Hypervisor Present bit.
@@ -184,17 +205,67 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 			r->ecx |= (1U << 31);
 #endif /* !__UPDATE_INTEL_UCODE__ */
 		}
-		/*
-		 * Hide Intel Processor Trace (Intel PT).
-		 * If Intel PT is not hidden, an attacker can set IA32_RTIT_OUTPUT_BASE
-		 * to XMHF memory, which violates XMHF memory integrity. For now we
-		 * hide Intel PT. It is possible to virtualize Intel PT using the
-		 * "Intel PT uses guest physical addresses" bit in VMCS. However,
-		 * implementing this is left as future work.
-		 */
+
 		if (old_eax == 0x7U && old_ecx == 0x0U) {
+			/*
+			 * Hide Intel Processor Trace (Intel PT).
+			 * If Intel PT is not hidden, an attacker can set
+			 * IA32_RTIT_OUTPUT_BASE to XMHF memory, which violates XMHF memory
+			 * integrity. For now we hide Intel PT. It is possible to
+			 * virtualize Intel PT using the "Intel PT uses guest physical
+			 * addresses" bit in VMCS. However, implementing this is left as
+			 * future work.
+			 */
 			r->ebx &= ~(1U << 25);
+
+			/*
+			 * Set CPUID.(EAX=07H,ECX=0H):ECX.OSPKE[bit 4] to guest
+			 * CR4.PKE[bit 22]. Because guest CR4 and host CR4 can be
+			 * different.
+			 */
+			if ((get_guest_cr4(vcpu) & CR4_PKE) != 0) {
+				r->ecx |= (1U << 4);
+			} else {
+				r->ecx &= ~(1U << 4);
+			}
 		}
+
+		if (old_eax == 0x19U) {
+			/*
+			 * Set CPUID.19H:EBX.AESKLE[bit 0] to guest's value. Because guest
+			 * CR4 and host CR4 can be different.
+			 */
+			bool aeskle = false;
+
+			if ((get_guest_cr4(vcpu) & CR4_KL) != 0) {
+				/*
+				 * Temporarily set host CR4 to enable CR4.KL, and execute CPUID
+				 * again.
+				 */
+				u32 eax, ebx, ecx, edx;
+				ulong_t host_cr4_old = read_cr4();
+				ulong_t host_cr4_new = host_cr4_old | CR4_KL;
+				if (host_cr4_old != host_cr4_new) {
+					write_cr4(host_cr4_new);
+				}
+
+				cpuid(0x19U, &eax, &ebx, &ecx, &edx);
+				if (ebx & (1U << 0)) {
+					aeskle = true;
+				}
+
+				if (host_cr4_old != host_cr4_new) {
+					write_cr4(host_cr4_old);
+				}
+			}
+
+			if (aeskle) {
+				r->ebx |= (1U << 0);
+			} else {
+				r->ebx &= ~(1U << 0);
+			}
+		}
+
 #ifdef __I386__
 		/*
 		 * For i386 XMHF running on an AMD64 CPU, make the guest think that the
@@ -797,6 +868,11 @@ static void _vmx_handle_intercept_eptviolation(VCPU *vcpu, struct regs *r){
 	gva = (uintptr_t)vcpu->vmcs.info_guest_linear_address;
 	
 	//check if EPT violation is due to LAPIC interception
+	//Before the rich OS boots all CPUs, g_all_cores_booted_up = false, the EPT
+	//violation in LAPIC page is handled by XMHF. After the rich OS boots all
+	//CPUs, g_all_cores_booted_up = true, XMHF modifies EPT to allow the rich
+	//OS direct access to LAPIC page. The EPT violation in LAPIC page is then
+	//handled by hypapp.
 	if(vcpu->isbsp && !g_all_cores_booted_up && 
 		(gpa >= g_vmx_lapic_base) && (gpa < (g_vmx_lapic_base + PAGE_SIZE_4K))
 	)
@@ -993,8 +1069,9 @@ static void vmx_handle_intercept_cr0access_ug(VCPU *vcpu, struct regs *r, u32 gp
 
 //---CR4 access handler---------------------------------------------------------
 static void vmx_handle_intercept_cr4access_ug(VCPU *vcpu, struct regs *r, u32 gpr, u32 tofrom){
-  if(tofrom == VMX_CRX_ACCESS_TO){
 	ulong_t cr4_proposed_value;
+
+	HALT_ON_ERRORCOND(tofrom == VMX_CRX_ACCESS_TO);
 
 	cr4_proposed_value = *((uintptr_t *)_vmx_decode_reg(gpr, vcpu, r));
 
@@ -1010,9 +1087,8 @@ static void vmx_handle_intercept_cr4access_ug(VCPU *vcpu, struct regs *r, u32 gp
 	 */
 	vcpu->vmcs.control_CR4_shadow = cr4_proposed_value;
 	vcpu->vmcs.guest_CR4 = (cr4_proposed_value | vcpu->vmcs.control_CR4_mask);
-  }
 
-  vcpu->vmcs.guest_RIP += vcpu->vmcs.info_vmexit_instruction_length;
+	vcpu->vmcs.guest_RIP += vcpu->vmcs.info_vmexit_instruction_length;
 }
 
 //---XSETBV intercept handler-------------------------------------------
@@ -1022,9 +1098,21 @@ static void _vmx_handle_intercept_xsetbv(VCPU *vcpu, struct regs *r){
 	xcr_value = ((u64)r->edx << 32) + (u64)r->eax;
 
 	if(r->ecx != XCR_XFEATURE_ENABLED_MASK){
-			printf("%s: unhandled XCR register %u\n", __FUNCTION__, r->ecx);
-			HALT();
+		printf("%s: unhandled XCR register %u\n", __FUNCTION__, r->ecx);
+		HALT();
 	}
+
+	/*
+	 * Check that guest's CPL is 0. If this check fails, should inject #GP(0)
+	 * to the guest. However, currently not implemented.
+	 */
+	HALT_ON_ERRORCOND(((vcpu->vmcs.guest_CS_access_rights >> 5) & 0x3) == 0);
+
+	/*
+	 * Check that CR4.OSXSAVE is set. If this check fails, should inject #UD
+	 * to the guest. However, currently not implemented.
+	 */
+	HALT_ON_ERRORCOND((get_guest_cr4(vcpu) & CR4_OSXSAVE) != 0);
 
 	//XXX: TODO: check for invalid states and inject GP accordingly
 
@@ -1514,41 +1602,35 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 			u32 tofrom, gpr, crx;
 			//printf("VMEXIT_CRX_ACCESS:\n");
 			//printf("instruction length: %u\n", info_vmexit_instruction_length);
-			crx=(u32) ((u64)vcpu->vmcs.info_exit_qualification & 0x000000000000000FULL);
-			gpr=
-			 (u32) (((u64)vcpu->vmcs.info_exit_qualification & 0x0000000000000F00ULL) >> (u64)8);
-			tofrom =
-			(u32) (((u64)vcpu->vmcs.info_exit_qualification & 0x0000000000000030ULL) >> (u64)4);
+			crx = (u32)(vcpu->vmcs.info_exit_qualification & 0x0000000FUL);
+			gpr = (u32)((vcpu->vmcs.info_exit_qualification & 0x00000F00UL) >> 8);
+			tofrom = (u32)((vcpu->vmcs.info_exit_qualification & 0x00000030UL) >> 4);
 			//printf("crx=%u, gpr=%u, tofrom=%u\n", crx, gpr, tofrom);
 
 #ifdef __AMD64__
-			if ( ((int)gpr >=0) && ((int)gpr <= 15) ){
+			HALT_ON_ERRORCOND(gpr < 16);
 #elif defined(__I386__)
-			if ( ((int)gpr >=0) && ((int)gpr <= 7) ){
+			HALT_ON_ERRORCOND(gpr < 8);
 #else /* !defined(__I386__) && !defined(__AMD64__) */
     #error "Unsupported Arch"
 #endif /* !defined(__I386__) && !defined(__AMD64__) */
-				switch(crx){
-					case 0x0: //CR0 access
-						vmx_handle_intercept_cr0access_ug(vcpu, r, gpr, tofrom);
-						break;
 
-					case 0x4: //CR4 access
-						if(!vcpu->vmx_guest_unrestricted){
-							printf("HALT: v86 monitor based real-mode exec. unsupported!\n");
-							HALT();
-						}else{
-							vmx_handle_intercept_cr4access_ug(vcpu, r, gpr, tofrom);
-						}
-						break;
+			switch(crx){
+			case 0x0: //CR0 access
+				vmx_handle_intercept_cr0access_ug(vcpu, r, gpr, tofrom);
+				break;
 
-					default:
-						printf("unhandled crx, halting!\n");
-						HALT();
+			case 0x4: //CR4 access
+				if(!vcpu->vmx_guest_unrestricted){
+					printf("HALT: v86 monitor based real-mode exec. unsupported!\n");
+					HALT();
+				}else{
+					vmx_handle_intercept_cr4access_ug(vcpu, r, gpr, tofrom);
 				}
-			}else{
-				printf("[%02x]%s: invalid gpr value (%u). halting!\n", vcpu->id,
-					__FUNCTION__, gpr);
+				break;
+
+			default:
+				printf("unhandled crx, halting!\n");
 				HALT();
 			}
 		}
@@ -1601,15 +1683,6 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 			HALT();
 		}
 	} //end switch((u32)vcpu->vmcs.info_vmexit_reason)
-
-
-	/*
-	 * Check and clear guest interruptibility state.
-	 * However, ignore bit 3, because it is for virtual NMI.
-	 */
-	if ((vcpu->vmcs.guest_interruptibility & ~VMX_GUEST_INTR_BLOCK_NMI) != 0){
-		vcpu->vmcs.guest_interruptibility &= VMX_GUEST_INTR_BLOCK_NMI;
-	}
 
 	//make sure we have no nested events
 	if(vcpu->vmcs.info_IDT_vectoring_information & 0x80000000){

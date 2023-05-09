@@ -64,15 +64,6 @@ typedef short unsigned int wchar_t;
 /* HALT() contains an infinite loop to indicate that it never exits */
 #define HALT() do { __asm__ __volatile__ ("hlt\r\n"); } while (1)
 
-#define XMHF_ASSERT(expr) \
-	do { \
-		if (!(expr)) { \
-			printf("XMHF_ASSERT(%s) failed at %s:%d\n", #expr, __FILE__, \
-				   __LINE__); \
-			HALT(); \
-		} \
-	} while(0)
-
 #define UEFI_CALL(...) \
 	do { \
 		EFI_STATUS _status; \
@@ -113,24 +104,24 @@ static wchar_t *xmhf_efi_bs2wcs(const char *src)
 	wchar_t *dst;
 
 	/* Check for overflow when casing size_t to UINTN */
-	XMHF_ASSERT((size_t)bufsize == len);
+	HALT_ON_ERRORCOND((size_t)bufsize == len);
 
 	/* bufsize++ but check for overflow */
 	{
 		UINTN tmp = bufsize;
 		bufsize++;
-		XMHF_ASSERT(bufsize > tmp);
+		HALT_ON_ERRORCOND(bufsize > tmp);
 	}
 
 	/* bufsize *= 2 but check for overflow */
 	{
 		UINTN tmp = bufsize;
 		bufsize *= 2;
-		XMHF_ASSERT(bufsize > tmp);
+		HALT_ON_ERRORCOND(bufsize > tmp);
 	}
 
 	/* Allocate for new buffer */
-	XMHF_ASSERT((dst = AllocatePool(bufsize)) != NULL);
+	HALT_ON_ERRORCOND((dst = AllocatePool(bufsize)) != NULL);
 
 	for (size_t i = 0; i < len; i++) {
 		dst[i] = (wchar_t)src[i];
@@ -138,6 +129,87 @@ static wchar_t *xmhf_efi_bs2wcs(const char *src)
 	dst[len] = 0;
 
 	return dst;
+}
+
+/*
+ * Make sure MAX_PHYS_ADDR covers all memory on the system.
+ *
+ * This function never returns when MAX_PHYS_ADDR is too low.
+ */
+static void xmhf_efi_check_max_phys_mem(void)
+{
+	UINTN buf_size = 0;
+	UINT8 *memory_map;
+	UINTN map_key;
+	UINTN desc_size;
+	UINT32 desc_ver;
+
+	/* Get buffer size */
+	{
+		EFI_STATUS status;
+		EFI_MEMORY_DESCRIPTOR tmp;
+		status = uefi_call_wrapper(BS->GetMemoryMap, 5, &buf_size,
+								   &tmp, &map_key, &desc_size, &desc_ver);
+		HALT_ON_ERRORCOND(status == EFI_BUFFER_TOO_SMALL);
+	}
+
+	/* Increase buf_size, ref: https://stackoverflow.com/a/39674958 */
+	{
+		UINTN new_buf_size = buf_size + 2 * desc_size;
+		HALT_ON_ERRORCOND(new_buf_size > buf_size);
+		buf_size = new_buf_size;
+	}
+
+	/* Allocate buffer */
+	{
+		HALT_ON_ERRORCOND((memory_map = AllocatePool(buf_size)) != NULL);
+	}
+
+	/* Get memory map */
+	{
+		UEFI_CALL(BS->GetMemoryMap, 5, &buf_size, memory_map, &map_key,
+				  &desc_size, &desc_ver);
+		HALT_ON_ERRORCOND(desc_size >= sizeof(EFI_MEMORY_DESCRIPTOR));
+		HALT_ON_ERRORCOND(desc_ver == EFI_MEMORY_DESCRIPTOR_VERSION);
+	}
+
+	/* Iterate through memory map */
+	{
+		bool error_flag = false;
+
+		printf("Begin UEFI GetMemoryMap result\n");
+		printf("Type PhysicalStart      VirtualStart       NumberOfPages      "
+			   "Attribute\n");
+		for (UINTN i = 0; i * desc_size < buf_size; i++) {
+			EFI_MEMORY_DESCRIPTOR *desc;
+			UINT64 PhysEnd;
+
+			/* Print memory map entry */
+			desc = (EFI_MEMORY_DESCRIPTOR *)(memory_map + i * desc_size);
+			printf("  %2d 0x%016llx 0x%016llx 0x%016llx 0x%016llx\n",
+				   desc->Type, desc->PhysicalStart, desc->VirtualStart,
+				   desc->NumberOfPages, desc->Attribute);
+
+			/* Check the highest memory map is lower than MAX_PHYS_ADDR */
+			PhysEnd = (desc->PhysicalStart +
+					   (desc->NumberOfPages << PAGE_SHIFT_4K));
+			HALT_ON_ERRORCOND(desc->PhysicalStart < PhysEnd);
+			if (PhysEnd > MAX_PHYS_ADDR) {
+				printf("The entry above exceeds MAX_PHYS_ADDR (%016llx)\n",
+					   (UINT64)MAX_PHYS_ADDR);
+				error_flag = true;
+			}
+			HALT_ON_ERRORCOND(PhysEnd <= MAX_PHYS_ADDR);
+		}
+		printf("End UEFI GetMemoryMap result\n");
+
+		HALT_ON_ERRORCOND(!error_flag && "MAX_PHYS_ADDR too small");
+	}
+
+	/* Free buffer */
+	{
+		FreePool(memory_map);
+	}
 }
 
 /*
@@ -183,39 +255,39 @@ static EFI_FILE_HANDLE xmhf_efi_open_config(EFI_FILE_HANDLE volume,
 	EFI_FILE_HANDLE file_handle;
 
 	/* Get old file path */
-	XMHF_ASSERT(loaded_image->DeviceHandle != NULL);
-	XMHF_ASSERT(loaded_image->FilePath->Type == MEDIA_DEVICE_PATH);
-	XMHF_ASSERT(loaded_image->FilePath->SubType == MEDIA_FILEPATH_DP);
+	HALT_ON_ERRORCOND(loaded_image->DeviceHandle != NULL);
+	HALT_ON_ERRORCOND(loaded_image->FilePath->Type == MEDIA_DEVICE_PATH);
+	HALT_ON_ERRORCOND(loaded_image->FilePath->SubType == MEDIA_FILEPATH_DP);
 	fp = (FILEPATH_DEVICE_PATH *)loaded_image->FilePath;
 	fp_size = *(UINT16 *)fp->Header.Length;
 	//Print(L"fp: %s\n", fp->PathName);
 
 	/* Compute size */
-	XMHF_ASSERT(fp_size > END_DEVICE_PATH_LENGTH);
-	XMHF_ASSERT(fp_size % 2 == 0);
+	HALT_ON_ERRORCOND(fp_size > END_DEVICE_PATH_LENGTH);
+	HALT_ON_ERRORCOND(fp_size % 2 == 0);
 	old_size = fp_size - END_DEVICE_PATH_LENGTH;
 	/* 10 == strlen(".conf") * sizeof(UINT16) */
 	new_size = old_size + 10;
 	/* Prevent overflow */
-	XMHF_ASSERT(new_size > old_size);
-	XMHF_ASSERT(old_size % 2 == 0);
-	XMHF_ASSERT(old_size - 2 > 0);
-	XMHF_ASSERT(new_size % 2 == 0);
+	HALT_ON_ERRORCOND(new_size > old_size);
+	HALT_ON_ERRORCOND(old_size % 2 == 0);
+	HALT_ON_ERRORCOND(old_size - 2 > 0);
+	HALT_ON_ERRORCOND(new_size % 2 == 0);
 
 	/* Allocate new file path */
-	XMHF_ASSERT((new_str = AllocatePool(new_size)) != NULL);
+	HALT_ON_ERRORCOND((new_str = AllocatePool(new_size)) != NULL);
 	memcpy(new_str, fp->PathName, old_size);
 	cur_size = old_size;
 	index = cur_size / 2 - 1;
 	for (char *i = ".conf"; *i != '\0'; i++) {
-		XMHF_ASSERT(new_str[index] == 0);
+		HALT_ON_ERRORCOND(new_str[index] == 0);
 		new_str[index] = (UINT16)(*i);
 		index++;
 		new_str[index] = 0;
 		cur_size += sizeof(UINT16);
 	}
 	/* If cur_size > new_size, then buffer overflow */
-	XMHF_ASSERT(cur_size == new_size);
+	HALT_ON_ERRORCOND(cur_size == new_size);
 
 	/* Open new file, ref: https://wiki.osdev.org/Loading_files_under_UEFI */
 	UEFI_CALL(volume->Open, 5, volume, &file_handle, new_str,
@@ -245,11 +317,11 @@ static UINT64 xmhf_efi_get_file_size(EFI_FILE_HANDLE file_handle)
 		EFI_STATUS status;
 		status = uefi_call_wrapper(file_handle->GetInfo, 4, file_handle,
 								   &GenericFileInfo, &size, info);
-		XMHF_ASSERT(status == EFI_BUFFER_TOO_SMALL);
+		HALT_ON_ERRORCOND(status == EFI_BUFFER_TOO_SMALL);
 	}
 
 	/* Allocate buffer */
-	XMHF_ASSERT((info = AllocatePool(size)) != NULL);
+	HALT_ON_ERRORCOND((info = AllocatePool(size)) != NULL);
 
 	/* Get buffer */
 	UEFI_CALL(file_handle->GetInfo, 4, file_handle, &GenericFileInfo, &size,
@@ -283,18 +355,18 @@ static void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle,
 	/* Prepare buffer */
 	size = xmhf_efi_get_file_size(file_handle);
 	buf_size = size + 1;
-	XMHF_ASSERT(buf_size > size);
-	XMHF_ASSERT((buf = AllocatePool(buf_size)) != NULL);
+	HALT_ON_ERRORCOND(buf_size > size);
+	HALT_ON_ERRORCOND((buf = AllocatePool(buf_size)) != NULL);
 
 	/* Read file */
 	read_size = buf_size;
 	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, buf);
-	XMHF_ASSERT(read_size == size);
+	HALT_ON_ERRORCOND(read_size == size);
 
 #define XMHF_EFI_READ_CONFIG_WHILE_LOOP() \
 	do { \
 		while (1) { \
-			XMHF_ASSERT(index < buf_size); \
+			HALT_ON_ERRORCOND(index < buf_size); \
 			if (buf[index] == '\n') { \
 				buf[index] = '\0'; \
 				index++; \
@@ -322,7 +394,7 @@ static void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle,
 #undef XMHF_EFI_READ_CONFIG_WHILE_LOOP
 
 	/* Make sure we are at EOF */
-	XMHF_ASSERT(index == size);
+	HALT_ON_ERRORCOND(index == size);
 }
 
 /*
@@ -330,7 +402,7 @@ static void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle,
  *
  * volume: root of the current file system.
  * pathname: pathname of file in UEFI to load SL+RT from.
- * efi_info: this function will set rt_* fields.
+ * efi_info: this function will set slrt_* fields.
  *
  * This function also allocates memory in UEFI to hide memory from guest.
  */
@@ -348,7 +420,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 
 	/* Convert pathname to wchar_t */
 	wpathname = xmhf_efi_bs2wcs(pathname);
-	Print(L"wpathname = %s\n", wpathname);
+	Print(L"SL+RT file name: %s\n", wpathname);
 
 	/* Open new file, ref: https://wiki.osdev.org/Loading_files_under_UEFI */
 	UEFI_CALL(volume->Open, 5, volume, &file_handle, wpathname,
@@ -362,7 +434,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	start = __TARGET_BASE_SL;
 	file_size = xmhf_efi_get_file_size(file_handle);
 	nonzero_end = start + file_size;
-	XMHF_ASSERT(nonzero_end > start);
+	HALT_ON_ERRORCOND(nonzero_end > start);
 
 	/* If Runtime bss is not in the file, read RPB to get runtime size */
 #ifdef __SKIP_RUNTIME_BSS__
@@ -373,11 +445,11 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 		/* Read RPB */
 		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0x200000);
 		UEFI_CALL(file_handle->Read, 3, file_handle, &read_rpb_size, &rpb);
-		XMHF_ASSERT(read_rpb_size == sizeof(RPB));
+		HALT_ON_ERRORCOND(read_rpb_size == sizeof(RPB));
 		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0);
 
 		/* Set end */
-		XMHF_ASSERT(nonzero_end <= rpb.XtVmmRuntimeBssBegin);
+		HALT_ON_ERRORCOND(nonzero_end <= rpb.XtVmmRuntimeBssBegin);
 		end = rpb.XtVmmRuntimeBssEnd;
 	}
 #else /* !__SKIP_RUNTIME_BSS__ */
@@ -386,7 +458,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 
 	/* Compute buffer size (larger than file size, 4K aligned) */
 	buf_size = PA_PAGE_ALIGN_UP_4K((end - start) + 1);
-	XMHF_ASSERT(buf_size > (end - start));
+	HALT_ON_ERRORCOND(buf_size > (end - start));
 
 	/* Allocate memory */
 	{
@@ -394,17 +466,20 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 		EFI_PHYSICAL_ADDRESS addr = start;
 
 		pages = buf_size >> PAGE_SHIFT_4K;
-		XMHF_ASSERT((pages << PAGE_SHIFT_4K) == buf_size);
+		HALT_ON_ERRORCOND((pages << PAGE_SHIFT_4K) == buf_size);
 		UEFI_CALL(BS->AllocatePages, 4, AllocateAddress, EfiRuntimeServicesData,
 				  pages, &addr);
-		XMHF_ASSERT(addr == start);
+		HALT_ON_ERRORCOND(addr == start);
 	}
 
 	/* Copy file */
-	XMHF_ASSERT((UINT64)(void *)start == start);
+	HALT_ON_ERRORCOND((UINT64)(void *)start == start);
 	read_size = buf_size;
 	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, start);
-	XMHF_ASSERT(read_size == file_size);
+	HALT_ON_ERRORCOND(read_size == file_size);
+
+	/* Close file */
+	UEFI_CALL(file_handle->Close, 1, file_handle);
 
 	/* Set efi_info */
 	efi_info->slrt_start = start;
@@ -413,6 +488,74 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	efi_info->slrt_nonzero_end = nonzero_end;
 #endif /* __SKIP_RUNTIME_BSS__ */
 }
+
+#ifdef __DRT__
+/*
+ * Load SINIT module to memory.
+ *
+ * volume: root of the current file system.
+ * pathname: pathname of file in UEFI to load SINIT module from.
+ * efi_info: this function will set sinit_* fields.
+ */
+static void xmhf_efi_load_sinit(EFI_FILE_HANDLE volume, char *pathname,
+								xmhf_efi_info_t *efi_info)
+{
+	EFI_FILE_HANDLE file_handle;
+	wchar_t *wpathname;
+	UINT64 file_size;
+	UINT64 buf_size;
+	UINT64 read_size;
+	UINT64 start;
+	UINT64 end;
+
+	/* Convert pathname to wchar_t */
+	wpathname = xmhf_efi_bs2wcs(pathname);
+	Print(L"SINIT file name: %s\n", wpathname);
+
+	/* Open new file, ref: https://wiki.osdev.org/Loading_files_under_UEFI */
+	UEFI_CALL(volume->Open, 5, volume, &file_handle, wpathname,
+			  EFI_FILE_MODE_READ,
+			  EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
+
+	/* Free converted pathname to wchar_t */
+	FreePool(wpathname);
+
+	/* Get file size */
+	file_size = xmhf_efi_get_file_size(file_handle);
+
+	/* Compute buffer size (larger than file size, 4K aligned) */
+	buf_size = PA_PAGE_ALIGN_UP_4K(file_size + 1);
+	HALT_ON_ERRORCOND(buf_size > file_size);
+
+	/* Allocate memory */
+	{
+		UINTN pages;
+		EFI_PHYSICAL_ADDRESS addr = ADDR_4GB;
+
+		pages = buf_size >> PAGE_SHIFT_4K;
+		HALT_ON_ERRORCOND((pages << PAGE_SHIFT_4K) == buf_size);
+		UEFI_CALL(BS->AllocatePages, 4, AllocateMaxAddress,
+				  EfiRuntimeServicesData, pages, &addr);
+
+		start = addr;
+		end = start + file_size;
+		HALT_ON_ERRORCOND(start < end);
+	}
+
+	/* Copy file */
+	HALT_ON_ERRORCOND((UINT64)(void *)start == start);
+	read_size = buf_size;
+	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, start);
+	HALT_ON_ERRORCOND(read_size == file_size);
+
+	/* Close file */
+	UEFI_CALL(file_handle->Close, 1, file_handle);
+
+	/* Set efi_info */
+	efi_info->sinit_start = start;
+	efi_info->sinit_end = end;
+}
+#endif /* __DRT__ */
 
 /*
  * Find RSDP from SystemTable.
@@ -429,7 +572,7 @@ static void *xmhf_efi_find_acpi_rsdp(void)
 		}
 	}
 	/* Require ACPI RSDP to be found */
-	XMHF_ASSERT(0 && "ACPI RSDP not found");
+	HALT_ON_ERRORCOND(0 && "ACPI RSDP not found");
 }
 
 /*
@@ -443,6 +586,7 @@ static void xmhf_efi_store_guest_state(xmhf_efi_info_t *efi_info)
 		uintptr_t eflags;
 		get_eflags(eflags);
 		efi_info->interrupt_enabled = !!(eflags & EFLAGS_IF);
+		disable_intr();
 	}
 	efi_info->guest_ES_selector = read_segreg_es();
 	efi_info->guest_CS_selector = read_segreg_cs();
@@ -467,8 +611,8 @@ static void xmhf_efi_store_guest_state(xmhf_efi_info_t *efi_info)
 		 * Assume in 64-bit paging, so we ignore PDPTEs (because we are not in
 		 * PAE paging).
 		 */
-		XMHF_ASSERT((efi_info->guest_IA32_EFER & (1U << EFER_LME)) &&
-					(read_cr0() & CR0_PG));
+		HALT_ON_ERRORCOND((efi_info->guest_IA32_EFER & (1U << EFER_LME)) &&
+						  (read_cr0() & CR0_PG));
 		efi_info->guest_PDPTE0 = 0;
 		efi_info->guest_PDPTE1 = 0;
 		efi_info->guest_PDPTE2 = 0;
@@ -545,6 +689,55 @@ static void xmhf_efi_store_guest_state(xmhf_efi_info_t *efi_info)
 	efi_info->guest_SYSENTER_EIP = rdmsr64(IA32_SYSENTER_EIP_MSR);
 }
 
+/*
+ * Refresh CPU state in efi_info to current CPU.
+ *
+ * efi_info: data structure that contains state.
+ */
+static void xmhf_efi_refresh_guest_state(xmhf_efi_info_t *efi_info)
+{
+	/* Check presence of XMHF. */
+	{
+		u32 eax, ebx, ecx, edx;
+		printf("Detecting XMHF ...\n");
+		cpuid(0x46484d58U, &eax, &ebx, &ecx, &edx);
+		if (eax == 0x46484d58U) {
+			printf("XMHF detected: %08x %08x %08x %08x\n", eax, ebx, ecx, edx);
+		} else {
+			HALT_ON_ERRORCOND(0 && "XMHF not detected");
+		}
+	}
+
+	/* Reload LDTR */
+	{
+		uint16_t ldtr = efi_info->guest_LDTR_selector;
+		printf("Reloading LDT ...\n");
+		asm volatile ("lldt %0" : : "g"(ldtr));
+		printf("Reloaded LDT\n");
+	}
+
+	/*
+	 * Cannot reload TR easily. During the first time loading TR, the hardware
+	 * will set TSSsegmentDescriptor(busy) := 1. The second time loading TR
+	 * will cause #GP(selector). A possible way to do this in the future is to
+	 * clear the TSSsegmentDescriptor(busy) bit, then reload TR.
+	 */
+	if (1) {
+		printf("Warning: not reloading TR. May cause compatibility bugs if "
+			   "UEFI firmware uses TR.\n");
+	} else {
+		uint16_t tr = efi_info->guest_TR_selector;
+		printf("Reloading TR ...\n");
+		asm volatile ("ltr %0" : : "g"(tr));
+		printf("Reloaded TR\n");
+	}
+
+	/* Enable interrupts if needed. */
+	if (efi_info->interrupt_enabled) {
+		enable_intr();
+	}
+}
+
 /* Main function for UEFI service, follow https://wiki.osdev.org/GNU-EFI */
 EFI_STATUS
 EFIAPI
@@ -567,6 +760,11 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	/* For debugging using GDB */
 	Print(L"Image base: 0x%lx\n", loaded_image->ImageBase);
 
+	/* Check maximum physical memory */
+	{
+		xmhf_efi_check_max_phys_mem();
+	}
+
 	/* Read command line arguments from file */
 	{
 		EFI_FILE_HANDLE conf;
@@ -583,7 +781,15 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 		xmhf_efi_load_slrt(volume, config.runtime_file, &efi_info);
 	}
 
-	// TODO: load SINIT module
+	/* Load SINIT module */
+	{
+#ifdef __DRT__
+		xmhf_efi_load_sinit(volume, config.sinit_module, &efi_info);
+#else /* !__DRT__ */
+		efi_info.sinit_start = 0;
+		efi_info.sinit_end = 0;
+#endif /* __DRT__ */
+	}
 
 	/* Find ACPI RSDP */
 	{
@@ -601,8 +807,10 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 				 &efi_info.guest_RFLAGS);
 	}
 
-	// TODO: restore efi_info->interrupt_enabled
-	// TODO: reload LDTR, TR, etc. in xmhf_efi_refresh_guest_state()
+	/* Load guest state */
+	{
+		xmhf_efi_refresh_guest_state(&efi_info);
+	}
 
 	/* Clean up */
 	{
