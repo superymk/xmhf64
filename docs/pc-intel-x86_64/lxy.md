@@ -176,6 +176,12 @@ located in `./hypapps/trustvisor/pal_demo/`.
 	* `...32L2.exe`: Windows i386 executable, for L2 guests
 	* `...64L2.exe`: Windows amd64 executable, for L2 guests
 
+I mostly only use this command to test TrustVisor. This command runs 3 PALs.
+For each PAL it runs 7 times:
+```
+./test_args64 7 7 7
+```
+
 ## Future work
 
 Compatibility
