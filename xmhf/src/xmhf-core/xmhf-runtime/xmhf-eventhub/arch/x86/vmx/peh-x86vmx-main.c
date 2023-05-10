@@ -147,6 +147,18 @@ u64 _vmx_get_guest_efer(VCPU *vcpu)
 	}
 }
 
+void _vmx_set_guest_efer(VCPU *vcpu, u64 val)
+{
+	u32 index;
+	if (xmhf_partition_arch_x86vmx_get_xmhf_msr(MSR_EFER, &index)) {
+		msr_entry_t *efer = &((msr_entry_t *)vcpu->vmx_vaddr_msr_area_guest)[index];
+		HALT_ON_ERRORCOND(efer->index == MSR_EFER);
+		efer->data = val;
+	} else {
+		HALT_ON_ERRORCOND(0 && "EFER is expected to be managed by XMHF");
+	}
+}
+
 /* Return the CR4 register value perceived by the guest. */
 static ulong_t get_guest_cr4(VCPU *vcpu)
 {
@@ -1509,6 +1521,20 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 				}
 				printf("CPU(0x%02x): SIPI received, starting\n", vcpu->id);
 				xmhf_partition_arch_x86vmx_guestVMCS_INIT(vcpu);
+				{
+					/*
+					 * Follow Intel's spec on processor state after INIT
+					 * EDX = 0x000n06xx, other registers = 0
+					 */
+					u32 _eax, _ebx, _ecx, _edx;
+					memset(r, 0, sizeof(*r));
+					cpuid(0x80000001U, &_eax, &_ebx, &_ecx, &_edx);
+					r->edx = 0x00000600U | (0x000f0000U & _eax);
+					// TODO: set registers:
+					// DR0-DR3, DR6, BNDCFGU, BND0-BND3, IA32_BNDCFGS
+					/* Set IA32_EFER */
+					_vmx_set_guest_efer(vcpu, 0);
+				}
 				break;
 			}
 #endif /* __EXTRA_AP_INIT_COUNT__ */
