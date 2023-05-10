@@ -53,10 +53,7 @@ CFLAGS += $(ADDL_INCLUDES_BOOTLOADER)
 
 # separate from OBJECTS_PRECOMPILED becasue needs to come after libs on link line
 OBJECTS_PRECOMPILED_LIBBACKENDS = ../xmhf-runtime/xmhf-xmhfcbackend/xmhfc-putchar.o
-
-ifeq ($(TARGET_UEFI), y)
 OBJECTS_PRECOMPILED_LIBBACKENDS += ../xmhf-runtime/xmhf-debug/lib.a
-endif
 
 I_SOURCES =  $(wildcard $(INCLUDEDIR)/*.h)
 
