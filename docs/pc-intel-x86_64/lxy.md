@@ -248,7 +248,9 @@ need `grub_windows.img` as the second disk (first one is `grub/c.img`, third is
 
 ```
 # Build XMHF
-./tools/ci/build.sh uefi fast
+# Using --iss (--with-extra-ap-init-count) because for some reason booting
+#  rich OS requires INIT-SIPI-SIPI twice
+./tools/ci/build.sh uefi fast --iss 1
 
 # Define bash script
 build_uefi () {
