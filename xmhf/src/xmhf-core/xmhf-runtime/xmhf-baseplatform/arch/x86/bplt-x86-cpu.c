@@ -52,9 +52,10 @@
 
 #include <xmhf.h>
 
-static inline void clflush_ins(volatile void *__p)
+static inline void clflush_ins(volatile void *p)
 {
-	asm volatile("clflush %0" : "+m" (*(volatile char *)__p));
+	// asm volatile("clflush %0" : "+m" (*(volatile char *)__p));
+	asm volatile ("clflush (%0)" :: "r"(p));
 }
 
 //returns true if CPU has support for XSAVE/XRSTOR
