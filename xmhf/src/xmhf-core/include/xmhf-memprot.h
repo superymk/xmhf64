@@ -56,6 +56,8 @@
 
 #include <hptw.h>
 
+typedef struct emu_env emu_env_t;
+
 // memory protection types
 #define MEMP_PROT_NOTPRESENT	(1)	// page not present
 #define	MEMP_PROT_PRESENT		(2)	// page present
@@ -140,6 +142,12 @@ bool xmhf_is_mhv_memory(spa_t spa);
 // On 64-bit machine, the function queries the E820 map for the used memory region.
 bool xmhf_get_machine_paddr_range(spa_t* machine_base_spa, spa_t* machine_limit_spa);
 
+/*
+ * Emulate instruction by changing the VMCS values.
+ * Currently XMHF will crash if the instruction is invalid.
+ */
+extern int xmhf_memprot_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env, unsigned char* inst, uint32_t inst_len);
+
 
 //----------------------------------------------------------------------
 //ARCH. BACKENDS
@@ -219,6 +227,124 @@ spa_t guestmem_gpa2spa_size(guestmem_hptw_ctx_pair_t *ctx_pair,
 							gpa_t guest_addr, size_t size);
 gva_t guestmem_desegment(VCPU * vcpu, cpu_segment_t seg, gva_t addr,
 						 size_t size, hpt_prot_t mode, hptw_cpl_t cpl);
+
+/* Information about instruction prefixes */
+typedef struct prefix_t {
+	bool lock;
+	bool repe;
+	bool repne;
+	cpu_segment_t seg;
+	bool opsize;
+	bool addrsize;
+	union {
+		struct {
+			u8 b : 1;
+			u8 x : 1;
+			u8 r : 1;
+			u8 w : 1;
+			u8 four : 4;
+		};
+		u8 raw;
+	} rex;
+} prefix_t;
+
+/* ModR/M */
+typedef union modrm_t {
+	struct {
+		u8 rm : 3;
+		u8 regop : 3;
+		u8 mod : 2;
+	};
+	u8 raw;
+} modrm_t;
+
+/* SIB */
+typedef union sib_t {
+	struct {
+		u8 base : 3;
+		u8 index : 3;
+		u8 scale : 2;
+	};
+	u8 raw;
+} sib_t;
+
+/* Instruction postfixes (bytes after opcode) */
+typedef struct postfix_t {
+	modrm_t modrm;
+	sib_t sib;
+	union {
+		unsigned char *displacement;
+		u8 *displacement1;
+		u16 *displacement2;
+		u32 *displacement4;
+		u64 *displacement8;
+	};
+	union {
+		unsigned char *immediate;
+		u8 *immediate1;
+		u16 *immediate2;
+		u32 *immediate4;
+		u64 *immediate8;
+	};
+} postfix_t;
+
+enum op_type
+{
+	OPERAND_REG, 
+	OPERAND_MEM, 
+	OPERAND_IMM, 
+	OPERAND_NONE
+} ;
+
+struct operand
+{
+	enum op_type type;
+
+	unsigned long val;
+	size_t operand_size;
+
+	union {
+        hva_t reg_hvaddr; // Pointer to register field, if the operand has OPERAND_REG type
+
+		struct {
+			cpu_segment_t seg;
+			ulong_t offset;
+			gva_t gvaddr; // gvaddr to domain's memory
+		} mem;	// information for OPERAND_MEM operands
+    };
+};
+
+typedef struct emu_env {
+	VCPU * vcpu;
+	struct regs *r;
+	guestmem_hptw_ctx_pair_t ctx_pair;
+	bool g64;
+	bool cs_d; /// D/B filed of CS segment
+	u8 *pinst;
+	u32 pinst_len;
+
+	struct operand src;
+	struct operand dst;
+
+	// ulong_t force_src_val; // Forced value of the source operand
+	// unsigned long replacement_flag;
+
+	prefix_t prefix;
+	postfix_t postfix;
+	cpu_segment_t seg;
+	size_t displacement_len;
+	size_t immediate_len;
+} emu_env_t;
+
+/// @brief Emulate instruction by changing the VMCS values.
+/// Currently XMHF will crash if the instruction is invalid.
+/// @param vcpu 
+/// @param r 
+/// @param emu_env 
+/// @param inst 
+/// @param inst_len 
+/// @return 
+extern int x86_vmx_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env, unsigned char* inst, uint32_t inst_len);
 
 //VMX EPT PML4 table buffers
 extern u8 g_vmx_ept_pml4_table_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));

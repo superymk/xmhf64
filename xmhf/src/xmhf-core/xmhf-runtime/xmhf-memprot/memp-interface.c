@@ -146,3 +146,12 @@ bool xmhf_get_machine_paddr_range(spa_t* machine_base_spa, spa_t* machine_limit_
 {
     return xmhf_arch_get_machine_paddr_range(machine_base_spa, machine_limit_spa);
 }
+
+/*
+ * Emulate instruction by changing the VMCS values.
+ * Currently XMHF will crash if the instruction is invalid.
+ */
+int xmhf_memprot_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env, unsigned char* inst, uint32_t inst_len)
+{
+	return x86_vmx_emulate_instruction(vcpu, r, emu_env, inst, inst_len);
+}
