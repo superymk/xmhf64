@@ -58,7 +58,7 @@
     #error "Unsupported Arch"
 #endif /* !defined(__I386__) */
 
-	static inline void writeb(u32 addr, u8 val) {
+	static inline void write8(u32 addr, u8 val) {
 #ifdef __AMD64__
 		u32 phys_addr = (u32)addr - (u32)xmhf_baseplatform_arch_flat_va_offset;
 		*(u8 *)(u64)phys_addr = val;
@@ -72,7 +72,7 @@
 #endif /* !defined(__I386__) && !defined(__AMD64__) */
 	}
 
-	static inline u8 readb(u32 addr) {
+	static inline u8 read8(u32 addr) {
 #ifdef __AMD64__
 		u32 phys_addr = (u32)addr - (u32)xmhf_baseplatform_arch_flat_va_offset;
 		return *(u8 *)(u64)phys_addr;
@@ -91,11 +91,11 @@
 
 #else //__XMHF_VERIFICATION__
 
-	static inline void writeb(u32 addr, u8 val) {
+	static inline void write8(u32 addr, u8 val) {
 
 	}
 
-	static inline u8 readb(u32 addr) {
+	static inline u8 read8(u32 addr) {
 	 return 0;
 	}
 
@@ -105,14 +105,14 @@ void _read_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size)
 {
     size_t i;
     for ( i = 0; i < size; i++ )
-        _raw[i] = readb((TPM_LOCALITY_BASE_N(locality) | reg) + i);
+        _raw[i] = read8((TPM_LOCALITY_BASE_N(locality) | reg) + i);
 }
 
 void _write_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size)
 {
     size_t i;
     for ( i = 0; i < size; i++ )
-        writeb((TPM_LOCALITY_BASE_N(locality) | reg) + i, _raw[i]);
+        write8((TPM_LOCALITY_BASE_N(locality) | reg) + i, _raw[i]);
 }
 
 void copy_hash(tb_hash_t *dest_hash, const tb_hash_t *src_hash,

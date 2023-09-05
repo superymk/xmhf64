@@ -441,12 +441,12 @@ typedef union {
 // XMHF: Remove _read_tpm_reg() and _write_tpm_reg().
 //static inline void _read_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size)
 //{
-//    for ( size_t i = 0; i < size; i++ )   _raw[i] = readb((TPM_LOCALITY_BASE_N(locality) | reg) + i);
+//    for ( size_t i = 0; i < size; i++ )   _raw[i] = read8((TPM_LOCALITY_BASE_N(locality) | reg) + i);
 //}
 //
 //static inline void _write_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size)
 //{
-//    for ( size_t i = 0; i < size; i++ )  writeb((TPM_LOCALITY_BASE_N(locality) | reg) + i, _raw[i]);
+//    for ( size_t i = 0; i < size; i++ )  write8((TPM_LOCALITY_BASE_N(locality) | reg) + i, _raw[i]);
 //}
 extern void _read_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size);
 extern void _write_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size);
