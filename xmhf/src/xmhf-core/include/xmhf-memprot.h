@@ -142,11 +142,15 @@ bool xmhf_is_mhv_memory(spa_t spa);
 // On 64-bit machine, the function queries the E820 map for the used memory region.
 bool xmhf_get_machine_paddr_range(spa_t* machine_base_spa, spa_t* machine_limit_spa);
 
-/*
- * Emulate instruction by changing the VMCS values.
- * Currently XMHF will crash if the instruction is invalid.
- */
-extern int xmhf_memprot_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env, unsigned char* inst, uint32_t inst_len);
+/// @brief Emulate instruction by changing the VMCS values.
+/// Currently XMHF will crash if the instruction is invalid.
+/// @param vcpu 
+/// @param r 
+/// @param emu_env 
+/// @param inst 
+/// @param inst_len 
+/// @return 
+extern int xmhf_memprot_emulate_guest_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env, unsigned char* inst, uint32_t inst_len);
 
 
 //----------------------------------------------------------------------

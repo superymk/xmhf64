@@ -1571,12 +1571,20 @@ static void _prefix_init(prefix_t* prefix)
 	prefix->rex.raw = 0;
 }
 
+static void _print_instruction(unsigned char* inst, uint32_t inst_len)
+{
+	uint32_t i = 0;
+
+	FOREACH_S(i, inst_len, INST_LEN_MAX, 0, 1)
+	{
+		printf("%02X ", inst[i]);
+	}
+	printf("\n");
+}
+
 int x86_vmx_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env, unsigned char* inst, uint32_t inst_len)
 {
     int ret = 0;
-	// u8 inst[INST_LEN_MAX] = {};
-	// uintptr_t rip = vcpu->vmcs.guest_RIP;
-	// u32 inst_len = vcpu->vmcs.info_vmexit_instruction_length;
 
 	// Check: Parameters must be valid
 	if(!vcpu || !r || !emu_env || !inst || !inst_len)
@@ -1584,7 +1592,6 @@ int x86_vmx_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env,
 
 	emu_env->vcpu = vcpu;
 	emu_env->r = r;
-	// emu_env->prefix = PREFIX_INFO_INITIALIZER;
 	_prefix_init(&emu_env->prefix);
 	guestmem_init(vcpu, &emu_env->ctx_pair);
 	emu_env->g64 = VCPU_g64(vcpu);
@@ -1621,8 +1628,8 @@ int x86_vmx_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env,
 	ret = parse_opcode_one(emu_env);
     if(ret)
     {
-        printf("[X86-VMX Emulator] Failed to emulate the instruction (first 9 bytes): 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X!\n", 
-			inst[0], inst[1], inst[2], inst[3], inst[4], inst[5], inst[6], inst[7], inst[8]);
+		printf("[X86-VMX Emulator] Failed to emulate the instruction at gvaddr:0x%lX. Instruction: ", vcpu->vmcs.guest_RIP);
+		_print_instruction(inst, inst_len);
         goto emu_inst_err;
     }
 
