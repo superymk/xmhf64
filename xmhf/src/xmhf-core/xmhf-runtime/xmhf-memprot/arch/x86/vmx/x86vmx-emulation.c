@@ -835,7 +835,7 @@ static int parse_opcode_two_0f(emu_env_t * emu_env)
 			u8 imm = *emu_env->postfix.immediate1;
 			u8 bit = imm % (operand_size * 8);
 			uintptr_t rm;	/* r, w */
-			uintptr_t value;
+			uintptr_t value = 0;
 
 			if (eval_modrm_addr(emu_env, &rm)) 
             {
