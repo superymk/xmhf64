@@ -1164,6 +1164,8 @@ static u32 _optimize_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 	} while (0)
 
 	_OPT_VMREAD(32, info_vmexit_reason);
+
+	xmhf_event_counter_inc(vcpu, (u32)vcpu->vmcs.info_vmexit_reason);
 	switch ((u32)vcpu->vmcs.info_vmexit_reason) {
 	case VMX_VMEXIT_WRMSR:
 		/* Only optimize WRMSR for some MSRs */
@@ -1423,6 +1425,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 #endif /* __DEBUG_EVENT_LOGGER__ */
 
 	//handle intercepts
+	xmhf_event_counter_inc(vcpu, (u32)vcpu->vmcs.info_vmexit_reason);
 	switch((u32)vcpu->vmcs.info_vmexit_reason){
 		//--------------------------------------------------------------
 		//xmhf-core and hypapp intercepts

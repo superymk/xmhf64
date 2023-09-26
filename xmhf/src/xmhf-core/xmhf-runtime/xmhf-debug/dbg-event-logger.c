@@ -50,6 +50,8 @@
 
 #include <xmhf.h>
 
+#ifdef __DEBUG_EVENT_LOGGER__
+
 #define DEFINE_EVENT_FIELD(name, count_type, count_fmt, lru_size, index_type, \
 						   key_type, key_fmt, ...) \
 LRU_NEW_SET(event_log_##name##_set_t, event_log_##name##_line_t, lru_size, \
@@ -157,3 +159,75 @@ void xmhf_dbg_log_event(void *_vcpu, bool can_print, xmhf_dbg_eventlog_t event,
 	}
 }
 
+#endif // __DEBUG_EVENT_LOGGER__
+
+
+
+
+/********* Superymk Perf Logger Functions *********/
+#define MAX_ENTRY_SELECTOR (80)
+
+struct event_entry
+{
+	uint32_t counter;
+};
+
+struct events
+{
+	struct event_entry entries[MAX_ENTRY_SELECTOR];
+};
+
+static struct events xmhf_events[MAX_VCPU_ENTRIES];
+
+void xmhf_event_clear_all_counters(void)
+{
+	int i, j;
+
+	for(i = 0; i < MAX_VCPU_ENTRIES; i++)
+	{
+		for(j = 0; j < MAX_ENTRY_SELECTOR; j++)
+		{
+			xmhf_events[i].entries[j].counter = 0;
+		}
+	}
+}
+
+void xmhf_event_counter_inc(void* _vcpu, uint32_t event_slot_sel)
+{
+	VCPU* vcpu = (VCPU*)_vcpu;
+
+	if(event_slot_sel >= MAX_ENTRY_SELECTOR)
+		return;
+
+	xmhf_events[vcpu->idx].entries[event_slot_sel].counter++;
+}
+
+void xmhf_event_print_all_counters(void)
+{
+	int i, j;
+
+	printf("Printing event counters:\n");
+	for(i = 0; i < MAX_VCPU_ENTRIES; i++)
+	{
+		bool print_cpu_prefix = false;
+		
+		for(j = 0; j < MAX_ENTRY_SELECTOR; j++)
+		{
+			uint32_t counter = xmhf_events[i].entries[j].counter;
+			if(counter)
+			{
+				// Print "CPU[%u]" at the beginning once for each CPU
+				if(!print_cpu_prefix)
+				{
+					printf("\tCPU[%u]\n", i);
+					print_cpu_prefix = true;
+				}
+
+				// Print data
+				printf("EventSlot %u: %u\t\t", j, counter);
+			}
+		}
+		printf("\n");
+	}
+	printf("\n");
+}

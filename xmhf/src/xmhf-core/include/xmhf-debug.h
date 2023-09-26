@@ -165,6 +165,10 @@ void xmhf_dbg_log_event(void *_vcpu, bool can_print, xmhf_dbg_eventlog_t event,
 
 #endif /* __DEBUG_EVENT_LOGGER__ */
 
+extern void xmhf_event_clear_all_counters(void);
+extern void xmhf_event_counter_inc(void* _vcpu, uint32_t event_slot_sel);
+extern void xmhf_event_print_all_counters(void);
+
 
 #endif	//__ASSEMBLY__
 
