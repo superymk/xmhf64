@@ -70,6 +70,9 @@
 #else /* !defined(__I386__) && !defined(__AMD64__) */
     #error "Unsupported Arch"
 #endif /* !defined(__I386__) && !defined(__AMD64__) */
+
+        // Prevent reading stale values of other memory/register impacted from the given memory/register <addr>
+        mb();
 	}
 
 	static inline u8 read8(u32 addr) {
