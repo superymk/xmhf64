@@ -213,6 +213,8 @@
 // Return the high 32 bits
 #define HIGH32(v)   ((u32)(v >> 32))
 
+#define UINT32_TO_64(high, low)          ((uint64_t)(((uint64_t)high << 32ULL) | low))
+
 // i386: follow the order enforced by PUSHAD/POPAD
 // amd64: manually follow this order in assembly code
 struct regs
