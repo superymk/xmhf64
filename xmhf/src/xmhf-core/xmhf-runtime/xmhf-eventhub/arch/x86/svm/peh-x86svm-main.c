@@ -152,13 +152,13 @@ static void _svm_handle_msr(VCPU *vcpu, struct _svm_vmcbfields *vmcb, struct reg
 //win_vmcb->exitinfo2 = faulting guest OS physical address
 static void _svm_handle_npf(VCPU *vcpu, struct regs *r){
   struct _svm_vmcbfields *vmcb = (struct _svm_vmcbfields *)vcpu->vmcb_vaddr_ptr;
-  u32 gpa = vmcb->exitinfo2;
+  gpa_t gpa = (gpa_t)vmcb->exitinfo2;
   u32 errorcode = vmcb->exitinfo1;
 
   if(!g_all_cores_booted_up && (gpa >= g_svm_lapic_base && gpa < (g_svm_lapic_base + PAGE_SIZE_4K))){
     //LAPIC access, xfer control to apropriate handler
     HALT_ON_ERRORCOND( vcpu->isbsp == 1); //only BSP gets a NPF during LAPIC SIPI detection
-    xmhf_smpguest_arch_x86_eventhandler_hwpgtblviolation(vcpu, gpa, errorcode);
+    xmhf_smpguest_arch_x86_eventhandler_hwpgtblviolation(vcpu, r, gpa, errorcode);
   } else {
 	//note: AMD does not provide guest virtual address on a #NPF so we pass zero always
 	xmhf_smpguest_arch_x86svm_quiesce(vcpu);

@@ -152,6 +152,34 @@ bool xmhf_get_machine_paddr_range(spa_t* machine_base_spa, spa_t* machine_limit_
 /// @return 
 extern int xmhf_memprot_emulate_guest_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env, unsigned char* inst, uint32_t inst_len);
 
+/// @brief Emulate the rip (memory read) of the current guest to get the operand size.
+/// @param vcpu 
+/// @param r 
+/// @param out_operand_size 
+/// @return 
+extern int xmhf_memprot_emulate_guest_ring0_read_size(VCPU *vcpu, struct regs *r, size_t *out_operand_size);
+
+/// @brief Emulate the rip (memory read) of the current guest. 
+/// @param vcpu 
+/// @param r 
+/// @param force_read_value The read result return to the memory read instruction
+/// @return Return 0 on success. Return -1 on instruction emulation errors.
+extern int xmhf_memprot_emulate_guest_ring0_read(VCPU* vcpu, struct regs* r, ulong_t force_read_value);
+
+/// @brief Emulate the rip (memory write) of the current guest. 
+/// @param vcpu 
+/// @param r 
+/// @param out_value 
+/// @param out_operand_size 
+/// @return Return 0 on success. Return -1 on instruction emulation errors.
+extern int xmhf_memprot_emulate_guest_ring0_write(VCPU* vcpu, struct regs* r, ulong_t* out_value, size_t* out_operand_size);
+
+
+
+
+/********* Debug functions *********/
+extern void xmhf_registers_dump(VCPU *vcpu, struct regs *r);
+
 
 //----------------------------------------------------------------------
 //ARCH. BACKENDS

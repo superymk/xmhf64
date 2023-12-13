@@ -187,7 +187,7 @@ void xmhf_smpguest_arch_x86svm_initialize(VCPU *vcpu){
 //----------------------------------------------------------------------
 //xmhf_smpguest_arch_x86svm_eventhandler_hwpgtblviolation
 //handle LAPIC accesses by the guest, used for SMP guest boot
-u32 xmhf_smpguest_arch_x86svm_eventhandler_hwpgtblviolation(VCPU *vcpu, u32 paddr, u32 errorcode){
+u32 xmhf_smpguest_arch_x86svm_eventhandler_hwpgtblviolation(VCPU *vcpu, gpa_t paddr, u32 errorcode){
   struct _svm_vmcbfields *vmcb = (struct _svm_vmcbfields *)vcpu->vmcb_vaddr_ptr;
 
   //get LAPIC register being accessed
