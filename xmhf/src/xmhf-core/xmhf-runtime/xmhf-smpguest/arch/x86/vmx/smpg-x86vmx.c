@@ -340,7 +340,7 @@ static void xmhf_smpguest_arch_x86vmx_delink_lapic(VCPU *vcpu)
 //----------------------------------------------------------------------
 //xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation
 //handle LAPIC accesses by the guest, used for SMP guest boot
-u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, u32 paddr, u32 errorcode){
+u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, struct regs *r, gpa_t paddr, u32 errorcode){
 
   //get LAPIC register being accessed
   g_vmx_lapic_reg = (paddr - g_vmx_lapic_base);
@@ -349,7 +349,7 @@ u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, u32 padd
   g_vmx_lapic_npf_verification_pre = (errorcode & EPT_ERRORCODE_WRITE) &&
 	((g_vmx_lapic_reg == LAPIC_ICR_LOW) || (g_vmx_lapic_reg == LAPIC_ICR_HIGH));
 #endif
-
+	(void)r;
 
 	if(errorcode & EPT_ERRORCODE_WRITE){			//LAPIC write
 
