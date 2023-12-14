@@ -419,6 +419,7 @@ u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, struct r
 
 
 			g_vmx_lapic_op = LAPIC_OP_RSVD;
+			g_vmx_lapic_reg = trapped_lapic_reg;
 			vmx_lapic_changemapping(vcpu, g_vmx_lapic_base, g_vmx_lapic_base, VMX_LAPIC_MAP);
 			enable_db_intercept[vcpu->idx] = true;
 		}
@@ -464,6 +465,7 @@ u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, struct r
 
 
 			g_vmx_lapic_op = LAPIC_OP_RSVD;
+			g_vmx_lapic_reg = trapped_lapic_reg;
 			vmx_lapic_changemapping(vcpu, g_vmx_lapic_base, g_vmx_lapic_base, VMX_LAPIC_MAP);
 			enable_db_intercept[vcpu->idx] = true;
 			(void)status;(void)r;
