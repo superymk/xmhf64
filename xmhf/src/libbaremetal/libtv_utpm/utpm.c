@@ -139,6 +139,7 @@ TPM_RESULT utpm_init_master_entropy(uint8_t *aeskey,
     memcpy(&g_rsa_key, rsa, sizeof(g_rsa_key));
 
     /* register libtomcrypt algorithms */
+    // [TODO][Issue 131] Replace sha1 in uTPM to be sha256
     if (register_hash( &sha1_desc) < 0) {
       abort();
     }
@@ -152,6 +153,13 @@ TPM_RESULT utpm_init_master_entropy(uint8_t *aeskey,
     }
 
     return UTPM_SUCCESS;
+}
+
+void utpm_fini_master_entropy(void)
+{
+    memset(g_aeskey, 0, TPM_AES_KEY_LEN_BYTES);
+    memset(g_hmackey, 0, TPM_HMAC_KEY_LEN);
+    memcpy(&g_rsa_key, 0, sizeof(g_rsa_key));
 }
 
 void utpm_init_instance(utpm_master_state_t *utpm) {

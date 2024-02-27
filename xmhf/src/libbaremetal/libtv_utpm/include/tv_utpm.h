@@ -295,4 +295,6 @@ TPM_RESULT utpm_init_master_entropy(uint8_t *aeskey,
                                     uint8_t *hmackey,
                                     void /*rsa_context*/ *rsa);
 
+void utpm_fini_master_entropy(void);
+
 #endif /* _TV_UTPM_H_ */
