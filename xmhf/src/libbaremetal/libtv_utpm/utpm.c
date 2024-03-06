@@ -61,7 +61,7 @@
 #include <tomcrypt.h>
 #include <tommath.h>
 
-#include <sha1.h>
+#include <sha256.h>
 
 /* TODO: Fix this hack! */
 //#include <malloc.h>
@@ -90,12 +90,12 @@ uint8_t g_hmackey[TPM_HMAC_KEY_LEN];
 rsa_key g_rsa_key;
 
 /* compatibility wrapper */
-static void HMAC_SHA1( uint8_t* secret, size_t secret_len,
+static void HMAC_SHA( uint8_t* secret, size_t secret_len,
                        uint8_t* in, size_t in_len,
                        uint8_t* out)
 {
   int rv;
-  int hash_id = find_hash("sha1");
+  int hash_id = find_hash("sha256");
   unsigned long out_len = hash_descriptor[hash_id].hashsize;
 
   rv = hmac_memory( hash_id,
@@ -140,7 +140,7 @@ TPM_RESULT utpm_init_master_entropy(uint8_t *aeskey,
 
     /* register libtomcrypt algorithms */
     // [TODO][Issue 131] Replace sha1 in uTPM to be sha256
-    if (register_hash( &sha1_desc) < 0) {
+    if (register_hash( &sha256_desc) < 0) {
       abort();
     }
     if (register_cipher( &aes_desc) < 0) {
@@ -201,7 +201,7 @@ TPM_RESULT utpm_extend(TPM_DIGEST *measurement, utpm_master_state_t *utpm, uint3
      * will be treated as int in the caller and unsigned long in the callee,
      * causing problems in va_arg (e.g. the upper 32-bits become undefined).
      */
-    rv = hash_memory_multi( find_hash("sha1"),
+    rv = hash_memory_multi( find_hash("sha256"),
                             utpm->pcr_bank[pcr_num].value, &outlen,
                             utpm->pcr_bank[pcr_num].value,
                             (unsigned long) TPM_HASH_SIZE,
@@ -397,7 +397,7 @@ static TPM_RESULT utpm_internal_digest_current_TpmPcrComposite(
 
     if(0 != rv) { return 1; }
 
-    sha1_buffer(tpm_pcr_composite, space_needed_for_composite, digest->value);
+    sha256_buffer(tpm_pcr_composite, space_needed_for_composite, digest->value);
 
     if(tpm_pcr_composite) { free(tpm_pcr_composite); tpm_pcr_composite = NULL; }
 
@@ -545,7 +545,7 @@ TPM_RESULT utpm_seal(utpm_master_state_t *utpm,
     print_hex(" freshly encrypted ciphertext: ", output, *outlen);
 
 	/* 5. compute and append hmac */
-    HMAC_SHA1(g_hmackey, TPM_HASH_SIZE, output, *outlen, output + *outlen);
+    HMAC_SHA(g_hmackey, TPM_HASH_SIZE, output, *outlen, output + *outlen);
     print_hex("hmac: ", output + *outlen, TPM_HASH_SIZE);
     *outlen += TPM_HASH_SIZE; /* hmac */
 
@@ -599,7 +599,7 @@ TPM_RESULT utpm_unseal(utpm_master_state_t *utpm,
      * input. Calculate its expected value based on the first (inlen -
      * TPM_HASH_SIZE) bytes of the input and compare against provided
      * value. */
-    HMAC_SHA1(g_hmackey, TPM_HASH_SIZE, input, inlen - TPM_HASH_SIZE, hmacCalculated);
+    HMAC_SHA(g_hmackey, TPM_HASH_SIZE, input, inlen - TPM_HASH_SIZE, hmacCalculated);
     if(memcmp(hmacCalculated, input + inlen - TPM_HASH_SIZE, TPM_HASH_SIZE)) {
         dprintf(LOG_ERROR, "Unseal HMAC **INTEGRITY FAILURE**: memcmp(hmacCalculated, input + inlen - TPM_HASH_SIZE, TPM_HASH_SIZE)\n");
         print_hex("  hmacCalculated: ", hmacCalculated, TPM_HASH_SIZE);
@@ -681,7 +681,7 @@ TPM_RESULT utpm_unseal(utpm_master_state_t *utpm,
             print_hex("  current PcrComposite: ", currentPcrComposite, space_needed_for_composite);
 
             /* 3. Composite hash */
-            sha1_buffer(currentPcrComposite, space_needed_for_composite, digestRightNow.value);
+            sha256_buffer(currentPcrComposite, space_needed_for_composite, digestRightNow.value);
             print_hex("  digestRightNow: ", digestRightNow.value, TPM_HASH_SIZE);
 
             if(0 != memcmp(digestRightNow.value, unsealedPcrInfo.digestAtRelease.value, TPM_HASH_SIZE)) {
@@ -753,7 +753,7 @@ TPM_RESULT utpm_seal_deprecated(uint8_t* pcrAtRelease, uint8_t* input, uint32_t 
 	memset(output+outlen_beforepad, 0, len-outlen_beforepad);
 
 	/* get HMAC of the entire message w/ zero HMAC field */
-	HMAC_SHA1(g_hmackey, 20, output, len, hashdata);
+	HMAC_SHA(g_hmackey, TPM_HASH_SIZE, output, len, hashdata);
 	memcpy(output+TPM_CONFOUNDER_SIZE, hashdata, TPM_HASH_SIZE);
 
 	/* encrypt data using sealAesKey by AES-CBC mode */
@@ -823,7 +823,7 @@ TPM_RESULT utpm_unseal_deprecated(utpm_master_state_t *utpm, uint8_t* input, uin
 
 	/* zero HMAC field, and recalculate hmac of the message */
 	memset(output+TPM_CONFOUNDER_SIZE, 0, TPM_HASH_SIZE);
-	HMAC_SHA1(g_hmackey, 20, output, inlen, hashdata);
+	HMAC_SHA(g_hmackey, TPM_HASH_SIZE, output, inlen, hashdata);
 
 	/* compare the hmac */
 	if (memcmp(hashdata, oldhmac, TPM_HASH_SIZE))
@@ -897,8 +897,8 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
     *((uint32_t*)&quote_info.version) = 0x00000101;
     /* 2) 'QUOT' */
     *((uint32_t*)quote_info.fixed) = 0x544f5551;
-    /* 3) SHA-1 hash of TPM_PCR_COMPOSITE */
-    sha1_buffer(tpm_pcr_composite, space_needed_for_composite, quote_info.digestValue.value);
+    /* 3) SHA-256 hash of TPM_PCR_COMPOSITE */
+    sha256_buffer(tpm_pcr_composite, space_needed_for_composite, quote_info.digestValue.value);
     print_hex(" COMPOSITE_HASH: ", quote_info.digestValue.value, TPM_HASH_SIZE);
     /* 4) external nonce */
     memcpy(quote_info.externalData.nonce, externalnonce->nonce, TPM_HASH_SIZE);
@@ -922,15 +922,15 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
 
     {
       unsigned long outlen_long = *outlen;
-      uint8_t md[SHA_DIGEST_LENGTH];
+      uint8_t md[SHA256_DIGEST_LENGTH];
 
-      sha1_buffer( (uint8_t*)&quote_info, sizeof(TPM_QUOTE_INFO), md);
+      sha256_buffer( (uint8_t*)&quote_info, sizeof(TPM_QUOTE_INFO), md);
 
       if( (rv = rsa_sign_hash_ex( md, sizeof(md),
                                   output, &outlen_long,
                                   LTC_LTC_PKCS_1_V1_5,
                                   NULL, 0, /* no prng for v1.5 padding */
-                                  find_hash("sha1"),
+                                  find_hash("sha256"),
                                   0, /* no salt for v1.5 padding */
                                   &g_rsa_key))) {
         printf("[TV:UTPM] ERROR: tpm_pkcs1_sign FAILED\n");
@@ -989,7 +989,7 @@ TPM_RESULT utpm_quote_deprecated(uint8_t* externalnonce, uint8_t* output, uint32
                                        output+datalen, &outlen_long,
                                        LTC_LTC_PKCS_1_V1_5,
                                        NULL, 0, /* no prng for v1.5 padding */
-                                       find_hash("sha1"),
+                                       find_hash("sha256"),
                                        0, /* no salt for v1.5 padding */
                                        &g_rsa_key))) {
             printf("[TV] Quote ERROR: rsa sign fail\n");

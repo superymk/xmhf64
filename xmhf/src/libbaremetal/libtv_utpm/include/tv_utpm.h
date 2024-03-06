@@ -53,6 +53,8 @@
 #ifndef _TV_UTPM_H_
 #define _TV_UTPM_H_
 
+#include <sha256.h>
+
 /**
  * FIXME: Once libemhfcrypto exists, it may be reasonable to depend on
  * rsa.h in here.  For now, it's not.
@@ -71,18 +73,7 @@
 
 /* constant value for TPM chip */
 #define TPM_RSA_KEY_LEN                256 /* RSA key size is 2048 bit */
-#define TPM_HASH_SIZE                  20
-
-#define  MAX_PCR_SEL_NUM 4
-#define  MAX_PCR_SEL_SIZE (4+4*MAX_PCR_SEL_NUM)
-#define  MAX_PCR_DATA_SIZE (MAX_PCR_SEL_NUM*20)
-
-#define  MAX_TPM_EXTEND_DATA_LEN 4096
-#define  MAX_TPM_RAND_DATA_LEN 4096
-
-#define TPM_QUOTE_SIZE ( 8 + MAX_PCR_SEL_SIZE + MAX_PCR_DATA_SIZE + TPM_NONCE_SIZE + TPM_RSA_KEY_LEN )
-
-#define TPM_CONFOUNDER_SIZE 20
+#define TPM_HASH_SIZE                  (SHA256_RESULTLEN)
 
 /* Return codes for uTPM operations. */
 #define UTPM_SUCCESS 0
@@ -92,10 +83,23 @@
 #define UTPM_ERR 4
 
 /* MicroTPM related definitions */
-#define TPM_PCR_SIZE                   20
-#define TPM_AES_KEY_LEN                128 /* key size is 128 bit */
+/// @brief uTPM's PCR size always equals to the TPM_HASH_SIZE
+#define TPM_PCR_SIZE                   (TPM_HASH_SIZE) 
+#define TPM_AES_KEY_LEN                (128) /* key size is 128 bit */
 #define TPM_AES_KEY_LEN_BYTES (TPM_AES_KEY_LEN/8)
-#define TPM_HMAC_KEY_LEN               20
+#define TPM_HMAC_KEY_LEN               (SHA256_RESULTLEN)
+#define TPM_PCR_NUM                    (24)
+
+#define  MAX_PCR_SEL_NUM (TPM_PCR_NUM)
+#define  MAX_PCR_SEL_SIZE (4+4*MAX_PCR_SEL_NUM)
+#define  MAX_PCR_DATA_SIZE (MAX_PCR_SEL_NUM*TPM_PCR_SIZE)
+
+#define  MAX_TPM_EXTEND_DATA_LEN 4096
+#define  MAX_TPM_RAND_DATA_LEN 4096
+
+#define TPM_QUOTE_SIZE ( 8 + MAX_PCR_SEL_SIZE + MAX_PCR_DATA_SIZE + TPM_NONCE_SIZE + TPM_RSA_KEY_LEN )
+
+#define TPM_CONFOUNDER_SIZE 20
 
 /* max len of sealed data */
 #define  MAX_SEALDATA_LEN 2048
@@ -104,8 +108,6 @@
 /* TODO: create an enum with meaningful errors that can be passed back
  * to PAL authors. */
 typedef uint32_t TPM_RESULT;
-
-#define TPM_PCR_NUM                    8
 
 struct tdTPM_PCR_SELECTION {
     uint16_t sizeOfSelect;            /* The size in bytes of the pcrSelect structure */
