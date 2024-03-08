@@ -361,8 +361,11 @@ static uint32_t utpm_internal_allocate_and_populate_current_TpmPcrComposite(
     for(i=0; i<TPM_PCR_NUM; i++) {
         if(utpm_pcr_is_selected(tpmsel, i)) {
             memcpy(p, utpm->pcr_bank[i].value, TPM_HASH_SIZE);
-            dprintf(LOG_TRACE, "  PCR-%d: ", i);
-            print_hex(NULL, p, TPM_HASH_SIZE);
+            if(print)
+            {
+                dprintf(LOG_TRACE, "  PCR-%d: ", i);
+                print_hex(NULL, p, TPM_HASH_SIZE);
+            }
             p += TPM_HASH_SIZE;
         }
     }
@@ -947,7 +950,9 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
     }
 
     *outlen = TPM_RSA_KEY_LEN;
-    dprintf(LOG_TRACE, "required output size = *outlen = %d\n", *outlen);
+
+    if(print)
+        dprintf(LOG_TRACE, "required output size = *outlen = %d\n", *outlen);
 
     {
       unsigned long outlen_long = *outlen;
@@ -970,7 +975,7 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
       }
     }
 
-    dprintf(LOG_TRACE, "[TV:UTPM] Success!\n");
+    dprintf(LOG_TRACE, "[TV:UTPM] utpm_quote Success!\n");
 
   out:
     if(tpm_pcr_composite) { free(tpm_pcr_composite); tpm_pcr_composite = NULL; }
