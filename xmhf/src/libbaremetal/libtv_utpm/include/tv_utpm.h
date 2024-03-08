@@ -272,7 +272,8 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
                       uint8_t* output, uint32_t* outlen, /* hypercall outputs */
                       uint8_t* pcrComp, uintptr_t* pcrCompLen,
                       TPM_QUOTE_INFO* out_tpm_quote_info,
-                      utpm_master_state_t *utpm); /* TrustVisor inputs */
+                      utpm_master_state_t *utpm,
+                      bool print); /* TrustVisor inputs */
 
 /**
  * Keeping these around solely for the Apache SSL web server demo

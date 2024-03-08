@@ -850,7 +850,8 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
                       uint8_t* output, uint32_t* outlen, /* hypercall outputs */
                       uint8_t* pcrComp, uintptr_t* pcrCompLen,
                       TPM_QUOTE_INFO* out_tpm_quote_info,
-                      utpm_master_state_t *utpm) /* TrustVisor inputs */
+                      utpm_master_state_t *utpm,
+                      bool print) /* TrustVisor inputs */
 {
     TPM_RESULT rv = 0; /* success */
     uintptr_t space_needed_for_composite = 0;
@@ -865,7 +866,8 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
         goto out;
     }
 
-    print_hex(" externalnonce: ", externalnonce->nonce, TPM_HASH_SIZE);
+    if(print)
+        print_hex(" externalnonce: ", externalnonce->nonce, TPM_HASH_SIZE);
 
     rv = utpm_internal_allocate_and_populate_current_TpmPcrComposite(
         utpm,
@@ -874,7 +876,8 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
         &space_needed_for_composite);
     if(0 != rv) { goto out; }
 
-    print_hex(" TPM_PCR_COMPOSITE: ", tpm_pcr_composite, space_needed_for_composite);
+    if(print)
+        print_hex(" TPM_PCR_COMPOSITE: ", tpm_pcr_composite, space_needed_for_composite);
 
     /* Copy PCR Composite and len to the appropriate output buffer,
      * checking for enough space */
@@ -900,11 +903,15 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
     *((uint32_t*)quote_info.fixed) = 0x544f5551;
     /* 3) SHA-256 hash of TPM_PCR_COMPOSITE */
     sha256_buffer(tpm_pcr_composite, space_needed_for_composite, quote_info.digestValue.value);
-    print_hex(" COMPOSITE_HASH: ", quote_info.digestValue.value, TPM_HASH_SIZE);
+
+    if(print)
+        print_hex(" COMPOSITE_HASH: ", quote_info.digestValue.value, TPM_HASH_SIZE);
     /* 4) external nonce */
     memcpy(quote_info.externalData.nonce, externalnonce->nonce, TPM_HASH_SIZE);
 
-    print_hex(" quote_info: ", (uint8_t*)&quote_info, sizeof(TPM_QUOTE_INFO));
+    if(print)
+        print_hex(" quote_info: ", (uint8_t*)&quote_info, sizeof(TPM_QUOTE_INFO));
+        
     if(out_tpm_quote_info)
         memcpy(out_tpm_quote_info, &quote_info, sizeof(TPM_QUOTE_INFO));
 
