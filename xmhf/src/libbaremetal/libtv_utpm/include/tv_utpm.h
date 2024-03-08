@@ -88,7 +88,7 @@
 #define TPM_AES_KEY_LEN                (128) /* key size is 128 bit */
 #define TPM_AES_KEY_LEN_BYTES (TPM_AES_KEY_LEN/8)
 #define TPM_HMAC_KEY_LEN               (SHA256_RESULTLEN)
-#define TPM_PCR_NUM                    (24)
+#define TPM_PCR_NUM                    (32)
 
 #define  MAX_PCR_SEL_NUM (TPM_PCR_NUM)
 #define  MAX_PCR_SEL_SIZE (4+4*MAX_PCR_SEL_NUM)
@@ -212,7 +212,7 @@ static inline unsigned int utpm_seal_output_size(unsigned int inlen,
     return size;
 }
 
-#define TPM_NONCE_SIZE 20
+#define TPM_NONCE_SIZE (TPM_HASH_SIZE)
 typedef struct tdTPM_NONCE{
   uint8_t nonce[TPM_NONCE_SIZE];
 } TPM_NONCE;
@@ -271,6 +271,7 @@ TPM_RESULT utpm_unseal(utpm_master_state_t *utpm, uint8_t* input, uint32_t inlen
 TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hypercall inputs */
                       uint8_t* output, uint32_t* outlen, /* hypercall outputs */
                       uint8_t* pcrComp, uintptr_t* pcrCompLen,
+                      TPM_QUOTE_INFO* out_tpm_quote_info,
                       utpm_master_state_t *utpm); /* TrustVisor inputs */
 
 /**

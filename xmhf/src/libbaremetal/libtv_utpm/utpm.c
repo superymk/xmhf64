@@ -849,6 +849,7 @@ TPM_RESULT utpm_unseal_deprecated(utpm_master_state_t *utpm, uint8_t* input, uin
 TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hypercall inputs */
                       uint8_t* output, uint32_t* outlen, /* hypercall outputs */
                       uint8_t* pcrComp, uintptr_t* pcrCompLen,
+                      TPM_QUOTE_INFO* out_tpm_quote_info,
                       utpm_master_state_t *utpm) /* TrustVisor inputs */
 {
     TPM_RESULT rv = 0; /* success */
@@ -904,6 +905,8 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
     memcpy(quote_info.externalData.nonce, externalnonce->nonce, TPM_HASH_SIZE);
 
     print_hex(" quote_info: ", (uint8_t*)&quote_info, sizeof(TPM_QUOTE_INFO));
+    if(out_tpm_quote_info)
+        memcpy(out_tpm_quote_info, &quote_info, sizeof(TPM_QUOTE_INFO));
 
     /**
      * Compute the signature and format the output buffer

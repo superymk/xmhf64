@@ -454,7 +454,7 @@ u32 hc_utpm_quote(VCPU * vcpu, u32 nonce_addr, u32 tpmsel_addr, u32 sig_addr, u3
     	/* FIXME: Still want to return a modified "siglen" in case the input buffer was too small.
 	   I.e., this fails too aggressively. */
 	EU_CHKN( ret = utpm_quote(&nonce, &tpmsel, sigdata, &siglen,
-				  pcrComp, &pcrCompLen,
+				  pcrComp, &pcrCompLen, NULL,
 				  &whitelist[scode_curr[vcpu->id]].utpm));
 
 	/* Some sanity-checking. TODO: replace with asserts & use tighter bound */
