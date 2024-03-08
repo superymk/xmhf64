@@ -283,8 +283,9 @@ static uint32_t utpm_internal_allocate_and_populate_current_TpmPcrComposite(
     utpm_master_state_t *utpm,
     TPM_PCR_SELECTION *tpmsel,
     uint8_t **tpm_pcr_composite,
-    uintptr_t *space_needed_for_composite
-    )
+    uintptr_t *space_needed_for_composite,
+    bool print
+)
 {
     uint32_t rv = 0;
     uint32_t i;
@@ -293,15 +294,23 @@ static uint32_t utpm_internal_allocate_and_populate_current_TpmPcrComposite(
 
     if(!utpm || !tpmsel || !tpm_pcr_composite || !space_needed_for_composite) return 1;
 
-    dprintf(LOG_TRACE, "[TV:UTPM] %s: tpmsel->sizeOfSelect %d\n",
-            __FUNCTION__, tpmsel->sizeOfSelect);
-    print_hex("  tpmsel->pcrSelect: ", tpmsel->pcrSelect, tpmsel->sizeOfSelect);
+    if(print)
+    {
+        dprintf(LOG_TRACE, "[TV:UTPM] %s: tpmsel->sizeOfSelect %d\n",
+                __FUNCTION__, tpmsel->sizeOfSelect);
+        print_hex("  tpmsel->pcrSelect: ", tpmsel->pcrSelect, tpmsel->sizeOfSelect);
+    }
+
     for(i=0; i<TPM_PCR_NUM; i++) {
         if(utpm_pcr_is_selected(tpmsel, i)) {
             num_pcrs_to_include++;
         }
-        dprintf(LOG_TRACE, "    uPCR-%d: %s\n", i,
+
+        if(print)
+        {
+            dprintf(LOG_TRACE, "    uPCR-%d: %s\n", i,
                 utpm_pcr_is_selected(tpmsel, i) ? "included" : "excluded");
+        }
     }
 
     /**
@@ -322,15 +331,18 @@ static uint32_t utpm_internal_allocate_and_populate_current_TpmPcrComposite(
         sizeof(uint32_t) +                                    /* TPM_PCR_COMPOSITE.valueSize */
         num_pcrs_to_include * TPM_HASH_SIZE;                  /* TPM_PCR_COMPOSITE.pcrValue[] */
 
-    dprintf(LOG_TRACE, "  sizeof(tpmsel->sizeOfSelect) + tpmsel->sizeOfSelect = %ld\n",
-            sizeof(tpmsel->sizeOfSelect) + tpmsel->sizeOfSelect);
-    dprintf(LOG_TRACE, "  sizeof(uint32_t)                                    = %ld\n",
-            sizeof(uint32_t));
-    dprintf(LOG_TRACE, "  num_pcrs_to_include * TPM_HASH_SIZE                 = %ld\n",
-            num_pcrs_to_include * TPM_HASH_SIZE);
-    dprintf(LOG_TRACE, "  ---------------------------------------------------------\n");
-    dprintf(LOG_TRACE, "  *space_needed_for_composite                         = %ld\n",
-            *space_needed_for_composite);
+    if(print)
+    {
+        dprintf(LOG_TRACE, "  sizeof(tpmsel->sizeOfSelect) + tpmsel->sizeOfSelect = %ld\n",
+                sizeof(tpmsel->sizeOfSelect) + tpmsel->sizeOfSelect);
+        dprintf(LOG_TRACE, "  sizeof(uint32_t)                                    = %ld\n",
+                sizeof(uint32_t));
+        dprintf(LOG_TRACE, "  num_pcrs_to_include * TPM_HASH_SIZE                 = %ld\n",
+                num_pcrs_to_include * TPM_HASH_SIZE);
+        dprintf(LOG_TRACE, "  ---------------------------------------------------------\n");
+        dprintf(LOG_TRACE, "  *space_needed_for_composite                         = %ld\n",
+                *space_needed_for_composite);
+    }
 
     if(NULL == (*tpm_pcr_composite = malloc(*space_needed_for_composite))) {
         dprintf(LOG_ERROR, "[TV:UTPM] malloc(%ld) failed!\n", *space_needed_for_composite);
@@ -363,8 +375,10 @@ static uint32_t utpm_internal_allocate_and_populate_current_TpmPcrComposite(
         goto out;
     }
 
-    print_hex(" TPM_PCR_COMPOSITE: ", *tpm_pcr_composite, *space_needed_for_composite);
-  out:
+    if(print)
+        print_hex(" TPM_PCR_COMPOSITE: ", *tpm_pcr_composite, *space_needed_for_composite);
+        
+out:
     return rv;
 
 }
@@ -379,7 +393,8 @@ static uint32_t utpm_internal_allocate_and_populate_current_TpmPcrComposite(
 static TPM_RESULT utpm_internal_digest_current_TpmPcrComposite(
     utpm_master_state_t *utpm,
     TPM_PCR_SELECTION *pcrSelection,
-    TPM_COMPOSITE_HASH *digest)
+    TPM_COMPOSITE_HASH *digest,
+    bool print)
 {
     uintptr_t space_needed_for_composite = 0;
     uint8_t *tpm_pcr_composite = NULL;
@@ -393,7 +408,8 @@ static TPM_RESULT utpm_internal_digest_current_TpmPcrComposite(
         utpm,
         pcrSelection,
         &tpm_pcr_composite,
-        &space_needed_for_composite);
+        &space_needed_for_composite,
+        print);
 
     if(0 != rv) { return 1; }
 
@@ -456,7 +472,8 @@ TPM_RESULT utpm_seal(utpm_master_state_t *utpm,
         rv = utpm_internal_digest_current_TpmPcrComposite(
             utpm,
             &tpmPcrInfo_internal.pcrSelection,
-            &tpmPcrInfo_internal.digestAtCreation);
+            &tpmPcrInfo_internal.digestAtCreation,
+            true);
         if(0 != rv) { return 1; }
     } else {
         tpmPcrInfo_internal.pcrSelection.sizeOfSelect = 0;
@@ -673,7 +690,8 @@ TPM_RESULT utpm_unseal(utpm_master_state_t *utpm,
                 utpm,
                 &unsealedPcrInfo.pcrSelection,
                 &currentPcrComposite,
-                &space_needed_for_composite);
+                &space_needed_for_composite,
+                true);
             if(rv != 0) {
                 dprintf(LOG_ERROR, "utpm_internal_allocate_and_populate_current_TpmPcrComposite FAILED\n");
                 return 1;
@@ -873,7 +891,8 @@ TPM_RESULT utpm_quote(TPM_NONCE* externalnonce, TPM_PCR_SELECTION* tpmsel, /* hy
         utpm,
         tpmsel,
         &tpm_pcr_composite,
-        &space_needed_for_composite);
+        &space_needed_for_composite,
+        false);
     if(0 != rv) { goto out; }
 
     if(print)
