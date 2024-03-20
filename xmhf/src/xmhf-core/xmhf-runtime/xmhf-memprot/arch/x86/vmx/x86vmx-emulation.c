@@ -1304,7 +1304,39 @@ static int parse_opcode_one(emu_env_t * emu_env)
 	case 0x80: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x81: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x82: _emu_unimplemented_inst_print(emu_env); break;
-	case 0x83: _emu_unimplemented_inst_print(emu_env); break;
+	case 0x83: 
+    {
+        // [TODO][Issue 137] This branch is called in <xmhf_memprot_emulate_guest_ring0_write>, so we only return the 
+        // info needed by the caller.
+        if((emu_env->pinst_len == 3) && 
+            (emu_env->pinst[0] == 0x70) && (emu_env->pinst[1] == 0x0c) && (emu_env->pinst[2] == 0x01)
+        )
+        {
+            // xor dword ptr [rax + 0xc], 1
+            ulong_t ax = VCPU_reg_get(emu_env->vcpu, emu_env->r, CPU_REG_AX);
+            gva_t gvaddr = ax + 0xc;
+            guestmem_hptw_ctx_pair_t ctx_pair;
+            uint32_t value = 0;
+
+            guestmem_init(emu_env->vcpu, &ctx_pair);
+            guestmem_copy_gv2h(&ctx_pair, 0, &value, gvaddr, sizeof(uint32_t));
+
+            value ^= 1;
+
+            emu_env->src.type = OPERAND_MEM;
+            emu_env->src.operand_size = BIT_SIZE_32;
+            memcpy(emu_env->src.val, &value, sizeof(uint32_t));
+        }
+        else
+        {
+            _emu_unimplemented_inst_print(emu_env); break;
+        }
+
+        // On success
+        status = 0;
+
+        break;
+    }
 	case 0x84: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x85: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x86: _emu_unimplemented_inst_print(emu_env); break;
