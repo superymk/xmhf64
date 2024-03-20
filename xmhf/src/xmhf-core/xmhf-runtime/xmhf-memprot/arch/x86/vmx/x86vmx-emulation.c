@@ -294,14 +294,14 @@ static int eval_operand_value(emu_env_t* emu_env, struct operand* op)
 {
 	if(op->type == OPERAND_REG)
 	{
-		memcpy(&op->val, (void*)op->reg_hvaddr, op->operand_size);
+		memcpy(op->val, (void*)op->reg_hvaddr, op->operand_size);
 	}
 	else if (op->type == OPERAND_MEM)
 	{
 		int ret = 0;
 
 		mem_access_env_t env = {
-			.hvaddr = (void*)&op->val,
+			.hvaddr = (void*)op->val,
 			.gaddr = op->mem.offset,
 			.seg = op->mem.seg,
 			.size = op->operand_size,
@@ -329,7 +329,7 @@ static int eval_operand_value(emu_env_t* emu_env, struct operand* op)
 			pimm = emu_env->postfix.immediate;
 		}
 
-		memcpy(&op->val, (void*)pimm, op->operand_size);
+		memcpy(op->val, (void*)pimm, op->operand_size);
 	}
 	else
 	{
@@ -626,6 +626,18 @@ static void parse_postfix(emu_env_t * emu_env, bool has_modrm, bool has_sib,
 
 }
 
+#define XMM_REG_SIZE    (16)
+static void read_xmm0(void* buffer) 
+{
+    // Using raw opcode for `movaps [memory], xmm0`
+    asm volatile(
+        ".byte 0x0f, 0x29, 0x00" // 0F 29 /r MOVAPS m128, xmm1
+        :
+        : "r"(buffer)
+        : "memory"
+    );
+}
+
 #define _emu_unimplemented_inst_print(emu_env) \
 	do { \
 		printf("Guest instruction emulation error: Not implemented! line %d, file %s\n",  __LINE__, __FILE__); \
@@ -658,7 +670,46 @@ static int parse_opcode_two_0f(emu_env_t * emu_env)
 	case 0x0e: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x0f: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x10: _emu_unimplemented_inst_print(emu_env); break;
-	case 0x11: _emu_unimplemented_inst_print(emu_env); break;
+	case 0x11:
+    {
+        // [TODO][Issue 137] This branch is called in <xmhf_memprot_emulate_guest_ring0_write>, so we only return the 
+        // info needed by the caller.
+        if((emu_env->pinst_len == 1) && 
+            (emu_env->pinst[0] == 0x01)
+        )
+        {
+            // movups xmmword ptr [rcx], xmm0
+            uint8_t value[XMM_REG_SIZE] = {0};
+            
+            read_xmm0(value);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = XMM_REG_SIZE;
+            memcpy(emu_env->src.val, value, XMM_REG_SIZE);
+        }
+        else if((emu_env->pinst_len == 2) && 
+            (emu_env->pinst[0] == 0x04) && (emu_env->pinst[1] == 0x24)
+        )
+        {
+            // movups xmmword ptr [r12], xmm0
+            uint8_t value[XMM_REG_SIZE] = {0};
+            
+            read_xmm0(value);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = XMM_REG_SIZE;
+            memcpy(emu_env->src.val, value, XMM_REG_SIZE);
+        }
+        else
+        {
+            _emu_unimplemented_inst_print(emu_env); break;
+        }
+
+        // On success
+        status = 0;
+
+        break;
+    }
 	case 0x12: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x13: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x14: _emu_unimplemented_inst_print(emu_env); break;
@@ -682,7 +733,46 @@ static int parse_opcode_two_0f(emu_env_t * emu_env)
 	case 0x26: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x27: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x28: _emu_unimplemented_inst_print(emu_env); break;
-	case 0x29: _emu_unimplemented_inst_print(emu_env); break;
+	case 0x29: 
+    {
+        // [TODO][Issue 137] This branch is called in <xmhf_memprot_emulate_guest_ring0_write>, so we only return the 
+        // info needed by the caller.
+        if((emu_env->pinst_len == 1) && 
+            (emu_env->pinst[0] == 0x01)
+        )
+        {
+            // movaps xmmword ptr [rcx], xmm0
+            uint8_t value[XMM_REG_SIZE] = {0};
+            
+            read_xmm0(value);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = XMM_REG_SIZE;
+            memcpy(emu_env->src.val, value, XMM_REG_SIZE);
+        }
+        else if((emu_env->pinst_len == 2) && 
+            (emu_env->pinst[0] == 0x41)
+        )
+        {
+            // movaps xmmword ptr [rcx + 0x10], xmm0
+            uint8_t value[XMM_REG_SIZE] = {0};
+            
+            read_xmm0(value);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = XMM_REG_SIZE;
+            memcpy(emu_env->src.val, value, XMM_REG_SIZE);
+        }
+        else
+        {
+            _emu_unimplemented_inst_print(emu_env); break;
+        }
+
+        // On success
+        status = 0;
+
+        break;
+    }
 	case 0x2a: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x2b: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x2c: _emu_unimplemented_inst_print(emu_env); break;
@@ -768,7 +858,33 @@ static int parse_opcode_two_0f(emu_env_t * emu_env)
 	case 0x7c: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x7d: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x7e: _emu_unimplemented_inst_print(emu_env); break;
-	case 0x7f: _emu_unimplemented_inst_print(emu_env); break;
+	case 0x7f: 
+    {
+        // [TODO][Issue 137] This branch is called in <xmhf_memprot_emulate_guest_ring0_write>, so we only return the 
+        // info needed by the caller.
+        if((emu_env->pinst_len == 2) && 
+            (emu_env->pinst[0] == 0x04) && (emu_env->pinst[1] == 0xc8)
+        )
+        {
+            // movdqu xmmword ptr [eax + ecx*8], xmm0
+            uint8_t value[XMM_REG_SIZE] = {0};
+            
+            read_xmm0(value);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = XMM_REG_SIZE;
+            memcpy(emu_env->src.val, value, XMM_REG_SIZE);
+        }
+        else
+        {
+            _emu_unimplemented_inst_print(emu_env); break;
+        }
+
+        // On success
+        status = 0;
+
+        break;
+    }
 	case 0x80: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x81: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x82: _emu_unimplemented_inst_print(emu_env); break;
@@ -910,7 +1026,7 @@ static int parse_opcode_two_0f(emu_env_t * emu_env)
 				}
 
 				// Update emu_env->src.val
-				emu_env->src.val = value;
+                memcpy(emu_env->src.val, &value, sizeof(uintptr_t));
 
 				// Destination is the same as the source
 				emu_env->dst.type = OPERAND_MEM;
@@ -1167,7 +1283,44 @@ static int parse_opcode_one(emu_env_t * emu_env)
 	case 0x85: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x86: _emu_unimplemented_inst_print(emu_env); break;
 	case 0x87: _emu_unimplemented_inst_print(emu_env); break;
-	case 0x88: _emu_unimplemented_inst_print(emu_env); break;
+	case 0x88: 
+    {
+        // [TODO][Issue 137] This branch is called in <xmhf_memprot_emulate_guest_ring0_write>, so we only return the 
+        // info needed by the caller.
+        if((emu_env->pinst_len == 3) && 
+            (emu_env->pinst[0] == 0x44) && (emu_env->pinst[1] == 0xD1) && (emu_env->pinst[2] == 0x0C)
+        )
+        {
+            // mov byte ptr [rcx + rdx*8 + 0xc], al
+            // ulong_t cx = VCPU_reg_get(emu_env->vcpu, emu_env->r, CPU_REG_CX);
+            // ulong_t dx = VCPU_reg_get(emu_env->vcpu, emu_env->r, CPU_REG_DX);
+            uint8_t al = (uint8_t)VCPU_reg_get(emu_env->vcpu, emu_env->r, CPU_REG_AX);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = BIT_SIZE_8;
+            memcpy(emu_env->src.val, &al, sizeof(uint8_t));
+        }
+        else if((emu_env->pinst_len == 2) && 
+            (emu_env->pinst[0] == 0x47) && (emu_env->pinst[1] == 0x0C)
+        )
+        {
+            // mov byte ptr [r15 + 0xc], al
+            uint8_t al = (uint8_t)VCPU_reg_get(emu_env->vcpu, emu_env->r, CPU_REG_AX);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = BIT_SIZE_8;
+            memcpy(emu_env->src.val, &al, sizeof(uint8_t));
+        }
+        else
+        {
+            _emu_unimplemented_inst_print(emu_env); break;
+        }
+
+        // On success
+        status = 0;
+
+        break;
+    }
 	case 0x89:	/* MOV Ev, Gv */
     {
 		HALT_ON_ERRORCOND(!emu_env->prefix.lock && "Not implemented");

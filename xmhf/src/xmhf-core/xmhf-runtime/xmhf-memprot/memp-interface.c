@@ -189,7 +189,7 @@ int xmhf_memprot_emulate_guest_ring0_read_size(VCPU *vcpu, struct regs *r, size_
 	return 0;
 }
 
-int xmhf_memprot_emulate_guest_ring0_read(VCPU *vcpu, struct regs *r, ulong_t force_read_value)
+int xmhf_memprot_emulate_guest_ring0_read(VCPU *vcpu, struct regs *r, void* force_read_value)
 {
 	int status = 0;
 	unsigned char inst[X86_INST_MAX_LEN] = {0};
@@ -209,18 +209,22 @@ int xmhf_memprot_emulate_guest_ring0_read(VCPU *vcpu, struct regs *r, ulong_t fo
 	// Perform the read operation for the current guest
 	if (ctxt.dst.type == OPERAND_REG)
 	{
+#ifdef __AMD64__
 		printf("CPU(0x%02x): <xmhf_memprot_emulate_guest_ring0_read> ctxt.dst.reg_hvaddr:0x%lX, &r->rax:0x%lX\n", vcpu->id, (ulong_t)ctxt.dst.reg_hvaddr, (ulong_t)&r->rax);
-		memcpy((void*)ctxt.dst.reg_hvaddr, &force_read_value, ctxt.dst.operand_size);
+#elif defined(__I386__)
+        printf("CPU(0x%02x): <xmhf_memprot_emulate_guest_ring0_read> ctxt.dst.reg_hvaddr:0x%lX, &r->eax:0x%lX\n", vcpu->id, (ulong_t)ctxt.dst.reg_hvaddr, (ulong_t)&r->eax);
+#endif
+		memcpy((void*)ctxt.dst.reg_hvaddr, force_read_value, ctxt.dst.operand_size);
 	}
 	else if (ctxt.dst.type == OPERAND_MEM)
 	{
-		guestmem_copy_h2gv(&ctx_pair, 0, ctxt.dst.mem.gvaddr, &force_read_value, ctxt.dst.operand_size);
+		guestmem_copy_h2gv(&ctx_pair, 0, ctxt.dst.mem.gvaddr, force_read_value, ctxt.dst.operand_size);
 	}
 
 	return 0;
 }
 
-int xmhf_memprot_emulate_guest_ring0_write(VCPU *vcpu, struct regs *r, ulong_t *out_value, size_t *out_operand_size)
+int xmhf_memprot_emulate_guest_ring0_write(VCPU *vcpu, struct regs *r, void *out_value, size_t *out_operand_size)
 {
 	int status = 0;
 	unsigned char inst[X86_INST_MAX_LEN] = {0};
@@ -239,7 +243,7 @@ int xmhf_memprot_emulate_guest_ring0_write(VCPU *vcpu, struct regs *r, ulong_t *
 
 	// Parse write value and operand size from the instruction
 	if (out_value)
-		*out_value = ctxt.src.val;
+        memcpy(out_value, ctxt.src.val, ctxt.src.operand_size);
 
 	if (out_operand_size)
 		*out_operand_size = ctxt.src.operand_size;
