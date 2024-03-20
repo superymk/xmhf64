@@ -687,11 +687,24 @@ static int parse_opcode_two_0f(emu_env_t * emu_env)
             emu_env->src.operand_size = XMM_REG_SIZE;
             memcpy(emu_env->src.val, value, XMM_REG_SIZE);
         }
-        else if((emu_env->pinst_len == 2) && 
-            (emu_env->pinst[0] == 0x04) && (emu_env->pinst[1] == 0x24)
+        else if((emu_env->pinst_len == 2) &&
+            (emu_env->pinst[0] == 0x04)
         )
         {
             // movups xmmword ptr [r12], xmm0
+            uint8_t value[XMM_REG_SIZE] = {0};
+            
+            read_xmm0(value);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = XMM_REG_SIZE;
+            memcpy(emu_env->src.val, value, XMM_REG_SIZE);
+        }
+        else if((emu_env->pinst_len == 1) && 
+            (emu_env->pinst[0] == 0x00)
+        )
+        {
+            // movups xmmword ptr [rax], xmm0
             uint8_t value[XMM_REG_SIZE] = {0};
             
             read_xmm0(value);
@@ -867,6 +880,19 @@ static int parse_opcode_two_0f(emu_env_t * emu_env)
         )
         {
             // movdqu xmmword ptr [eax + ecx*8], xmm0
+            uint8_t value[XMM_REG_SIZE] = {0};
+            
+            read_xmm0(value);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = XMM_REG_SIZE;
+            memcpy(emu_env->src.val, value, XMM_REG_SIZE);
+        }
+        else if((emu_env->pinst_len == 1) && 
+            (emu_env->pinst[0] == 0x01)
+        )
+        {
+            // movdqu xmmword ptr [rcx], xmm0
             uint8_t value[XMM_REG_SIZE] = {0};
             
             read_xmm0(value);
@@ -1305,6 +1331,17 @@ static int parse_opcode_one(emu_env_t * emu_env)
         )
         {
             // mov byte ptr [r15 + 0xc], al
+            uint8_t al = (uint8_t)VCPU_reg_get(emu_env->vcpu, emu_env->r, CPU_REG_AX);
+
+            emu_env->src.type = OPERAND_REG;
+            emu_env->src.operand_size = BIT_SIZE_8;
+            memcpy(emu_env->src.val, &al, sizeof(uint8_t));
+        }
+        else if((emu_env->pinst_len == 2) && 
+            (emu_env->pinst[0] == 0x41) && (emu_env->pinst[1] == 0x0C)
+        )
+        {
+            // mov byte ptr [rcx + 0xc], al
             uint8_t al = (uint8_t)VCPU_reg_get(emu_env->vcpu, emu_env->r, CPU_REG_AX);
 
             emu_env->src.type = OPERAND_REG;
