@@ -49,6 +49,7 @@
 // author: amit vasudevan (amitvasudevan@acm.org)
 
 #include <xmhf.h>
+#include <arch/x86/xmhf-device.h>
 
 //initialize SMP guest logic
 void xmhf_smpguest_arch_initialize(VCPU *vcpu){

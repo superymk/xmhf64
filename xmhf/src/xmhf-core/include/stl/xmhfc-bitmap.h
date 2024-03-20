@@ -26,8 +26,19 @@ extern void xmhfstl_bitmap_destroy(XMHF_STL_BITMAP* bitmap);
 extern bool xmhfstl_bitmap_set_bit(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx);
 extern bool xmhfstl_bitmap_clear_bit(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx);
 
-extern bool xmhfstl_bitmap_is_bit_set(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx);
-extern bool xmhfstl_bitmap_is_bit_clear(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx);
+/// @brief 
+/// @param bitmap 
+/// @param bit_idx 
+/// @return Return 0 if not set. Return 1 if set.
+///         Return -1 on errors.
+extern int xmhfstl_bitmap_is_bit_set(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx);
+
+/// @brief 
+/// @param bitmap 
+/// @param bit_idx 
+/// @return Return 0 if not clear. Return 1 if clear.
+///         Return -1 on errors.
+extern int xmhfstl_bitmap_is_bit_clear(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx);
 
 
 

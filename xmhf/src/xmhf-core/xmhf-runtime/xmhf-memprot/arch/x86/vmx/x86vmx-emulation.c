@@ -65,7 +65,7 @@ typedef struct mem_access_env_t {
 	hptw_cpl_t cpl;
 } mem_access_env_t;
 
-
+static void _print_instruction(unsigned char* inst, uint32_t inst_len);
 
 // #define PREFIX_INFO_INITIALIZER 
 // 	{ false, false, false, CPU_SEG_UNKNOWN, false, false, { .raw=0 } }
@@ -1491,6 +1491,8 @@ L0xa3_out:
 				// memcpy((void *)rm, (void *)pimm, operand_size);
 			}
 		} else {
+            printf("[X86-VMX Emulator] Unable to emulate instruction:\n");
+            _print_instruction(emu_env->pinst, emu_env->pinst_len);
 			HALT_ON_ERRORCOND(0 && "Not implemented");
 		}
 
@@ -1594,6 +1596,8 @@ int x86_vmx_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env,
 	// Check: Parameters must be valid
 	if(!vcpu || !r || !emu_env || !inst || !inst_len)
 		return -1;
+
+    memset(emu_env, 0, sizeof(emu_env_t));
 
 	emu_env->vcpu = vcpu;
 	emu_env->r = r;
