@@ -874,9 +874,9 @@ static void _vmx_handle_intercept_rdmsr(VCPU *vcpu, struct regs *r){
 static void _vmx_handle_intercept_eptviolation(VCPU *vcpu, struct regs *r){
 	ulong_t errorcode;
 	uintptr_t gva;
-	u64 gpa;
+	gpa_t gpa;
 	errorcode = (ulong_t)vcpu->vmcs.info_exit_qualification;
-	gpa = vcpu->vmcs.guest_paddr;
+	gpa = (gpa_t)vcpu->vmcs.guest_paddr;
 	gva = (uintptr_t)vcpu->vmcs.info_guest_linear_address;
 	
 	//check if EPT violation is due to LAPIC interception
@@ -889,7 +889,7 @@ static void _vmx_handle_intercept_eptviolation(VCPU *vcpu, struct regs *r){
 		(gpa >= g_vmx_lapic_base) && (gpa < (g_vmx_lapic_base + PAGE_SIZE_4K))
 	)
 	{
-		xmhf_smpguest_arch_x86_eventhandler_hwpgtblviolation(vcpu, (u32)gpa, errorcode);
+		xmhf_smpguest_arch_x86_eventhandler_hwpgtblviolation(vcpu, r, gpa, errorcode);
 	}
     else
     {

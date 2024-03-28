@@ -73,7 +73,4 @@ extern void xmhf_cpu_flush_cache_range(void *vaddr, unsigned int size);
 extern void xmhf_cpu_delay_us(uint64_t us);
 
 #endif	//__ASSEMBLY__
-
-
-
 #endif //__XMHF_BASEPLATFORM_CPU_H__

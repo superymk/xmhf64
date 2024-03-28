@@ -175,6 +175,14 @@ extern int xmhf_memprot_emulate_guest_ring0_read(VCPU* vcpu, struct regs* r, voi
 extern int xmhf_memprot_emulate_guest_ring0_write(VCPU* vcpu, struct regs* r, void* out_value, size_t* out_operand_size);
 
 
+
+
+/********* Debug functions *********/
+extern void xmhf_registers_dump(VCPU *vcpu, struct regs *r);
+
+
+
+
 //----------------------------------------------------------------------
 //ARCH. BACKENDS
 //----------------------------------------------------------------------
