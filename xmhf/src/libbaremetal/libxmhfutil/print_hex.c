@@ -72,7 +72,7 @@ void print_hex(const char *prefix, const void *prtptr, size_t size)
     for ( i = 0; i < size; i++ ) {
     	if ( i % 16 == 0 && prefix != NULL ) {
             if (i > 0) {
-                printf("\n", prefix);
+                printf("\n");
             }
             printf("%s", prefix);
         }

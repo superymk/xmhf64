@@ -44,6 +44,7 @@ endif
 
 OBJECTS_PRECOMPILED += ./xmhf-smpguest/smpg-interface.o
 OBJECTS_PRECOMPILED += ./xmhf-smpguest/arch/x86/smpg-x86.o
+OBJECTS_PRECOMPILED += ./xmhf-smpguest/arch/x86/smpg-x86-device.o
 OBJECTS_PRECOMPILED += ./xmhf-smpguest/arch/x86/svm/smpg-x86svm.o
 OBJECTS_PRECOMPILED += ./xmhf-smpguest/arch/x86/svm/smpg-x86svm-data.o
 OBJECTS_PRECOMPILED += ./xmhf-smpguest/arch/x86/vmx/smpg-x86vmx.o

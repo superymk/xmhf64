@@ -44,36 +44,28 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-#ifndef __XMHF_BASEPLATFORM_CPU_H__
-#define __XMHF_BASEPLATFORM_CPU_H__
+// Capture device write-only transfer descriptors (e.g., the CRCR register of XHCI).
+// author: Miao Yu (superymk@cmu.edu)
 
-#include "xmhf-types.h"
-
-// This macro is used by microsec CPU delay. The delayed time is imprecise.
-// [TODO] We assume the CPU frequency is 3.5GHz.
-#define CPU_CYCLES_PER_MICRO_SEC        3500UL
-#define SEC_TO_CYCLES(x)                (1000UL * 1000UL) * CPU_CYCLES_PER_MICRO_SEC * x
+#include <xmhf.h>
+#include <arch/x86/xmhf-device.h>
 
 
-#ifndef __ASSEMBLY__
 
-#define mb()	asm volatile("mfence" ::: "memory")
-#define __force	__attribute__((force))
-
-//! @brief Save energy when waiting in a busy loop
-static inline void xmhf_cpu_relax(void) 
+void xmhf_gpa_changemapping(VCPU *vcpu, gpa_t dev_reg_gpaddr, gpa_t new_dev_reg_gpaddr, u64 mapflag)
 {
-	asm volatile ("pause");
+#ifndef __XMHF_VERIFICATION__
+	u64 *pts;
+	u64 gpfn;
+	u64 value;
+
+	pts = (u64 *)vcpu->vmx_vaddr_ept_p_tables;
+	gpfn = dev_reg_gpaddr / PAGE_SIZE_4K;
+	value = (u64)new_dev_reg_gpaddr | mapflag;
+
+	pts[gpfn] = value;
+
+	//   xmhf_memprot_arch_x86vmx_flushmappings_localtlb(vcpu, MEMP_FLUSHTLB_ENTRY);
+	xmhf_memprot_arch_flushmappings_localtlb(vcpu, MEMP_FLUSHTLB_ENTRY);
+#endif //__XMHF_VERIFICATION__
 }
-
-// Flushing functions
-extern void xmhf_cpu_flush_cache_range(void *vaddr, unsigned int size);
-
-//! @brief Sleep the current core for <us> micro-second.
-extern void xmhf_cpu_delay_us(uint64_t us);
-
-#endif	//__ASSEMBLY__
-
-
-
-#endif //__XMHF_BASEPLATFORM_CPU_H__

@@ -139,40 +139,48 @@ bool xmhfstl_bitmap_clear_bit(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx)
 	return true;
 }
 
-bool xmhfstl_bitmap_is_bit_set(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx)
+int xmhfstl_bitmap_is_bit_set(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx)
 {
 	uint32_t bit_offset;
 	uint32_t byte_offset;
 	uint32_t pg_offset;
 
+    if(bit_idx >= bitmap->max_bits)
+		return -1;
+
 	bit_offset = bit_idx % BITS_PER_BYTE;
 	byte_offset = BITS_TO_BYTES(bit_idx) % PAGE_SIZE_4K;
 	pg_offset = BITS_TO_BYTES(bit_idx) >> PAGE_SHIFT_4K;
 
+    // <mem_table> is not created because no bit is set in that page. So return false.
 	if( !bitmap->mem_table[pg_offset])
-		return false;
+		return 0;
 
 	if(bitmap->mem_table[pg_offset][byte_offset] & (1 << bit_offset))
-		return true;
+		return 1;
 	else
-		return false;
+		return 0;
 }
 
-bool xmhfstl_bitmap_is_bit_clear(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx)
+int xmhfstl_bitmap_is_bit_clear(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx)
 {
 	uint32_t bit_offset;
 	uint32_t byte_offset;
 	uint32_t pg_offset;
 
+    if(bit_idx >= bitmap->max_bits)
+		return -1;
+
 	bit_offset = bit_idx % BITS_PER_BYTE;
 	byte_offset = BITS_TO_BYTES(bit_idx) % PAGE_SIZE_4K;
 	pg_offset = BITS_TO_BYTES(bit_idx) >> PAGE_SHIFT_4K;
 
+    // <mem_table> is not created because no bit is set in that page. So return true.
 	if(!bitmap->mem_table[pg_offset])
-		return true;
+		return 1;
 
 	if(bitmap->mem_table[pg_offset][byte_offset] & (1 << bit_offset))
-		return false;
+		return 0;
 	else
-		return true;
+		return 1;
 }

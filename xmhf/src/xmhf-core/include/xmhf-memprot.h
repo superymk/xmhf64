@@ -164,7 +164,7 @@ extern int xmhf_memprot_emulate_guest_ring0_read_size(VCPU *vcpu, struct regs *r
 /// @param r 
 /// @param force_read_value The read result return to the memory read instruction
 /// @return Return 0 on success. Return -1 on instruction emulation errors.
-extern int xmhf_memprot_emulate_guest_ring0_read(VCPU* vcpu, struct regs* r, ulong_t force_read_value);
+extern int xmhf_memprot_emulate_guest_ring0_read(VCPU* vcpu, struct regs* r, void* force_read_value);
 
 /// @brief Emulate the rip (memory write) of the current guest. 
 /// @param vcpu 
@@ -172,13 +172,7 @@ extern int xmhf_memprot_emulate_guest_ring0_read(VCPU* vcpu, struct regs* r, ulo
 /// @param out_value 
 /// @param out_operand_size 
 /// @return Return 0 on success. Return -1 on instruction emulation errors.
-extern int xmhf_memprot_emulate_guest_ring0_write(VCPU* vcpu, struct regs* r, ulong_t* out_value, size_t* out_operand_size);
-
-
-
-
-/********* Debug functions *********/
-extern void xmhf_registers_dump(VCPU *vcpu, struct regs *r);
+extern int xmhf_memprot_emulate_guest_ring0_write(VCPU* vcpu, struct regs* r, void* out_value, size_t* out_operand_size);
 
 
 //----------------------------------------------------------------------
@@ -328,11 +322,12 @@ enum op_type
 	OPERAND_NONE
 } ;
 
+#define OPERAND_VAL_LENGTH  (64) // AVX-512 bits use 64 bytes in values
 struct operand
 {
 	enum op_type type;
 
-	unsigned long val;
+	u8 val[OPERAND_VAL_LENGTH];
 	size_t operand_size;
 
 	union {

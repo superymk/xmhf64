@@ -49,6 +49,7 @@
 // author: amit vasudevan (amitvasudevan@acm.org)
 
 #include <xmhf.h>
+#include <arch/x86/xmhf-device.h>
 
 //initialize SMP guest logic
 void xmhf_smpguest_arch_initialize(VCPU *vcpu){
@@ -129,12 +130,12 @@ void xmhf_smpguest_arch_x86_eventhandler_dbexception(VCPU *vcpu,
 }
 
 //handle LAPIC access #NPF (nested page fault) event
-void xmhf_smpguest_arch_x86_eventhandler_hwpgtblviolation(VCPU *vcpu, struct regs *r, gpa_t gpa, u32 errorcode){
+void xmhf_smpguest_arch_x86_eventhandler_hwpgtblviolation(VCPU *vcpu, u32 gpa, u32 errorcode){
 	HALT_ON_ERRORCOND(vcpu->cpu_vendor == CPU_VENDOR_AMD || vcpu->cpu_vendor == CPU_VENDOR_INTEL);
 	if(vcpu->cpu_vendor == CPU_VENDOR_AMD){
 		xmhf_smpguest_arch_x86svm_eventhandler_hwpgtblviolation(vcpu, gpa, errorcode);
 	}else{	//CPU_VENDOR_INTEL
-		xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(vcpu, r, gpa, errorcode);
+		xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(vcpu, gpa, errorcode);
 	}
 
 }

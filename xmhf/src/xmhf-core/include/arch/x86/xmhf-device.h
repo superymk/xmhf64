@@ -44,36 +44,23 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-#ifndef __XMHF_BASEPLATFORM_CPU_H__
-#define __XMHF_BASEPLATFORM_CPU_H__
+// Capture device write-only transfer descriptors (e.g., the CRCR register of XHCI).
+// author: Miao Yu (superymk@cmu.edu)
 
-#include "xmhf-types.h"
+#ifndef __XMHF_X86_DEVICE__
+#define __XMHF_X86_DEVICE__
 
-// This macro is used by microsec CPU delay. The delayed time is imprecise.
-// [TODO] We assume the CPU frequency is 3.5GHz.
-#define CPU_CYCLES_PER_MICRO_SEC        3500UL
-#define SEC_TO_CYCLES(x)                (1000UL * 1000UL) * CPU_CYCLES_PER_MICRO_SEC * x
-
+#include <xmhf.h>
 
 #ifndef __ASSEMBLY__
 
-#define mb()	asm volatile("mfence" ::: "memory")
-#define __force	__attribute__((force))
 
-//! @brief Save energy when waiting in a busy loop
-static inline void xmhf_cpu_relax(void) 
-{
-	asm volatile ("pause");
-}
+#define DEVICE_TRAP_MEM_READ_AND_WRITE		((u64)0)
+#define DEVICE_TRAP_MEM_WRITE		        ((u64)EPT_PROT_READ)
+#define DEVICE_NO_TRAP			            ((u64)EPT_PROT_READ | (u64)EPT_PROT_WRITE)
 
-// Flushing functions
-extern void xmhf_cpu_flush_cache_range(void *vaddr, unsigned int size);
-
-//! @brief Sleep the current core for <us> micro-second.
-extern void xmhf_cpu_delay_us(uint64_t us);
+extern void xmhf_gpa_changemapping(VCPU *vcpu, gpa_t dev_reg_gpaddr, gpa_t new_dev_reg_gpaddr, u64 mapflag);
 
 #endif	//__ASSEMBLY__
 
-
-
-#endif //__XMHF_BASEPLATFORM_CPU_H__
+#endif // __XMHF_X86_DEVICE__

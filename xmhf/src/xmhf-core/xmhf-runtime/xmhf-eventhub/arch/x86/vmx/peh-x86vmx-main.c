@@ -48,6 +48,7 @@
 // EMHF partition event-hub for Intel x86 vmx
 // author: amit vasudevan (amitvasudevan@acm.org)
 #include <xmhf.h>
+#include <arch/x86/xmhf-device.h>
 
 
 //---VMX decode assist----------------------------------------------------------
@@ -869,14 +870,13 @@ static void _vmx_handle_intercept_rdmsr(VCPU *vcpu, struct regs *r){
 	return;
 }
 
-
 //---intercept handler (EPT voilation)----------------------------------
 static void _vmx_handle_intercept_eptviolation(VCPU *vcpu, struct regs *r){
 	ulong_t errorcode;
 	uintptr_t gva;
-	gpa_t gpa;
+	u64 gpa;
 	errorcode = (ulong_t)vcpu->vmcs.info_exit_qualification;
-	gpa = (gpa_t)vcpu->vmcs.guest_paddr;
+	gpa = vcpu->vmcs.guest_paddr;
 	gva = (uintptr_t)vcpu->vmcs.info_guest_linear_address;
 	
 	//check if EPT violation is due to LAPIC interception
@@ -885,27 +885,29 @@ static void _vmx_handle_intercept_eptviolation(VCPU *vcpu, struct regs *r){
 	//CPUs, g_all_cores_booted_up = true, XMHF modifies EPT to allow the rich
 	//OS direct access to LAPIC page. The EPT violation in LAPIC page is then
 	//handled by hypapp.
-	// if(vcpu->isbsp && !g_all_cores_booted_up && 
-	if(!g_all_cores_booted_up && 
+	if(vcpu->isbsp && !g_all_cores_booted_up && 
 		(gpa >= g_vmx_lapic_base) && (gpa < (g_vmx_lapic_base + PAGE_SIZE_4K))
 	)
 	{
-		xmhf_smpguest_arch_x86_eventhandler_hwpgtblviolation(vcpu, r, gpa, errorcode);
-	}else{ //no, pass it to hypapp
-		u32 app_ret_status;
+		xmhf_smpguest_arch_x86_eventhandler_hwpgtblviolation(vcpu, (u32)gpa, errorcode);
+	}
+    else
+    {
+        //no, pass it to hypapp
+        u32 app_ret_status;
 #ifdef __XMHF_QUIESCE_CPU_IN_GUEST_MEM_PIO_TRAPS__
-		xmhf_smpguest_arch_x86vmx_quiesce(vcpu);
-		app_ret_status = xmhf_app_handleintercept_hwpgtblviolation(vcpu, r, gpa, gva,
-				(errorcode & 7));
-		xmhf_smpguest_arch_x86vmx_endquiesce(vcpu);
+        xmhf_smpguest_arch_x86vmx_quiesce(vcpu);
+        app_ret_status = xmhf_app_handleintercept_hwpgtblviolation(vcpu, r, gpa, gva,
+                (errorcode & 7));
+        xmhf_smpguest_arch_x86vmx_endquiesce(vcpu);
 #else
-		// [Superymk] Some hypapps cannot use CPU quiescing when handling trapped PIO and memory accesses. For example, some
-		// hypapps must call another core to emulate the trapped CPU instructions. These hypapps cannot do so if CPU 
-		// quiescing is used.
-		app_ret_status = xmhf_app_handleintercept_hwpgtblviolation(vcpu, r, gpa, gva,
-				(errorcode & 7));
+        // [Superymk] Some hypapps cannot use CPU quiescing when handling trapped PIO and memory accesses. For example, some
+        // hypapps must call another core to emulate the trapped CPU instructions. These hypapps cannot do so if CPU 
+        // quiescing is used.
+        app_ret_status = xmhf_app_handleintercept_hwpgtblviolation(vcpu, r, gpa, gva,
+                (errorcode & 7));
 #endif // __XMHF_QUIESCE_CPU_IN_GUEST_MEM_PIO_TRAPS__
-		HALT_ON_ERRORCOND(app_ret_status == APP_SUCCESS);
+        HALT_ON_ERRORCOND(app_ret_status == APP_SUCCESS);
 	}
 }
 
@@ -1201,8 +1203,7 @@ static u32 _optimize_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 		u64 gpa;
 		_OPT_VMREAD(64, guest_paddr);
 		gpa = vcpu->vmcs.guest_paddr;
-		// if(vcpu->isbsp && (gpa >= g_vmx_lapic_base) && (gpa < (g_vmx_lapic_base + PAGE_SIZE_4K)) ){
-		if((gpa >= g_vmx_lapic_base) && (gpa < (g_vmx_lapic_base + PAGE_SIZE_4K)) ){
+		if(vcpu->isbsp && (gpa >= g_vmx_lapic_base) && (gpa < (g_vmx_lapic_base + PAGE_SIZE_4K)) ){
 #ifdef __DEBUG_EVENT_LOGGER__
 			xmhf_dbg_log_event(vcpu, 1, XMHF_DBG_EVENTLOG_vmexit_other,
 							   &vcpu->vmcs.info_vmexit_reason);
