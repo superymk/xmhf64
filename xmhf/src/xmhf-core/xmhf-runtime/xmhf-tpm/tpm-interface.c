@@ -57,6 +57,11 @@
  * Author: Jonathan McCune and Amit Vasudevan (amitvasudevan@acm.org)
  */
 
+/**
+ * Add SRTM support.
+ * Author: Miao Yu
+ * /
+
 #include <xmhf.h>
 
 /// @brief Open locality for DRTM.
