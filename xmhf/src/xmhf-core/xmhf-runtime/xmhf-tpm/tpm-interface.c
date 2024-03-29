@@ -57,39 +57,91 @@
  * Author: Jonathan McCune and Amit Vasudevan (amitvasudevan@acm.org)
  */
 
+/**
+ * Add SRTM support.
+ * Author: Miao Yu
+ */
+
 #include <xmhf.h>
 
-//open TPM locality
-int xmhf_tpm_open_locality(int locality){
+/// @brief Open locality for DRTM.
+/// @param locality
+/// @return
+static int _xmhf_tpm_open_locality_drtm(int locality)
+{
     /* We expect locality 1 or 2 */
-    if(locality < 1 || locality > 2) {
+    if (locality < 1 || locality > 2)
+    {
         return 1;
     }
 
-    if(xmhf_tpm_arch_open_locality(locality)) {
-      printf("%s: FAILED to open TPM locality %d\n", __FUNCTION__, locality);
-      return 1;
+    if (xmhf_tpm_arch_open_locality(locality))
+    {
+        printf("%s: FAILED to open TPM locality %d\n", __FUNCTION__, locality);
+        return 1;
     };
 
     // TODO: in earlier code xmhf_tpm_is_tpm_ready() from tboot-20101005
     // is_tpm_ready() is called, but now this function is gone. So only calling
     // tpm_validate_locality().
-    if (!tpm_validate_locality(locality)) {
-        printf("TPM is not available, failed to open locality %d\n", locality);
+    if (!tpm_validate_locality(locality))
+    {
+        printf("TPM (DRTM) is not available, failed to open locality %d\n", locality);
         return 1;
     }
 
-    printf("%s: opened TPM locality %d\n", __FUNCTION__, locality);
+    printf("%s: opened TPM (DRTM) locality %d\n", __FUNCTION__, locality);
     return 0;
 }
 
-//deactivate all TPM localities
-void xmhf_tpm_deactivate_all_localities(void){
-	xmhf_tpm_arch_deactivate_all_localities();
+/// @brief Open locality for SRTM.
+/// @param locality
+/// @return
+static int _xmhf_tpm_open_locality_srtm(int locality)
+{
+    // We expect locality 0
+    if (locality != 0)
+    {
+        return 1;
+    }
+
+    // The locality 0 should has already been opened in tpm_init
+
+    // TODO: in earlier code xmhf_tpm_is_tpm_ready() from tboot-20101005
+    // is_tpm_ready() is called, but now this function is gone. So only calling
+    // tpm_validate_locality().
+    if (!tpm_validate_locality(locality))
+    {
+        printf("TPM (SRTM) is not available, failed to open locality %d\n", locality);
+        return 1;
+    }
+
+    printf("%s: opened TPM (SRTM) locality %d\n", __FUNCTION__, locality);
+    return 0;
 }
 
+// open TPM locality
+int xmhf_tpm_open_locality(int locality)
+{
+    struct tpm_if *tpm = get_tpm();
 
+    if (!tpm)
+        return 1;
 
+    if (tpm->drtm_enabled)
+    {
+        return _xmhf_tpm_open_locality_drtm(locality);
+    }
+
+    // Open locality for SRTM.
+    return _xmhf_tpm_open_locality_srtm(locality);
+}
+
+// deactivate all TPM localities
+void xmhf_tpm_deactivate_all_localities(void)
+{
+    xmhf_tpm_arch_deactivate_all_localities();
+}
 
 /* Local Variables: */
 /* mode:c           */
