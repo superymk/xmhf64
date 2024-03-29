@@ -60,7 +60,7 @@
 /**
  * Add SRTM support.
  * Author: Miao Yu
- * /
+ */
 
 #include <xmhf.h>
 
