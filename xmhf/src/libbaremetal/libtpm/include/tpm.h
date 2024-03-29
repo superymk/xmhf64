@@ -491,6 +491,7 @@ struct tpm_if {
 
     u32 error; /* last reported error */
     u32 cur_loc;
+    bool drtm_enabled;
 
     u16 banks;
     u16 algs_banks[TPM_ALG_MAX_NUM];

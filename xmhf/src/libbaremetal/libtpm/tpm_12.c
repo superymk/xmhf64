@@ -125,59 +125,59 @@
  *      vendor defined non-fatal errors (00000C00 to 00000FFF).
  * Here only give definitions for a few commonly used return code.
  */
-#define TPM_BASE                0x00000000
-#define TPM_NON_FATAL           0x00000800
-#define TPM_SUCCESS             TPM_BASE
-#define TPM_BADINDEX            (TPM_BASE + 2)
-#define TPM_BAD_PARAMETER       (TPM_BASE + 3)
-#define TPM_DEACTIVATED         (TPM_BASE + 6)
-#define TPM_DISABLED            (TPM_BASE + 7)
-#define TPM_FAIL                (TPM_BASE + 9)
-#define TPM_BAD_ORDINAL         (TPM_BASE + 10)
-#define TPM_NOSPACE             (TPM_BASE + 17)
-#define TPM_NOTRESETABLE        (TPM_BASE + 50)
-#define TPM_NOTLOCAL            (TPM_BASE + 51)
-#define TPM_BAD_LOCALITY        (TPM_BASE + 61)
-#define TPM_READ_ONLY           (TPM_BASE + 62)
-#define TPM_NOT_FULLWRITE       (TPM_BASE + 70)
-#define TPM_RETRY               (TPM_BASE + TPM_NON_FATAL)
+#define TPM_BASE 0x00000000
+#define TPM_NON_FATAL 0x00000800
+#define TPM_SUCCESS TPM_BASE
+#define TPM_BADINDEX (TPM_BASE + 2)
+#define TPM_BAD_PARAMETER (TPM_BASE + 3)
+#define TPM_DEACTIVATED (TPM_BASE + 6)
+#define TPM_DISABLED (TPM_BASE + 7)
+#define TPM_FAIL (TPM_BASE + 9)
+#define TPM_BAD_ORDINAL (TPM_BASE + 10)
+#define TPM_NOSPACE (TPM_BASE + 17)
+#define TPM_NOTRESETABLE (TPM_BASE + 50)
+#define TPM_NOTLOCAL (TPM_BASE + 51)
+#define TPM_BAD_LOCALITY (TPM_BASE + 61)
+#define TPM_READ_ONLY (TPM_BASE + 62)
+#define TPM_NOT_FULLWRITE (TPM_BASE + 70)
+#define TPM_RETRY (TPM_BASE + TPM_NON_FATAL)
 
 typedef uint8_t tpm_locality_selection_t;
-#define TPM_LOC_ZERO    0x01
-#define TPM_LOC_ONE     0x02
-#define TPM_LOC_TWO     0x04
-#define TPM_LOC_THREE   0x08
-#define TPM_LOC_FOUR    0x10
-#define TPM_LOC_RSVD    0xE0
+#define TPM_LOC_ZERO 0x01
+#define TPM_LOC_ONE 0x02
+#define TPM_LOC_TWO 0x04
+#define TPM_LOC_THREE 0x08
+#define TPM_LOC_FOUR 0x10
+#define TPM_LOC_RSVD 0xE0
 
 /* ~5 secs are required for Infineon that requires this, so leave some extra */
-#define MAX_SAVESTATE_RETRIES       60
+#define MAX_SAVESTATE_RETRIES 60
 
-#define TPM_TAG_RQU_COMMAND         0x00C1
-#define TPM_TAG_RQU_AUTH1_COMMAND   0x00C2
-#define TPM_TAG_RQU_AUTH2_COMMAND   0x00C3
-#define TPM_ORD_PCR_EXTEND          0x00000014
-#define TPM_ORD_PCR_READ            0x00000015
-#define TPM_ORD_PCR_RESET           0x000000C8
-#define TPM_ORD_NV_READ_VALUE       0x000000CF
-#define TPM_ORD_NV_WRITE_VALUE      0x000000CD
-#define TPM_ORD_GET_CAPABILITY      0x00000065
-#define TPM_ORD_SEAL                0x00000017
-#define TPM_ORD_UNSEAL              0x00000018
-#define TPM_ORD_OSAP                0x0000000B
-#define TPM_ORD_OIAP                0x0000000A
-#define TPM_ORD_SAVE_STATE          0x00000098
-#define TPM_ORD_GET_RANDOM          0x00000046
+#define TPM_TAG_RQU_COMMAND 0x00C1
+#define TPM_TAG_RQU_AUTH1_COMMAND 0x00C2
+#define TPM_TAG_RQU_AUTH2_COMMAND 0x00C3
+#define TPM_ORD_PCR_EXTEND 0x00000014
+#define TPM_ORD_PCR_READ 0x00000015
+#define TPM_ORD_PCR_RESET 0x000000C8
+#define TPM_ORD_NV_READ_VALUE 0x000000CF
+#define TPM_ORD_NV_WRITE_VALUE 0x000000CD
+#define TPM_ORD_GET_CAPABILITY 0x00000065
+#define TPM_ORD_SEAL 0x00000017
+#define TPM_ORD_UNSEAL 0x00000018
+#define TPM_ORD_OSAP 0x0000000B
+#define TPM_ORD_OIAP 0x0000000A
+#define TPM_ORD_SAVE_STATE 0x00000098
+#define TPM_ORD_GET_RANDOM 0x00000046
 
-#define TPM_TAG_PCR_INFO_LONG       0x0006
-#define TPM_TAG_STORED_DATA12       0x0016
+#define TPM_TAG_PCR_INFO_LONG 0x0006
+#define TPM_TAG_STORED_DATA12 0x0016
 
 /*
  * specified as minimum cmd buffer size should be supported by all 1.2 TPM
  * device in the TCG_PCClientTPMSpecification_1-20_1-00_FINAL.pdf
  */
-#define TPM_CMD_SIZE_MAX        768
-#define TPM_RSP_SIZE_MAX        768
+#define TPM_CMD_SIZE_MAX 768
+#define TPM_RSP_SIZE_MAX 768
 
 /*
  * The _tpm12_submit_cmd function comes with 2 global buffers: cmd_buf & rsp_buf.
@@ -204,19 +204,20 @@ typedef uint8_t tpm_locality_selection_t;
  *              The out_size MUST NOT be NULL.
  *   return   : TPM_SUCCESS for success, for other error code, refer to the .h
  */
-static uint8_t     cmd_buf[TPM_CMD_SIZE_MAX];
-static uint8_t     rsp_buf[TPM_RSP_SIZE_MAX];
-#define WRAPPER_IN_BUF          (cmd_buf + CMD_HEAD_SIZE)
-#define WRAPPER_OUT_BUF         (rsp_buf + RSP_HEAD_SIZE)
-#define WRAPPER_IN_MAX_SIZE     (TPM_CMD_SIZE_MAX - CMD_HEAD_SIZE)
-#define WRAPPER_OUT_MAX_SIZE    (TPM_RSP_SIZE_MAX - RSP_HEAD_SIZE)
+static uint8_t cmd_buf[TPM_CMD_SIZE_MAX];
+static uint8_t rsp_buf[TPM_RSP_SIZE_MAX];
+#define WRAPPER_IN_BUF (cmd_buf + CMD_HEAD_SIZE)
+#define WRAPPER_OUT_BUF (rsp_buf + RSP_HEAD_SIZE)
+#define WRAPPER_IN_MAX_SIZE (TPM_CMD_SIZE_MAX - CMD_HEAD_SIZE)
+#define WRAPPER_OUT_MAX_SIZE (TPM_RSP_SIZE_MAX - RSP_HEAD_SIZE)
 
-static uint32_t _tpm12_submit_cmd(uint32_t locality, uint16_t tag, uint32_t cmd,  uint32_t arg_size, uint32_t *out_size)
+static uint32_t _tpm12_submit_cmd(uint32_t locality, uint16_t tag, uint32_t cmd, uint32_t arg_size, uint32_t *out_size)
 {
-    uint32_t    ret;
-    uint32_t    cmd_size, rsp_size = 0;
+    uint32_t ret;
+    uint32_t cmd_size, rsp_size = 0;
 
-    if ( out_size == NULL ) {
+    if (out_size == NULL)
+    {
         printf("TPM: invalid param for _tpm12_submit_cmd()\n");
         return TPM_BAD_PARAMETER;
     }
@@ -229,7 +230,8 @@ static uint32_t _tpm12_submit_cmd(uint32_t locality, uint16_t tag, uint32_t cmd,
      */
     cmd_size = CMD_HEAD_SIZE + arg_size;
 
-    if ( cmd_size > TPM_CMD_SIZE_MAX ) {
+    if (cmd_size > TPM_CMD_SIZE_MAX)
+    {
         printf("TPM: cmd exceeds the max supported size.\n");
         return TPM_BAD_PARAMETER;
     }
@@ -240,8 +242,9 @@ static uint32_t _tpm12_submit_cmd(uint32_t locality, uint16_t tag, uint32_t cmd,
     reverse_copy(cmd_buf + CMD_CC_OFFSET, &cmd, sizeof(cmd));
 
     rsp_size = RSP_HEAD_SIZE + *out_size;
-    rsp_size = (rsp_size > TPM_RSP_SIZE_MAX) ? TPM_RSP_SIZE_MAX: rsp_size;
-    if ( !tpm_submit_cmd(locality, cmd_buf, cmd_size, rsp_buf, &rsp_size) ) return TPM_FAIL;
+    rsp_size = (rsp_size > TPM_RSP_SIZE_MAX) ? TPM_RSP_SIZE_MAX : rsp_size;
+    if (!tpm_submit_cmd(locality, cmd_buf, cmd_size, rsp_buf, &rsp_size))
+        return TPM_FAIL;
 
     /*
      * should subtract 10 bytes from real response size:
@@ -252,9 +255,11 @@ static uint32_t _tpm12_submit_cmd(uint32_t locality, uint16_t tag, uint32_t cmd,
     rsp_size -= (rsp_size > RSP_HEAD_SIZE) ? RSP_HEAD_SIZE : rsp_size;
 
     reverse_copy(&ret, rsp_buf + RSP_RST_OFFSET, sizeof(uint32_t));
-    if ( ret != TPM_SUCCESS )     return ret;
+    if (ret != TPM_SUCCESS)
+        return ret;
 
-    if ( *out_size == 0 || rsp_size == 0 )        *out_size = 0;
+    if (*out_size == 0 || rsp_size == 0)
+        *out_size = 0;
     else
         *out_size = (rsp_size < *out_size) ? rsp_size : *out_size;
 
@@ -263,34 +268,36 @@ static uint32_t _tpm12_submit_cmd(uint32_t locality, uint16_t tag, uint32_t cmd,
 
 static inline uint32_t tpm12_submit_cmd(uint32_t locality, uint32_t cmd, uint32_t arg_size, uint32_t *out_size)
 {
-   return  _tpm12_submit_cmd(locality, TPM_TAG_RQU_COMMAND, cmd, arg_size, out_size);
+    return _tpm12_submit_cmd(locality, TPM_TAG_RQU_COMMAND, cmd, arg_size, out_size);
 }
 
 static inline uint32_t tpm12_submit_cmd_auth1(uint32_t locality, uint32_t cmd,
-                                            uint32_t arg_size, uint32_t *out_size)
+                                              uint32_t arg_size, uint32_t *out_size)
 {
-   return  _tpm12_submit_cmd(locality, TPM_TAG_RQU_AUTH1_COMMAND, cmd,
-                           arg_size, out_size);
+    return _tpm12_submit_cmd(locality, TPM_TAG_RQU_AUTH1_COMMAND, cmd,
+                             arg_size, out_size);
 }
 
 static inline uint32_t tpm12_submit_cmd_auth2(uint32_t locality, uint32_t cmd,
-                                            uint32_t arg_size, uint32_t *out_size)
+                                              uint32_t arg_size, uint32_t *out_size)
 {
-   return  _tpm12_submit_cmd(locality, TPM_TAG_RQU_AUTH2_COMMAND, cmd,
-                           arg_size, out_size);
+    return _tpm12_submit_cmd(locality, TPM_TAG_RQU_AUTH2_COMMAND, cmd,
+                             arg_size, out_size);
 }
 
-typedef struct __packed {
-    uint8_t     digest[SHA1_LENGTH];
+typedef struct __packed
+{
+    uint8_t digest[SHA1_LENGTH];
 } tpm12_digest_t;
 
-#define TPM_NR_PCRS             24
+#define TPM_NR_PCRS 24
 static bool tpm12_pcr_read(struct tpm_if *ti, uint32_t locality,
                            uint32_t pcr, tpm_pcr_value_t *out)
 {
     uint32_t ret, out_size = sizeof(*out);
 
-    if ( out == NULL || pcr >= TPM_NR_PCRS) {
+    if (out == NULL || pcr >= TPM_NR_PCRS)
+    {
         ti->error = TPM_BAD_PARAMETER;
         return false;
     }
@@ -303,13 +310,14 @@ static bool tpm12_pcr_read(struct tpm_if *ti, uint32_t locality,
 #ifdef TPM_TRACE
     printf("TPM: Pcr %d Read return value = %08X\n", pcr, ret);
 #endif
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM: Pcr %d Read return value = %08X\n", pcr, ret);
         ti->error = ret;
         return false;
     }
 
-    if ( out_size > sizeof(*out) )
+    if (out_size > sizeof(*out))
         out_size = sizeof(*out);
     memcpy((void *)out, WRAPPER_OUT_BUF, out_size);
 
@@ -324,14 +332,15 @@ static bool tpm12_pcr_read(struct tpm_if *ti, uint32_t locality,
 }
 
 static bool _tpm12_pcr_extend(struct tpm_if *ti, uint32_t locality,
-                             uint32_t pcr, const tpm_digest_t* in)
+                              uint32_t pcr, const tpm_digest_t *in)
 {
     uint32_t ret, in_size = 0, out_size = 0;
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
-    if ( in == NULL || pcr >= TPM_NR_PCRS){
+    if (in == NULL || pcr >= TPM_NR_PCRS)
+    {
         ti->error = TPM_BAD_PARAMETER;
         return false;
     }
@@ -347,7 +356,8 @@ static bool _tpm12_pcr_extend(struct tpm_if *ti, uint32_t locality,
 #ifdef TPM_TRACE
     printf("TPM: Pcr %d extend, return value = %08X\n", pcr, ret);
 #endif
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM: Pcr %d extend, return value = %08X\n", pcr, ret);
         ti->error = ret;
         return false;
@@ -361,11 +371,12 @@ static bool tpm12_pcr_extend(struct tpm_if *ti, uint32_t locality,
 {
     tpm_digest_t digest;
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
-    if ( in == NULL || in->count != 1 ||
-            in->entries[0].alg != TB_HALG_SHA1 ) {
+    if (in == NULL || in->count != 1 ||
+        in->entries[0].alg != TB_HALG_SHA1)
+    {
         ti->error = TPM_BAD_PARAMETER;
         return false;
     }
@@ -375,23 +386,27 @@ static bool tpm12_pcr_extend(struct tpm_if *ti, uint32_t locality,
     return _tpm12_pcr_extend(ti, locality, pcr, &digest);
 }
 
-typedef struct __packed {
-    uint16_t    size_of_select;
-    uint8_t     pcr_select[3];
+typedef struct __packed
+{
+    uint16_t size_of_select;
+    uint8_t pcr_select[3];
 } tpm_pcr_selection_t;
 
 /* PCRs lower than 16 are not resetable */
-#define TPM_PCR_RESETABLE_MIN           16
+#define TPM_PCR_RESETABLE_MIN 16
 static bool tpm12_pcr_reset(struct tpm_if *ti, uint32_t locality, uint32_t pcr)
 {
     uint32_t ret, in_size, out_size = 0;
     uint16_t size_of_select;
-    tpm_pcr_selection_t pcr_sel = {0,{0,}};
+    tpm_pcr_selection_t pcr_sel = {0, {
+                                          0,
+                                      }};
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
-    if ( pcr >= TPM_NR_PCRS || pcr < TPM_PCR_RESETABLE_MIN ) {
+    if (pcr >= TPM_NR_PCRS || pcr < TPM_PCR_RESETABLE_MIN)
+    {
         ti->error = TPM_BAD_PARAMETER;
         return false;
     }
@@ -406,7 +421,8 @@ static bool tpm12_pcr_reset(struct tpm_if *ti, uint32_t locality, uint32_t pcr)
     memcpy(WRAPPER_IN_BUF, (void *)&pcr_sel, in_size);
 
     ret = tpm12_submit_cmd(locality, TPM_ORD_PCR_RESET, in_size, &out_size);
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         ti->error = ret;
         return false;
     }
@@ -416,21 +432,22 @@ static bool tpm12_pcr_reset(struct tpm_if *ti, uint32_t locality, uint32_t pcr)
     return true;
 }
 
-#define TPM_NV_READ_VALUE_DATA_SIZE_MAX  (TPM_RSP_SIZE_MAX - 14)
+#define TPM_NV_READ_VALUE_DATA_SIZE_MAX (TPM_RSP_SIZE_MAX - 14)
 static bool tpm12_nv_read_value(struct tpm_if *ti, uint32_t locality,
                                 uint32_t index, uint32_t offset,
                                 uint8_t *data, uint32_t *data_size)
 {
     uint32_t ret, in_size = 0, out_size;
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
-    if ( data == NULL || data_size == NULL || *data_size == 0 ) {
+    if (data == NULL || data_size == NULL || *data_size == 0)
+    {
         ti->error = TPM_BAD_PARAMETER;
         return false;
     }
-    if ( *data_size > TPM_NV_READ_VALUE_DATA_SIZE_MAX )
+    if (*data_size > TPM_NV_READ_VALUE_DATA_SIZE_MAX)
         *data_size = TPM_NV_READ_VALUE_DATA_SIZE_MAX;
 
     /* copy the index, offset and *data_size into buf in reversed byte order */
@@ -448,7 +465,8 @@ static bool tpm12_nv_read_value(struct tpm_if *ti, uint32_t locality,
     printf("TPM: read nv index %08x from offset %08x, return value = %08X\n",
            index, offset, ret);
 #endif
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM: read nv index %08x offset %08x, return value = %08X\n",
                index, offset, ret);
         ti->error = ret;
@@ -462,7 +480,8 @@ static bool tpm12_nv_read_value(struct tpm_if *ti, uint32_t locality,
     }
 #endif
 
-    if ( out_size <= sizeof(*data_size) ) {
+    if (out_size <= sizeof(*data_size))
+    {
         *data_size = 0;
         return true;
     }
@@ -470,7 +489,7 @@ static bool tpm12_nv_read_value(struct tpm_if *ti, uint32_t locality,
     out_size -= sizeof(*data_size);
     reverse_copy(data_size, WRAPPER_OUT_BUF, sizeof(*data_size));
     *data_size = (*data_size > out_size) ? out_size : *data_size;
-    if( *data_size > 0 )
+    if (*data_size > 0)
         memcpy(data, WRAPPER_OUT_BUF + sizeof(*data_size), *data_size);
 
     return true;
@@ -483,11 +502,11 @@ static bool tpm12_nv_write_value(struct tpm_if *ti, uint32_t locality,
 {
     uint32_t ret, in_size = 0, out_size = 0;
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
-    if ( data == NULL || data_size == 0
-         || data_size > TPM_NV_WRITE_VALUE_DATA_SIZE_MAX ) {
+    if (data == NULL || data_size == 0 || data_size > TPM_NV_WRITE_VALUE_DATA_SIZE_MAX)
+    {
         ti->error = TPM_BAD_PARAMETER;
         return false;
     }
@@ -503,13 +522,14 @@ static bool tpm12_nv_write_value(struct tpm_if *ti, uint32_t locality,
     in_size += data_size;
 
     ret = tpm12_submit_cmd(locality, TPM_ORD_NV_WRITE_VALUE,
-                         in_size, &out_size);
+                           in_size, &out_size);
 
 #ifdef TPM_TRACE
     printf("TPM: write nv %08x, offset %08x, %08x bytes, return = %08X\n",
            index, offset, data_size, ret);
 #endif
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM: write nv %08x, offset %08x, %08x bytes, return = %08X\n",
                index, offset, data_size, ret);
         ti->error = ret;
@@ -523,27 +543,29 @@ static bool tpm12_nv_write_value(struct tpm_if *ti, uint32_t locality,
 
 typedef uint16_t tpm_structure_tag_t;
 
-typedef struct __packed {
-   uint8_t  major;
-   uint8_t  minor;
-   uint8_t  rev_major;
-   uint8_t  rev_minor;
+typedef struct __packed
+{
+    uint8_t major;
+    uint8_t minor;
+    uint8_t rev_major;
+    uint8_t rev_minor;
 } tpm_version_t;
 
-typedef struct __packed {
+typedef struct __packed
+{
     tpm_structure_tag_t tag;
-    tpm_version_t       version;
-    uint16_t            specLevel;
-    uint8_t             errataRev;
-    uint8_t             tpmVendorID[4];
-    uint16_t            vendorSpecificSize;
-    uint8_t             vendorSpecific[];
+    tpm_version_t version;
+    uint16_t specLevel;
+    uint8_t errataRev;
+    uint8_t tpmVendorID[4];
+    uint16_t vendorSpecificSize;
+    uint8_t vendorSpecific[];
 } tpm_cap_version_info_t;
 
 // XMHF: Disabled unused functions.
 #if 0
-#define HMAC_BLOCK_SIZE     64
-#define HMAC_OUTPUT_SIZE    20
+#define HMAC_BLOCK_SIZE 64
+#define HMAC_OUTPUT_SIZE 20
 
 static bool hmac(const uint8_t key[HMAC_OUTPUT_SIZE], const uint8_t *msg,
                  uint32_t len, uint8_t md[HMAC_OUTPUT_SIZE])
@@ -580,219 +602,251 @@ static bool hmac(const uint8_t key[HMAC_OUTPUT_SIZE], const uint8_t *msg,
 
 typedef uint16_t tpm_entity_type_t;
 typedef uint32_t tpm_authhandle_t;
-typedef struct __packed {
-    uint8_t     nonce[20];
+typedef struct __packed
+{
+    uint8_t nonce[20];
 } tpm_nonce_t;
 
-#define TPM_ET_SRK              0x0004
-#define TPM_KH_SRK              0x40000000
+#define TPM_ET_SRK 0x0004
+#define TPM_KH_SRK 0x40000000
 
 typedef uint32_t tpm_key_handle_t;
 
 typedef tpm12_digest_t tpm_composite_hash_t;
-typedef struct __packed {
-    tpm_structure_tag_t         tag;
-    tpm_locality_selection_t    locality_at_creation;
-    tpm_locality_selection_t    locality_at_release;
-    tpm_pcr_selection_t         creation_pcr_selection;
-    tpm_pcr_selection_t         release_pcr_selection;
-    tpm_composite_hash_t        digest_at_creation;
-    tpm_composite_hash_t        digest_at_release;
+typedef struct __packed
+{
+    tpm_structure_tag_t tag;
+    tpm_locality_selection_t locality_at_creation;
+    tpm_locality_selection_t locality_at_release;
+    tpm_pcr_selection_t creation_pcr_selection;
+    tpm_pcr_selection_t release_pcr_selection;
+    tpm_composite_hash_t digest_at_creation;
+    tpm_composite_hash_t digest_at_release;
 } tpm_pcr_info_long_t;
 
 typedef uint8_t tpm_authdata_t[20];
 typedef tpm_authdata_t tpm_encauth_t;
 
-typedef struct __packed {
-    tpm_structure_tag_t         tag;
-    tpm_entity_type_t           et;
-    uint32_t                    seal_info_size;
+typedef struct __packed
+{
+    tpm_structure_tag_t tag;
+    tpm_entity_type_t et;
+    uint32_t seal_info_size;
 } tpm_stored_data12_header_t;
 
-typedef struct __packed {
-    tpm_stored_data12_header_t  header;
-    uint32_t                    enc_data_size;
-    uint8_t                     enc_data[];
+typedef struct __packed
+{
+    tpm_stored_data12_header_t header;
+    uint32_t enc_data_size;
+    uint8_t enc_data[];
 } tpm_stored_data12_short_t;
 
-typedef struct __packed {
-    tpm_stored_data12_header_t  header;
-    tpm_pcr_info_long_t         seal_info;
-    uint32_t                    enc_data_size;
-    uint8_t                     enc_data[];
+typedef struct __packed
+{
+    tpm_stored_data12_header_t header;
+    tpm_pcr_info_long_t seal_info;
+    uint32_t enc_data_size;
+    uint8_t enc_data[];
 } tpm_stored_data12_t;
 
-#define UNLOAD_INTEGER(buf, offset, var) {\
-    reverse_copy(buf + offset, &(var), sizeof(var));\
-    offset += sizeof(var);\
-}
+#define UNLOAD_INTEGER(buf, offset, var)                 \
+    {                                                    \
+        reverse_copy(buf + offset, &(var), sizeof(var)); \
+        offset += sizeof(var);                           \
+    }
 
-#define UNLOAD_BLOB(buf, offset, blob, size) {\
-    memcpy(buf + offset, blob, size);\
-    offset += size;\
-}
+#define UNLOAD_BLOB(buf, offset, blob, size) \
+    {                                        \
+        memcpy(buf + offset, blob, size);    \
+        offset += size;                      \
+    }
 
 #define UNLOAD_BLOB_TYPE(buf, offset, blob) \
     UNLOAD_BLOB(buf, offset, blob, sizeof(*(blob)))
 
-#define UNLOAD_PCR_SELECTION(buf, offset, sel) {\
-    UNLOAD_INTEGER(buf, offset, (sel)->size_of_select);\
-    UNLOAD_BLOB(buf, offset, (sel)->pcr_select, (sel)->size_of_select);\
-}
+#define UNLOAD_PCR_SELECTION(buf, offset, sel)                              \
+    {                                                                       \
+        UNLOAD_INTEGER(buf, offset, (sel)->size_of_select);                 \
+        UNLOAD_BLOB(buf, offset, (sel)->pcr_select, (sel)->size_of_select); \
+    }
 
-#define UNLOAD_PCR_INFO_LONG(buf, offset, info) {\
-    UNLOAD_INTEGER(buf, offset, (info)->tag);\
-    UNLOAD_BLOB_TYPE(buf, offset, &(info)->locality_at_creation);\
-    UNLOAD_BLOB_TYPE(buf, offset, &(info)->locality_at_release);\
-    UNLOAD_PCR_SELECTION(buf, offset, &(info)->creation_pcr_selection);\
-    UNLOAD_PCR_SELECTION(buf, offset, &(info)->release_pcr_selection);\
-    UNLOAD_BLOB_TYPE(buf, offset, &(info)->digest_at_creation);\
-    UNLOAD_BLOB_TYPE(buf, offset, &(info)->digest_at_release);\
-}
+#define UNLOAD_PCR_INFO_LONG(buf, offset, info)                             \
+    {                                                                       \
+        UNLOAD_INTEGER(buf, offset, (info)->tag);                           \
+        UNLOAD_BLOB_TYPE(buf, offset, &(info)->locality_at_creation);       \
+        UNLOAD_BLOB_TYPE(buf, offset, &(info)->locality_at_release);        \
+        UNLOAD_PCR_SELECTION(buf, offset, &(info)->creation_pcr_selection); \
+        UNLOAD_PCR_SELECTION(buf, offset, &(info)->release_pcr_selection);  \
+        UNLOAD_BLOB_TYPE(buf, offset, &(info)->digest_at_creation);         \
+        UNLOAD_BLOB_TYPE(buf, offset, &(info)->digest_at_release);          \
+    }
 
-#define UNLOAD_STORED_DATA12(buf, offset, hdr) {\
-   UNLOAD_INTEGER(buf, offset, ((tpm_stored_data12_header_t *)(hdr))->tag);\
-   UNLOAD_INTEGER(buf, offset, ((tpm_stored_data12_header_t *)(hdr))->et);\
-   UNLOAD_INTEGER(buf, offset,\
-                  ((tpm_stored_data12_header_t *)(hdr))->seal_info_size);\
-   if ( ((tpm_stored_data12_header_t *)(hdr))->seal_info_size == 0 ) {\
-       UNLOAD_INTEGER(buf, offset,\
-                      ((tpm_stored_data12_short_t *)hdr)->enc_data_size);\
-       UNLOAD_BLOB(buf, offset,\
-                   ((tpm_stored_data12_short_t *)hdr)->enc_data,\
-                   ((tpm_stored_data12_short_t *)hdr)->enc_data_size);\
-   }\
-   else {\
-       UNLOAD_PCR_INFO_LONG(buf, offset,\
-                            &((tpm_stored_data12_t *)hdr)->seal_info);\
-       UNLOAD_INTEGER(buf, offset,\
-                      ((tpm_stored_data12_t *)hdr)->enc_data_size);\
-       UNLOAD_BLOB(buf, offset,\
-                   ((tpm_stored_data12_t *)hdr)->enc_data,\
-                   ((tpm_stored_data12_t *)hdr)->enc_data_size);\
-   }\
-}
+#define UNLOAD_STORED_DATA12(buf, offset, hdr)                                   \
+    {                                                                            \
+        UNLOAD_INTEGER(buf, offset, ((tpm_stored_data12_header_t *)(hdr))->tag); \
+        UNLOAD_INTEGER(buf, offset, ((tpm_stored_data12_header_t *)(hdr))->et);  \
+        UNLOAD_INTEGER(buf, offset,                                              \
+                       ((tpm_stored_data12_header_t *)(hdr))->seal_info_size);   \
+        if (((tpm_stored_data12_header_t *)(hdr))->seal_info_size == 0)          \
+        {                                                                        \
+            UNLOAD_INTEGER(buf, offset,                                          \
+                           ((tpm_stored_data12_short_t *)hdr)->enc_data_size);   \
+            UNLOAD_BLOB(buf, offset,                                             \
+                        ((tpm_stored_data12_short_t *)hdr)->enc_data,            \
+                        ((tpm_stored_data12_short_t *)hdr)->enc_data_size);      \
+        }                                                                        \
+        else                                                                     \
+        {                                                                        \
+            UNLOAD_PCR_INFO_LONG(buf, offset,                                    \
+                                 &((tpm_stored_data12_t *)hdr)->seal_info);      \
+            UNLOAD_INTEGER(buf, offset,                                          \
+                           ((tpm_stored_data12_t *)hdr)->enc_data_size);         \
+            UNLOAD_BLOB(buf, offset,                                             \
+                        ((tpm_stored_data12_t *)hdr)->enc_data,                  \
+                        ((tpm_stored_data12_t *)hdr)->enc_data_size);            \
+        }                                                                        \
+    }
 
-#define LOAD_INTEGER(buf, offset, var) {\
-    reverse_copy(&(var), buf + offset, sizeof(var));\
-    offset += sizeof(var);\
-}
+#define LOAD_INTEGER(buf, offset, var)                   \
+    {                                                    \
+        reverse_copy(&(var), buf + offset, sizeof(var)); \
+        offset += sizeof(var);                           \
+    }
 
-#define LOAD_BLOB(buf, offset, blob, size) {\
-    memcpy(blob, buf + offset, size);\
-    offset += size;\
-}
+#define LOAD_BLOB(buf, offset, blob, size) \
+    {                                      \
+        memcpy(blob, buf + offset, size);  \
+        offset += size;                    \
+    }
 
 #define LOAD_BLOB_TYPE(buf, offset, blob) \
     LOAD_BLOB(buf, offset, blob, sizeof(*(blob)))
 
-#define LOAD_PCR_SELECTION(buf, offset, sel, size) while (1) {\
-    if ( size < sizeof(tpm_pcr_selection_t) ) {\
-        size++;\
-        break;\
-    }\
-    LOAD_INTEGER(buf, offset, (sel)->size_of_select);\
-    if ( (sel)->size_of_select > sizeof((sel)->pcr_select) ) {\
-        size++;\
-        break;\
-    }\
-    LOAD_BLOB(buf, offset, (sel)->pcr_select, (sel)->size_of_select);\
-    size = sizeof(tpm_pcr_selection_t);\
-    break;\
-}
+#define LOAD_PCR_SELECTION(buf, offset, sel, size)                        \
+    while (1)                                                             \
+    {                                                                     \
+        if (size < sizeof(tpm_pcr_selection_t))                           \
+        {                                                                 \
+            size++;                                                       \
+            break;                                                        \
+        }                                                                 \
+        LOAD_INTEGER(buf, offset, (sel)->size_of_select);                 \
+        if ((sel)->size_of_select > sizeof((sel)->pcr_select))            \
+        {                                                                 \
+            size++;                                                       \
+            break;                                                        \
+        }                                                                 \
+        LOAD_BLOB(buf, offset, (sel)->pcr_select, (sel)->size_of_select); \
+        size = sizeof(tpm_pcr_selection_t);                               \
+        break;                                                            \
+    }
 
-#define LOAD_PCR_INFO_LONG(buf, offset, info, size) while (1) {\
-    uint32_t ps_size = sizeof(tpm_pcr_selection_t);\
-    if ( size < sizeof(tpm_pcr_info_long_t) ) {\
-        size++;\
-        break;\
-    }\
-    LOAD_INTEGER(buf, offset, (info)->tag);\
-    LOAD_BLOB_TYPE(buf, offset, &(info)->locality_at_creation);\
-    LOAD_BLOB_TYPE(buf, offset, &(info)->locality_at_release);\
-    LOAD_PCR_SELECTION(buf, offset, &(info)->creation_pcr_selection, ps_size);\
-    if ( ps_size > sizeof(tpm_pcr_selection_t) ) {\
-        size++;\
-        break;\
-    }\
-    ps_size = sizeof(tpm_pcr_selection_t);\
-    LOAD_PCR_SELECTION(buf, offset, &(info)->release_pcr_selection, ps_size);\
-    if ( ps_size > sizeof(tpm_pcr_selection_t) ) {\
-        size++;\
-        break;\
-    }\
-    LOAD_BLOB_TYPE(buf, offset, &(info)->digest_at_creation);\
-    LOAD_BLOB_TYPE(buf, offset, &(info)->digest_at_release);\
-    size=sizeof(tpm_pcr_info_long_t);\
-    break;\
-}
+#define LOAD_PCR_INFO_LONG(buf, offset, info, size)                                \
+    while (1)                                                                      \
+    {                                                                              \
+        uint32_t ps_size = sizeof(tpm_pcr_selection_t);                            \
+        if (size < sizeof(tpm_pcr_info_long_t))                                    \
+        {                                                                          \
+            size++;                                                                \
+            break;                                                                 \
+        }                                                                          \
+        LOAD_INTEGER(buf, offset, (info)->tag);                                    \
+        LOAD_BLOB_TYPE(buf, offset, &(info)->locality_at_creation);                \
+        LOAD_BLOB_TYPE(buf, offset, &(info)->locality_at_release);                 \
+        LOAD_PCR_SELECTION(buf, offset, &(info)->creation_pcr_selection, ps_size); \
+        if (ps_size > sizeof(tpm_pcr_selection_t))                                 \
+        {                                                                          \
+            size++;                                                                \
+            break;                                                                 \
+        }                                                                          \
+        ps_size = sizeof(tpm_pcr_selection_t);                                     \
+        LOAD_PCR_SELECTION(buf, offset, &(info)->release_pcr_selection, ps_size);  \
+        if (ps_size > sizeof(tpm_pcr_selection_t))                                 \
+        {                                                                          \
+            size++;                                                                \
+            break;                                                                 \
+        }                                                                          \
+        LOAD_BLOB_TYPE(buf, offset, &(info)->digest_at_creation);                  \
+        LOAD_BLOB_TYPE(buf, offset, &(info)->digest_at_release);                   \
+        size = sizeof(tpm_pcr_info_long_t);                                        \
+        break;                                                                     \
+    }
 
-#define LOAD_STORED_DATA12(buf, offset, hdr, size) while (1){\
-    uint32_t pil_size = sizeof(tpm_pcr_info_long_t);\
-    if ( size < sizeof(tpm_stored_data12_short_t) ) {\
-        size++;\
-        break;\
-    }\
-    LOAD_INTEGER(buf, offset, ((tpm_stored_data12_header_t *)(hdr))->tag);\
-    LOAD_INTEGER(buf, offset, ((tpm_stored_data12_header_t *)(hdr))->et);\
-    LOAD_INTEGER(buf, offset, \
-                 ((tpm_stored_data12_header_t *)(hdr))->seal_info_size);\
-    if ( ((tpm_stored_data12_header_t *)(hdr))->seal_info_size == 0 ) {\
-        LOAD_INTEGER(buf, offset,\
-                     ((tpm_stored_data12_short_t *)hdr)->enc_data_size);\
-        if ( size - sizeof(tpm_stored_data12_short_t) <\
-                    ((tpm_stored_data12_short_t *)hdr)->enc_data_size ) {\
-            size++;\
-            break;\
-        }\
-        LOAD_BLOB(buf, offset,\
-                  ((tpm_stored_data12_short_t *)hdr)->enc_data,\
-                  ((tpm_stored_data12_short_t *)hdr)->enc_data_size);\
-        size = sizeof(tpm_stored_data12_short_t) +\
-               ((tpm_stored_data12_short_t *)hdr)->enc_data_size;\
-    }\
-    else {\
-        if ( size < sizeof(tpm_stored_data12_t) ) {\
-            size++;\
-            break;\
-        }\
-        LOAD_PCR_INFO_LONG(buf, offset,\
-                           &((tpm_stored_data12_t *)hdr)->seal_info, pil_size);\
-        if ( pil_size > sizeof(tpm_pcr_info_long_t) ) {\
-            size++;\
-            break;\
-        }\
-        LOAD_INTEGER(buf, offset,\
-                     ((tpm_stored_data12_t *)hdr)->enc_data_size);\
-        if ( size - sizeof(tpm_stored_data12_t) <\
-                    ((tpm_stored_data12_t *)hdr)->enc_data_size ) {\
-            size++;\
-            break;\
-        }\
-        LOAD_BLOB(buf, offset,\
-                  ((tpm_stored_data12_t *)hdr)->enc_data,\
-                  ((tpm_stored_data12_t *)hdr)->enc_data_size);\
-        size = sizeof(tpm_stored_data12_t) +\
-               ((tpm_stored_data12_t *)hdr)->enc_data_size;\
-    }\
-    break;\
-}
+#define LOAD_STORED_DATA12(buf, offset, hdr, size)                                  \
+    while (1)                                                                       \
+    {                                                                               \
+        uint32_t pil_size = sizeof(tpm_pcr_info_long_t);                            \
+        if (size < sizeof(tpm_stored_data12_short_t))                               \
+        {                                                                           \
+            size++;                                                                 \
+            break;                                                                  \
+        }                                                                           \
+        LOAD_INTEGER(buf, offset, ((tpm_stored_data12_header_t *)(hdr))->tag);      \
+        LOAD_INTEGER(buf, offset, ((tpm_stored_data12_header_t *)(hdr))->et);       \
+        LOAD_INTEGER(buf, offset,                                                   \
+                     ((tpm_stored_data12_header_t *)(hdr))->seal_info_size);        \
+        if (((tpm_stored_data12_header_t *)(hdr))->seal_info_size == 0)             \
+        {                                                                           \
+            LOAD_INTEGER(buf, offset,                                               \
+                         ((tpm_stored_data12_short_t *)hdr)->enc_data_size);        \
+            if (size - sizeof(tpm_stored_data12_short_t) <                          \
+                ((tpm_stored_data12_short_t *)hdr)->enc_data_size)                  \
+            {                                                                       \
+                size++;                                                             \
+                break;                                                              \
+            }                                                                       \
+            LOAD_BLOB(buf, offset,                                                  \
+                      ((tpm_stored_data12_short_t *)hdr)->enc_data,                 \
+                      ((tpm_stored_data12_short_t *)hdr)->enc_data_size);           \
+            size = sizeof(tpm_stored_data12_short_t) +                              \
+                   ((tpm_stored_data12_short_t *)hdr)->enc_data_size;               \
+        }                                                                           \
+        else                                                                        \
+        {                                                                           \
+            if (size < sizeof(tpm_stored_data12_t))                                 \
+            {                                                                       \
+                size++;                                                             \
+                break;                                                              \
+            }                                                                       \
+            LOAD_PCR_INFO_LONG(buf, offset,                                         \
+                               &((tpm_stored_data12_t *)hdr)->seal_info, pil_size); \
+            if (pil_size > sizeof(tpm_pcr_info_long_t))                             \
+            {                                                                       \
+                size++;                                                             \
+                break;                                                              \
+            }                                                                       \
+            LOAD_INTEGER(buf, offset,                                               \
+                         ((tpm_stored_data12_t *)hdr)->enc_data_size);              \
+            if (size - sizeof(tpm_stored_data12_t) <                                \
+                ((tpm_stored_data12_t *)hdr)->enc_data_size)                        \
+            {                                                                       \
+                size++;                                                             \
+                break;                                                              \
+            }                                                                       \
+            LOAD_BLOB(buf, offset,                                                  \
+                      ((tpm_stored_data12_t *)hdr)->enc_data,                       \
+                      ((tpm_stored_data12_t *)hdr)->enc_data_size);                 \
+            size = sizeof(tpm_stored_data12_t) +                                    \
+                   ((tpm_stored_data12_t *)hdr)->enc_data_size;                     \
+        }                                                                           \
+        break;                                                                      \
+    }
 
 // XMHF: Note: external dependencies for "Disabled unused functions" below.
 #if 0
 
 // from tboot:misc.h
 
-#define ARRAY_SIZE(a)     (sizeof(a) / sizeof((a)[0]))
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 // custom
 
 #include <tomcrypt.h>
 #include <sha1.h>
 typedef hash_state SHA_CTX;
-#define SHA1_Init(x)		sha1_init((x))
-#define SHA1_Update(x, y, z)	sha1_process((x), (y), (z))
-#define SHA1_Final(x, y)	sha1_done((y), (x))
+#define SHA1_Init(x) sha1_init((x))
+#define SHA1_Update(x, y, z) sha1_process((x), (y), (z))
+#define SHA1_Final(x, y) sha1_done((y), (x))
 
 #endif
 
@@ -1027,10 +1081,11 @@ static uint32_t _tpm12_unseal(uint32_t locality, tpm_key_handle_t hkey,
     return ret;
 }
 
-#define XOR_BLOB_TYPE(data, pad) {\
-    for ( uint32_t i = 0; i < sizeof(*(data)); i++ ) \
-        ((uint8_t *)data)[i] ^= ((uint8_t *)pad)[i % sizeof(*(pad))];\
-}
+#define XOR_BLOB_TYPE(data, pad)                                          \
+    {                                                                     \
+        for (uint32_t i = 0; i < sizeof(*(data)); i++)                    \
+            ((uint8_t *)data)[i] ^= ((uint8_t *)pad)[i % sizeof(*(pad))]; \
+    }
 
 static const tpm_authdata_t srk_authdata =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -1470,15 +1525,16 @@ static bool tpm12_verify_creation(struct tpm_if *ti, uint32_t sealed_data_size,
 
 typedef uint32_t tpm_capability_area_t;
 
-#define TPM_CAP_NV_INDEX    0x00000011
+#define TPM_CAP_NV_INDEX 0x00000011
 
 static uint32_t tpm12_get_capability(uint32_t locality, tpm_capability_area_t cap_area,
-                  uint32_t sub_cap_size, const uint8_t *sub_cap,
-                  uint32_t *resp_size, uint8_t *resp)
+                                     uint32_t sub_cap_size, const uint8_t *sub_cap,
+                                     uint32_t *resp_size, uint8_t *resp)
 {
     uint32_t ret, offset, out_size, size;
 
-    if ( sub_cap == NULL || resp_size == NULL || resp == NULL ) {
+    if (sub_cap == NULL || resp_size == NULL || resp == NULL)
+    {
         printf("TPM: tpm12_get_capability() bad parameter\n");
         return TPM_BAD_PARAMETER;
     }
@@ -1495,15 +1551,17 @@ static uint32_t tpm12_get_capability(uint32_t locality, tpm_capability_area_t ca
 #ifdef TPM_TRACE
     printf("TPM: get capability, return value = %08X\n", ret);
 #endif
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM: get capability, return value = %08X\n", ret);
         return ret;
     }
 
     offset = 0;
     LOAD_INTEGER(WRAPPER_OUT_BUF, offset, size);
-    if ( *resp_size < size ||
-         size != out_size - sizeof(*resp_size) ) {
+    if (*resp_size < size ||
+        size != out_size - sizeof(*resp_size))
+    {
         printf("TPM: capability response too small\n");
         return TPM_FAIL;
     }
@@ -1513,27 +1571,30 @@ static uint32_t tpm12_get_capability(uint32_t locality, tpm_capability_area_t ca
     return ret;
 }
 
-typedef struct __packed {
-    tpm_pcr_selection_t         pcr_selection;
-    tpm_locality_selection_t    locality_at_release;
-    tpm_composite_hash_t        digest_at_release;
+typedef struct __packed
+{
+    tpm_pcr_selection_t pcr_selection;
+    tpm_locality_selection_t locality_at_release;
+    tpm_composite_hash_t digest_at_release;
 } tpm_pcr_info_short_t;
 
-typedef struct __packed {
+typedef struct __packed
+{
     tpm_structure_tag_t tag;
-    uint32_t            attributes;
+    uint32_t attributes;
 } tpm_nv_attributes_t;
 
-typedef struct __packed {
-    tpm_structure_tag_t     tag;
-    uint32_t                nv_index;
-    tpm_pcr_info_short_t    pcr_info_read;
-    tpm_pcr_info_short_t    pcr_info_write;
-    tpm_nv_attributes_t     permission;
-    uint8_t                 b_read_st_clear;
-    uint8_t                 b_write_st_clear;
-    uint8_t                 b_write_define;
-    uint32_t                data_size;
+typedef struct __packed
+{
+    tpm_structure_tag_t tag;
+    uint32_t nv_index;
+    tpm_pcr_info_short_t pcr_info_read;
+    tpm_pcr_info_short_t pcr_info_write;
+    tpm_nv_attributes_t permission;
+    uint8_t b_read_st_clear;
+    uint8_t b_write_st_clear;
+    uint8_t b_write_define;
+    uint32_t data_size;
 } tpm_nv_data_public_t;
 
 static bool tpm12_get_nvindex_size(struct tpm_if *ti, uint32_t locality,
@@ -1544,10 +1605,11 @@ static bool tpm12_get_nvindex_size(struct tpm_if *ti, uint32_t locality,
     uint8_t resp[sizeof(tpm_nv_data_public_t)];
     uint32_t idx;
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
-    if ( size == NULL ) {
+    if (size == NULL)
+    {
         printf("TPM: tpm12_get_nvindex_size() bad parameter\n");
         ti->error = TPM_BAD_PARAMETER;
         return false;
@@ -1558,12 +1620,13 @@ static bool tpm12_get_nvindex_size(struct tpm_if *ti, uint32_t locality,
 
     resp_size = sizeof(resp);
     ret = tpm12_get_capability(locality, TPM_CAP_NV_INDEX, sizeof(sub_cap),
-                             sub_cap, &resp_size, resp);
+                               sub_cap, &resp_size, resp);
 
 #ifdef TPM_TRACE
     printf("TPM: get nvindex size, return value = %08X\n", ret);
 #endif
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM: fail to get public data of 0x%08X in TPM NV\n", index);
         ti->error = ret;
         return false;
@@ -1577,7 +1640,8 @@ static bool tpm12_get_nvindex_size(struct tpm_if *ti, uint32_t locality,
 #endif
 
     /* check size */
-    if ( resp_size == 0 ) {
+    if (resp_size == 0)
+    {
         printf("TPM: Index 0x%08X does not exist\n", index);
         ti->error = TPM_BADINDEX;
         return false;
@@ -1590,14 +1654,16 @@ static bool tpm12_get_nvindex_size(struct tpm_if *ti, uint32_t locality,
     printf("TPM: get index value = %08X\n", idx);
 #endif
 
-    if ( idx != index ) {
+    if (idx != index)
+    {
         printf("TPM: Index 0x%08X is not the one expected 0x%08X\n",
                idx, index);
         ti->error = TPM_BADINDEX;
         return false;
     }
 
-    if ( resp_size != sizeof(resp) ) {
+    if (resp_size != sizeof(resp))
+    {
         printf("TPM: public data size of Index 0x%08X responsed incorrect\n",
                index);
         ti->error = TPM_FAIL;
@@ -1611,17 +1677,18 @@ static bool tpm12_get_nvindex_size(struct tpm_if *ti, uint32_t locality,
 }
 
 static bool tpm12_get_nvindex_permission(struct tpm_if *ti, uint32_t locality,
-                                    uint32_t index, uint32_t *attribute)
+                                         uint32_t index, uint32_t *attribute)
 {
     uint32_t ret, offset, resp_size;
     uint8_t sub_cap[sizeof(index)];
     uint8_t resp[sizeof(tpm_nv_data_public_t)];
     uint32_t idx;
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
-    if ( attribute == NULL ) {
+    if (attribute == NULL)
+    {
         printf("TPM: tpm12_get_nvindex_permission() bad parameter\n");
         ti->error = TPM_BAD_PARAMETER;
         return false;
@@ -1632,12 +1699,13 @@ static bool tpm12_get_nvindex_permission(struct tpm_if *ti, uint32_t locality,
 
     resp_size = sizeof(resp);
     ret = tpm12_get_capability(locality, TPM_CAP_NV_INDEX, sizeof(sub_cap),
-                             sub_cap, &resp_size, resp);
+                               sub_cap, &resp_size, resp);
 
 #ifdef TPM_TRACE
     printf("TPM: get nvindex permission, return value = %08X\n", ret);
 #endif
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM: fail to get public data of 0x%08X in TPM NV\n", index);
         ti->error = ret;
         return false;
@@ -1651,7 +1719,8 @@ static bool tpm12_get_nvindex_permission(struct tpm_if *ti, uint32_t locality,
 #endif
 
     /* check size */
-    if ( resp_size == 0 ) {
+    if (resp_size == 0)
+    {
         printf("TPM: Index 0x%08X does not exist\n", index);
         ti->error = TPM_BADINDEX;
         return false;
@@ -1664,14 +1733,16 @@ static bool tpm12_get_nvindex_permission(struct tpm_if *ti, uint32_t locality,
     printf("TPM: get index value = %08X\n", idx);
 #endif
 
-    if ( idx != index ) {
+    if (idx != index)
+    {
         printf("TPM: Index 0x%08X is not the one expected 0x%08X\n",
                idx, index);
         ti->error = TPM_BADINDEX;
         return false;
     }
 
-    if ( resp_size != sizeof(resp) ) {
+    if (resp_size != sizeof(resp))
+    {
         printf("TPM: public data size of Index 0x%08X responsed incorrect\n",
                index);
         ti->error = TPM_FAIL;
@@ -1684,7 +1755,8 @@ static bool tpm12_get_nvindex_permission(struct tpm_if *ti, uint32_t locality,
     return true;
 }
 
-typedef struct __packed {
+typedef struct __packed
+{
     tpm_structure_tag_t tag;
     uint8_t disable;
     uint8_t ownership;
@@ -1708,7 +1780,8 @@ typedef struct __packed {
     uint8_t disable_full_da_logic_info;
 } tpm_permanent_flags_t;
 
-typedef struct __packed {
+typedef struct __packed
+{
     tpm_structure_tag_t tag;
     uint8_t deactivated;
     uint8_t disable_force_clear;
@@ -1717,18 +1790,19 @@ typedef struct __packed {
     uint8_t b_global_lock;
 } tpm_stclear_flags_t;
 
-#define TPM_CAP_FLAG            0x00000004
-#define TPM_CAP_FLAG_PERMANENT  0x00000108
-#define TPM_CAP_FLAG_VOLATILE   0x00000109
+#define TPM_CAP_FLAG 0x00000004
+#define TPM_CAP_FLAG_PERMANENT 0x00000108
+#define TPM_CAP_FLAG_VOLATILE 0x00000109
 
 static uint32_t tpm12_get_flags(uint32_t locality, uint32_t flag_id,
-                       uint8_t *flags, uint32_t flag_size)
+                                uint8_t *flags, uint32_t flag_size)
 {
     uint32_t ret, offset, resp_size;
     uint8_t sub_cap[sizeof(flag_id)];
     tpm_structure_tag_t tag;
 
-    if ( flags == NULL ) {
+    if (flags == NULL)
+    {
         printf("TPM: tpm12_get_flags() bad parameter\n");
         return TPM_BAD_PARAMETER;
     }
@@ -1738,17 +1812,18 @@ static uint32_t tpm12_get_flags(uint32_t locality, uint32_t flag_id,
 
     resp_size = flag_size;
     ret = tpm12_get_capability(locality, TPM_CAP_FLAG, sizeof(sub_cap),
-                             sub_cap, &resp_size, flags);
+                               sub_cap, &resp_size, flags);
 
 #ifdef TPM_TRACE
     printf("TPM: get flags %08X, return value = %08X\n", flag_id, ret);
 #endif
-    if ( ret != TPM_SUCCESS )
+    if (ret != TPM_SUCCESS)
         return ret;
 
     /* 1.2 spec, main part 2, rev 103 add one more byte to permanent flags, to
        be backward compatible, not assume all expected bytes can be gotten */
-    if ( resp_size > flag_size ) {
+    if (resp_size > flag_size)
+    {
         printf("TPM: tpm12_get_flags() response size too small\n");
         return TPM_FAIL;
     }
@@ -1761,17 +1836,18 @@ static uint32_t tpm12_get_flags(uint32_t locality, uint32_t flag_id,
     return ret;
 }
 
-#define TPM_CAP_PROPERTY          0x00000005
-#define TPM_CAP_PROP_TIS_TIMEOUT  0x00000115
+#define TPM_CAP_PROPERTY 0x00000005
+#define TPM_CAP_PROP_TIS_TIMEOUT 0x00000115
 
 static uint32_t tpm12_get_timeout(uint32_t locality,
-                       uint8_t *prop, uint32_t prop_size)
+                                  uint8_t *prop, uint32_t prop_size)
 {
     uint32_t ret, offset, resp_size, prop_id = TPM_CAP_PROP_TIS_TIMEOUT;
     uint8_t sub_cap[sizeof(prop_id)];
     uint32_t resp[4];
 
-    if ( (prop == NULL) || (prop_size < sizeof(resp)) ) {
+    if ((prop == NULL) || (prop_size < sizeof(resp)))
+    {
         printf("TPM: tpm12_get_timeout() bad parameter\n");
         return TPM_BAD_PARAMETER;
     }
@@ -1781,15 +1857,16 @@ static uint32_t tpm12_get_timeout(uint32_t locality,
 
     resp_size = prop_size;
     ret = tpm12_get_capability(locality, TPM_CAP_PROPERTY, sizeof(sub_cap),
-                             sub_cap, &resp_size, prop);
+                               sub_cap, &resp_size, prop);
 
 #ifdef TPM_TRACE
     printf("TPM: get prop %08X, return value = %08X\n", prop_id, ret);
 #endif
-    if ( ret != TPM_SUCCESS )
+    if (ret != TPM_SUCCESS)
         return ret;
 
-    if ( resp_size != prop_size ) {
+    if (resp_size != prop_size)
+    {
         printf("TPM: tpm_get_property() response size incorrect\n");
         return TPM_FAIL;
     }
@@ -1811,18 +1888,25 @@ static bool tpm12_init(struct tpm_if *ti)
     uint32_t locality;
     uint32_t ret;
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
     printf("Warning: TPM1.2 detected, SHA1 is selected as hashing algorithm.\n");
 
     if (!txt_is_launched())
+    {
         ti->cur_loc = 0;
+        ti->drtm_enabled = 0;
+    }
     else
+    {
         ti->cur_loc = 2;
+        ti->drtm_enabled = 1;
+    }
 
     locality = ti->cur_loc;
-    if ( !tpm_validate_locality(locality) ) {
+    if (!tpm_validate_locality(locality))
+    {
         printf("TPM is not available.\n");
         return false;
     }
@@ -1830,26 +1914,30 @@ static bool tpm12_init(struct tpm_if *ti)
     /* make sure tpm is not disabled/deactivated */
     memset(&pflags, 0, sizeof(pflags));
     ret = tpm12_get_flags(locality, TPM_CAP_FLAG_PERMANENT,
-                        (uint8_t *)&pflags, sizeof(pflags));
-    if ( ret != TPM_SUCCESS ) {
+                          (uint8_t *)&pflags, sizeof(pflags));
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM is disabled or deactivated.\n");
         ti->error = ret;
         return false;
     }
-    if ( pflags.disable ) {
+    if (pflags.disable)
+    {
         printf("TPM is disabled.\n");
         return false;
     }
 
     memset(&vflags, 0, sizeof(vflags));
     ret = tpm12_get_flags(locality, TPM_CAP_FLAG_VOLATILE,
-                        (uint8_t *)&vflags, sizeof(vflags));
-    if ( ret != TPM_SUCCESS ) {
+                          (uint8_t *)&vflags, sizeof(vflags));
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM is disabled or deactivated.\n");
         ti->error = ret;
         return false;
     }
-    if ( vflags.deactivated ) {
+    if (vflags.deactivated)
+    {
         printf("TPM is deactivated.\n");
         return false;
     }
@@ -1859,19 +1947,22 @@ static bool tpm12_init(struct tpm_if *ti)
 
     /* get tpm timeout values */
     ret = tpm12_get_timeout(locality, (uint8_t *)&timeout, sizeof(timeout));
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM timeout values are not achieved, "
                "default values will be used.\n");
         ti->error = ret;
-    } else {
+    }
+    else
+    {
         /*
          * timeout_x represents the number of milliseconds for the timeout
          * and timeout[x] represents the number of microseconds.
          */
-        ti->timeout.timeout_a = timeout[0]/1000;
-        ti->timeout.timeout_b = timeout[1]/1000;
-        ti->timeout.timeout_c = timeout[2]/1000;
-        ti->timeout.timeout_d = timeout[3]/1000;
+        ti->timeout.timeout_a = timeout[0] / 1000;
+        ti->timeout.timeout_b = timeout[1] / 1000;
+        ti->timeout.timeout_c = timeout[2] / 1000;
+        ti->timeout.timeout_d = timeout[3] / 1000;
         printf("TPM timeout values: A: %u, B: %u, C: %u, D: %u\n",
                ti->timeout.timeout_a, ti->timeout.timeout_b, ti->timeout.timeout_c,
                ti->timeout.timeout_d);
@@ -1879,19 +1970,23 @@ static bool tpm12_init(struct tpm_if *ti)
          * if any timeout values are less than default values, set to default
          * value (due to bug with some TPMs)
          */
-        if ( ti->timeout.timeout_a < TIMEOUT_A ) {
+        if (ti->timeout.timeout_a < TIMEOUT_A)
+        {
             ti->timeout.timeout_a = TIMEOUT_A;
             printf("Wrong timeout A, fallback to %u\n", TIMEOUT_A);
         }
-        if ( ti->timeout.timeout_b < TIMEOUT_B ) {
+        if (ti->timeout.timeout_b < TIMEOUT_B)
+        {
             ti->timeout.timeout_b = TIMEOUT_B;
             printf("Wrong timeout B, fallback to %u\n", TIMEOUT_B);
         }
-        if ( ti->timeout.timeout_c < TIMEOUT_C ) {
+        if (ti->timeout.timeout_c < TIMEOUT_C)
+        {
             ti->timeout.timeout_c = TIMEOUT_C;
             printf("Wrong timeout C, fallback to %u\n", TIMEOUT_C);
         }
-        if ( ti->timeout.timeout_d < TIMEOUT_D ) {
+        if (ti->timeout.timeout_d < TIMEOUT_D)
+        {
             ti->timeout.timeout_d = TIMEOUT_D;
             printf("Wrong timeout D, fallback to %u\n", TIMEOUT_D);
         }
@@ -1960,10 +2055,11 @@ static bool tpm12_get_random(struct tpm_if *ti, uint32_t locality,
     uint32_t ret, in_size = 0, out_size, requested_size;
     static bool first_attempt;
 
-    if ( ti == NULL )
+    if (ti == NULL)
         return false;
 
-    if ( random_data == NULL || data_size == NULL || *data_size == 0 ) {
+    if (random_data == NULL || data_size == NULL || *data_size == 0)
+    {
         ti->error = TPM_BAD_PARAMETER;
         return false;
     }
@@ -1981,7 +2077,8 @@ static bool tpm12_get_random(struct tpm_if *ti, uint32_t locality,
 #ifdef TPM_TRACE
     printf("TPM: get random %u bytes, return value = %08X\n", *data_size, ret);
 #endif
-    if ( ret != TPM_SUCCESS ) {
+    if (ret != TPM_SUCCESS)
+    {
         printf("TPM: get random %u bytes, return value = %08X\n", *data_size, ret);
         ti->error = ret;
         return false;
@@ -1994,37 +2091,41 @@ static bool tpm12_get_random(struct tpm_if *ti, uint32_t locality,
     }
 #endif
 
-    if ( out_size <= sizeof(*data_size) ) {
+    if (out_size <= sizeof(*data_size))
+    {
         *data_size = 0;
         return true;
     }
 
     out_size -= sizeof(*data_size);
     reverse_copy(data_size, WRAPPER_OUT_BUF, sizeof(*data_size));
-    if ( *data_size > requested_size ) {
+    if (*data_size > requested_size)
+    {
         printf("Requeseted %x random bytes but got %x\n", requested_size, *data_size);
         ti->error = TPM_NOSPACE;
         return false;
     }
-    if ( *data_size > 0 )
+    if (*data_size > 0)
         memcpy(random_data, WRAPPER_OUT_BUF + sizeof(*data_size), *data_size);
 
     /* data might be used as key, so clear from buffer memory */
     memset(WRAPPER_OUT_BUF + sizeof(*data_size), 0, *data_size);
 
     /* if TPM doesn't return all requested random bytes, try one more time */
-    if ( *data_size < requested_size ) {
+    if (*data_size < requested_size)
+    {
         printf("requested %x random bytes but only got %x\n", requested_size,
                *data_size);
         /* we're only going to try twice */
-        if ( first_attempt ) {
+        if (first_attempt)
+        {
             uint32_t second_size;
             first_attempt = false;
             second_size = requested_size - *data_size;
             printf("trying one more time to get remaining %x bytes\n",
                    second_size);
             if (!tpm12_get_random(ti, locality, random_data + *data_size,
-                                 &second_size))
+                                  &second_size))
                 return false;
             *data_size += second_size;
         }
@@ -2077,7 +2178,7 @@ static bool tpm12_check(void)
 
     ret = tpm12_submit_cmd(0, 0xFFFFFFFF, 0, &out_size);
 
-    return ( ret == TPM_BAD_ORDINAL );
+    return (ret == TPM_BAD_ORDINAL);
 }
 const struct tpm_if_fp tpm_12_if_fp = {
     .init = tpm12_init,
