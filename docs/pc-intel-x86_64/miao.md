@@ -1,21 +1,6 @@
-# QEMU/KVM debugging
+# Notes on lxy.md 
 
-QEMU/KVM can simulate many CPU features used by XMHF, including VMX and IOMMU.
-It is very helpful in debugging XMHF
-
-Pros and Cons
-* Pro: can simulate VMX and IOMMU (XMHF's DMAP). For IOMMU, use QEMU argument 
-  `-machine q35 -device intel-iommu`.
-* Con: cannot simulate Intel TXT (XMHF's DRT).
-* Pro: KVM can be debugged with GDB.
-* Con: Debugging multiple processors is relatively difficult. Try to start with
-  a single processor.
-* Con: some corner cases are not simulated correctly by KVM. If you see things
-  like "KVM internal error." or "qemu-system-x86\_64: Assertion ... failed.",
-  you probably need to give up.
-
-QEMU/KVM images I generated during the research are uploaded to:
-<https://drive.google.com/drive/folders/1rXDTAGcT9zeWmGbOrLvnexD9xJpoNrsl?usp=sharing>
+## QEMU/KVM debugging
 
 ### Sample commands
 
