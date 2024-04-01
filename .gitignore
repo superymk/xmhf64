@@ -15,11 +15,15 @@
 *.exe
 *.lds
 *.sha1
+/_build_gnuefi/
 /build-aux/
+xmhf/src/xmhf-core/xmhf-bootloader/init-x86-amd64.so
 /Makefile
 /configure
 /hypapps/trustvisor/configure
 /hypapps/trustvisor/trustvisor.pc
 hypervisor-x86-i386.bin.gz
 hypervisor-x86-amd64.bin.gz
+init-x86-i386.efi
+init-x86-amd64.efi
 typescript

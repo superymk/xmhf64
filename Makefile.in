@@ -523,7 +523,11 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 	@echo ---------------------------------------------------------------
 
 .PHONY: install
+ifeq ($(TARGET_UEFI), y)
+install: install-efi
+else
 install: install-bin
+endif
 
 .PHONY: install-bin
 install-bin:
@@ -531,6 +535,14 @@ install-bin:
 	install -d $(DESTDIR)/boot
 	install --mode=644 $(HYPOUTDIR)/hypervisor-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin.gz $(DESTDIR)/boot
 	install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot
+
+.PHONY: install-efi
+install-efi:
+	# Install the _actual_ final product
+	sudo bash -c "mkdir -p $(DESTDIR)/boot/efi/xmhf && \
+	install -d $(DESTDIR)/boot/efi/xmhf && \
+	install --mode=644 $(HYPOUTDIR)/hypervisor-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot/efi/xmhf && \
+	install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).efi $(DESTDIR)/boot/efi/xmhf"
 
 .PHONY: install-dev
 install-dev:
