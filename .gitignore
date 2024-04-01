@@ -18,6 +18,7 @@
 /_build_gnuefi/
 /build-aux/
 /uefi_flushdrive_img/
+debug/*.qcow2
 xmhf/src/xmhf-core/xmhf-bootloader/init-x86-amd64.so
 /Makefile
 /configure
