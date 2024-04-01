@@ -130,6 +130,7 @@ LIBBAREMETAL_BUILD = $(CURDIR)/_build_libbaremetal
 ifeq ($(TARGET_UEFI), y)
 export GNUEFI_SRC := $(realpath @GNUEFI_SRC@)
 export GNUEFI_BUILD := $(CURDIR)/_build_gnuefi
+export UEFI_FLASHDRIVE_IMAGE := $(CURDIR)/uefi_flushdrive_img
 endif
 
 # For bootloader (always i386 regardless of runtime subarch), compile separate
@@ -522,6 +523,14 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 	@echo XMHF core/hyperapp build SUCCESS
 	@echo ---------------------------------------------------------------
 
+ifeq ($(TARGET_UEFI), y)
+# One needs to download the <debian11efi.qcow2> from 
+# <https://drive.google.com/drive/folders/1rXDTAGcT9zeWmGbOrLvnexD9xJpoNrsl?usp=sharing> first
+.PHONY: debug
+debug:
+	cd debug && ./qemu_uefi_ubuntu.sh
+endif
+
 .PHONY: install
 ifeq ($(TARGET_UEFI), y)
 install: install-efi
@@ -537,12 +546,19 @@ install-bin:
 	install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot
 
 .PHONY: install-efi
-install-efi:
+install-efi: build-efi-flashdrive
 	# Install the _actual_ final product
 	sudo bash -c "mkdir -p $(DESTDIR)/boot/efi/EFI/xmhf && \
-	install -d $(DESTDIR)/boot/efi/EFI/xmhf && \
-	install --mode=644 $(HYPOUTDIR)/hypervisor-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot/efi/EFI/xmhf && \
-	install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).efi $(DESTDIR)/boot/efi/EFI/xmhf"
+			install -d $(DESTDIR)/boot/efi/EFI/xmhf && \
+			install --mode=644 $(HYPOUTDIR)/hypervisor-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot/efi/EFI/xmhf && \
+			install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).efi $(DESTDIR)/boot/efi/EFI/xmhf"
+	
+.PHONY: build-efi-flashdrive
+build-efi-flashdrive:
+	# Build UEFI flashdrive image
+	mkdir -p $(UEFI_FLASHDRIVE_IMAGE)
+	DSTDIR="$(UEFI_FLASHDRIVE_IMAGE)" ./uefi_build_flashdrive_img.sh
+
 
 .PHONY: install-dev
 install-dev:
