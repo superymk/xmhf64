@@ -548,7 +548,7 @@ install-bin:
 .PHONY: install-efi
 install-efi: build-efi-flashdrive
 	# Install the _actual_ final product
-	sudo bash -c "mkdir -p $(DESTDIR)/boot/efi/EFI/xmhf && \
+	bash -c "mkdir -p $(DESTDIR)/boot/efi/EFI/xmhf && \
 			install -d $(DESTDIR)/boot/efi/EFI/xmhf && \
 			install --mode=644 $(HYPOUTDIR)/hypervisor-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot/efi/EFI/xmhf && \
 			install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).efi $(DESTDIR)/boot/efi/EFI/xmhf"
