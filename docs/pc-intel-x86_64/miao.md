@@ -22,7 +22,7 @@
 
 
 
-### QEMU enables PCI-serial card
+### QEMU enables PCI-serial card (16550 UART) for debugging
 ```
 qemu-system-x86_64 \
 	-m 2G \
@@ -41,3 +41,13 @@ qemu-system-x86_64 \
 	-drive media=cdrom,file=../uefi_flushdrive_img/grub/fat.img,index=1 \
 	-drive media=disk,file=debian11efi.qcow2,index=2
 ```
+
+## Debugging on baremetal
+### Use PCI-serial card (16550 UART)
+I bought a PCI-serial card from https://www.amazon.com/StarTech-com-Profile-Native-Express-PEX1S553LP/dp/B0041ULUX6
+
+One needs to:
+(1) Find the PIO base of the PCI-serial card first with "lspci -vvv"
+(2) Modify the <baseaddr> in <cb_serial> with that PIO base
+
+Note: One should be careful with multi-ports PCI-serial card, because the code initialize the first logical port only.
