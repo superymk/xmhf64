@@ -19,3 +19,25 @@
 4. Overwrite uberxmhf/debug/qemu_uefi_ubuntu.sh with uberxmhf/debug/qemu_uefi_fedora.sh if you will run qemu on Fedora (not Ubuntu)
 
 5. Run ```make debug```
+
+
+
+### QEMU enables PCI-serial card
+```
+qemu-system-x86_64 \
+	-m 2G \
+	-gdb tcp::1234 \
+	-smp 4 \
+	-cpu Haswell,vmx=yes \
+	-machine q35 -device intel-iommu \
+	-enable-kvm \
+	-bios /usr/share/ovmf/OVMF.fd \
+	-net none \
+    -chardev stdio,id=char0 \
+	-device pci-serial,chardev=char0 \
+	-chardev socket,id=chrtpm,path=/tmp/emulated_tpm/swtpm-sock \
+	-tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 \
+	-drive media=cdrom,file=../uefi_flushdrive_img/grub/fat.img,index=0 \
+	-drive media=cdrom,file=../uefi_flushdrive_img/grub/fat.img,index=1 \
+	-drive media=disk,file=debian11efi.qcow2,index=2
+```

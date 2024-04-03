@@ -10,6 +10,7 @@ C_SOURCES += ./arch/x86/emhf_debug_arch.c
 
 ifeq ($(DEBUG_SERIAL), y)
 C_SOURCES += ./arch/x86/dbg-x86-uart.c
+C_SOURCES += ./arch/x86/dbg-x86-pci-16550.c
 endif
 
 ifeq ($(DEBUG_VGA), y)
