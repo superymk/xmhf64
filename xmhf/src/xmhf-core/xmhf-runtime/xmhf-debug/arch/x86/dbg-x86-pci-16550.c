@@ -61,7 +61,7 @@ struct cb_serial
 #define CB_SERIAL_TYPE_IO_MAPPED 1
 #define CB_SERIAL_TYPE_MEMORY_MAPPED 2
     u32 type;
-    uintptr_t baseaddr; // SPADDR of the MMIO base or PIO of the PIO base
+    spa_t baseaddr; // SPADDR of the MMIO base or PIO of the PIO base, depending on <type>.
     u32 baud;
     u32 regwidth;
 
@@ -74,13 +74,7 @@ struct cb_serial
 };
 
 #define IOBASE cb_serial.baseaddr
-
-// [NOTE] We use <uintptr_t> instead of <hva_t> because this file is used by both xmhf-bootloader and xmhf-runtime and
-// they may run with different micro-architectures (i.e., xmhf-bootloader in i386 and xmhf-runtime in amd64).
-// <uberxmhf/Makefile.in> defines "BCFLAGS += -D__I386__ -D__XMHF_AMD64__", which means xmhf-bootloader's CFLAGS is 
-// __I386__ and it is built for the amd64 xmhf-runtime.
-// If using <hva_t>, xmhf-bootloader use 32-bit pointers but <hva_t> is 64-bit long per its definition in __XMHF_AMD64__.
-#define MEMBASE ((uintptr_t)spa2hva(IOBASE))
+#define MEMBASE ((hva_t)spa2hva(IOBASE))
 
 static struct cb_serial cb_serial =
     {
@@ -96,7 +90,7 @@ static int serial_is_mem_mapped = 0;
 /// @brief [NOTE] <write32> is NOT <writel>. <write32> takes uint32_t, but <writel> takes ulong_t.
 /// @param addr
 /// @param val
-static inline void write32(uintptr_t addr, uint32_t val)
+static inline void write32(hva_t addr, uint32_t val)
 {
     *(volatile uint32_t *)addr = val;
 
@@ -104,7 +98,7 @@ static inline void write32(uintptr_t addr, uint32_t val)
     mfence();
 }
 
-static inline void write16(uintptr_t addr, uint16_t val)
+static inline void write16(hva_t addr, uint16_t val)
 {
     *(volatile uint16_t *)addr = val;
 
@@ -112,7 +106,7 @@ static inline void write16(uintptr_t addr, uint16_t val)
     mfence();
 }
 
-static inline void write8(uintptr_t addr, uint8_t val)
+static inline void write8(hva_t addr, uint8_t val)
 {
     *(volatile uint8_t *)addr = val;
 
@@ -123,17 +117,17 @@ static inline void write8(uintptr_t addr, uint8_t val)
 /// @brief [NOTE] <read32> is NOT <readl>. <read32> returns uint32_t, but <readl> returns ulong_t.
 /// @param addr
 /// @return
-static inline uint32_t read32(const uintptr_t addr)
+static inline uint32_t read32(const hva_t addr)
 {
     return *(volatile const uint32_t *)addr;
 }
 
-static inline uint16_t read16(const uintptr_t addr)
+static inline uint16_t read16(const hva_t addr)
 {
     return *(volatile const uint16_t *)addr;
 }
 
-static inline uint8_t read8(const uintptr_t addr)
+static inline uint8_t read8(const hva_t addr)
 {
     return *(volatile const uint8_t *)addr;
 }
