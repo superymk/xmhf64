@@ -56,21 +56,23 @@
 #define KB(x)           (((size_t)(x)) << 10)
 
 #ifdef __XMHF_I386__
+    typedef u32 hva_t;  // hypervisor virtual address
     typedef u64 spa_t;  // system physical address. [NOTE] spa_t could have a value larger than 4G; e.g., PC installs
                         // 8GB physical memory but installing 32-bit software stack.
     typedef u64	spfn_t; // pfn of system physical address
+    typedef u32 gva_t;  // guest virtual address
     typedef u64 gpa_t;  // guest physical address. can be 64-bit with PAE
+    typedef u32 sla_t;  // secure loader address
 #elif defined(__XMHF_AMD64__)
+    typedef u64 hva_t;  // hypervisor virtual address
     typedef u64 spa_t;  // system physical address
     typedef u64	spfn_t; // pfn of system physical address
+    typedef u64 gva_t;  // guest virtual address
     typedef u64 gpa_t;  // guest physical address
+    typedef u64 sla_t;  // secure loader address
 #else
     #error "Unsupported Arch"
 #endif /* __I386__ */
-
-typedef uintptr_t hva_t; // hypervisor virtual address
-typedef uintptr_t gva_t; // guest virtual address
-typedef uintptr_t sla_t; // secure loader address
 
 
 #define INVALID_ADDR		        0
