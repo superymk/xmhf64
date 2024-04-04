@@ -749,8 +749,9 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit,
     //             max_hi_ram);
     {
 		extern size_t sl_rt_size;	//XXX: Ugly hack to bring in SL + runtime size; ideally this should be passed in as another parameter
+        extern uint64_t sl_rt_base_spaddr;
 		(void)mle_size;
-		os_sinit_data->vtd_pmr_lo_base = (u64)__TARGET_BASE_SL;
+		os_sinit_data->vtd_pmr_lo_base = (u64)sl_rt_base_spaddr;
 		os_sinit_data->vtd_pmr_lo_size = (u64)PAGE_ALIGN_UP_2M(sl_rt_size);
 	}
     /* LCP owner policy data */
