@@ -71,7 +71,7 @@ typedef short unsigned int wchar_t;
 		if (EFI_ERROR(_status)) { \
 			printf("UEFI_CALL(%s) error at %s:%d (status = 0x%08lx)\n", \
 				   #__VA_ARGS__, __FILE__, __LINE__, _status); \
-			Print(L"UEFI_CALL returns EFI_STATUS: %r\n", _status); \
+			Print(L"UEFI_CALL error at line %d, returns EFI_STATUS: %r\n", __LINE__, _status); \
 			HALT(); \
 		} \
 	} while(0)
