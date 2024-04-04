@@ -9,6 +9,9 @@ C_SOURCES += ./stl/xmhfc-dlist.c
 
 C_SOURCES_BL =  xmhfc-putchar.c
 
+current_dir = $(shell pwd)
+EXTRA_CLEAN = $(current_dir)/*.o $(current_dir)/stl/*.o
+
 # targets
 include ../runtime.mk
 

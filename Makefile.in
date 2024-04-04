@@ -635,6 +635,9 @@ endif
 	@echo ---------------------------------------------------------------
 	@echo auto-generated docs cleanup SUCCESS
 	@echo ---------------------------------------------------------------
+	$(RM) -rf uefi_flushdrive_img
+	$(RM) -rf xmhf-bootloader
+	$(RM) -rf _build_libtommath32
 
 distclean: clean
 	$(RM) config.log config.status
