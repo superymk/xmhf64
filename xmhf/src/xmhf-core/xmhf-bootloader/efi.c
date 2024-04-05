@@ -180,7 +180,7 @@ static void xmhf_efi_check_max_phys_mem(void)
 		printf("Begin UEFI GetMemoryMap result\n");
 		printf("Type PhysicalStart      VirtualStart       NumberOfPages      "
 			   "Attribute\n");
-        Print(L"Begin UEFI GetMemoryMap result\n");
+        Print(L"Begin UEFI GetMemoryMap result (First 20 entries)\n");
 		Print(L"Type PhysicalStart      VirtualStart       NumberOfPages      "
 			   "Attribute\n");
 		for (UINTN i = 0; i * desc_size < buf_size; i++) {
