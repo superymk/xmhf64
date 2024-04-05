@@ -46,8 +46,40 @@ qemu-system-x86_64 \
 ### Use PCI-serial card (16550 UART)
 I bought a PCI-serial card from https://www.amazon.com/StarTech-com-Profile-Native-Express-PEX1S553LP/dp/B0041ULUX6
 
-One needs to:
-(1) Find the PIO base of the PCI-serial card first with "lspci -vvv"
-(2) Modify the <baseaddr> in <cb_serial> with that PIO base
+* Step 1. Find the BDF, PIO base of the PCI-serial card first with "lspci -vvv". For example, the HP840 Aero G8 laptop has
+the following info
+```
+00:16.3 Serial controller: Intel Corporation Device a0e3 (rev 20) (prog-if 02 [16550])
+	Subsystem: Hewlett-Packard Company Device 880d
+	Control: I/O+ Mem+ BusMaster- SpecCycle- MemWINV- VGASnoop- ParErr- Stepping- SERR- FastB2B- DisINTx-
+	Status: Cap+ 66MHz+ UDF- FastB2B+ ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-
+	Interrupt: pin D routed to IRQ 19
+	IOMMU group: 12
+	Region 0: I/O ports at 3060 [size=8]
+	Region 1: Memory at 6e301000 (32-bit, non-prefetchable) [size=4K]
+	Capabilities: [40] MSI: Enable- Count=1/1 Maskable- 64bit+
+		Address: 0000000000000000  Data: 0000
+	Capabilities: [50] Power Management version 3
+		Flags: PMEClk- DSI+ D1- D2- AuxCurrent=0mA PME(D0-,D1-,D2-,D3hot-,D3cold-)
+		Status: D0 NoSoftRst+ PME-Enable- DSel=0 DScale=0 PME-
+	Kernel driver in use: serial
+```
 
-Note: One should be careful with multi-ports PCI-serial card, because the code initialize the first logical port only.
+Thus, the BDF is 00:16:03, PIO base is 0x3060.
+
+* Step 2. Modify the generated startup.nsh to be used on the testbed (e.g., on the flashdrive), add ```mm 00160304 1 -pci``` in startup.nsh line 2 before "FS1:",
+such as:
+```
+# Run XMHF
+mm 00160304 1 -pci
+FS1:
+load \EFI\BOOT\init-x86-amd64.efi
+```
+
+00160304 is because the BDF is 00:16:03. 04 is the fixed offset. This command enables the PIO base of the PCI serial 
+card, see https://forum.osdev.org/viewtopic.php?f=1&t=56649
+
+* Step 3. Modify the <baseaddr> in <cb_serial> with the PIO base
+
+* Notes:
+(1) One should be careful with multi-ports PCI-serial card, because the code initialize the first logical port only.
