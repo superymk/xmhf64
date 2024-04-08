@@ -50,6 +50,9 @@ C_SOURCES_BL += ./arch/x86/vmx/bplt-x86vmx-mtrrs-common.c
 C_SOURCES_BL += ./arch/x86/vmx/bplt-x86vmx-mtrrs-bootloader.c
 endif
 
+current_dir = $(shell pwd)
+EXTRA_CLEAN = $(current_dir)/*.o $(current_dir)/arch/x86/*.o $(current_dir)/arch/x86/vmx/*.o $(current_dir)/arch/x86/svm/*.o
+
 # targets
 include ../runtime.mk
 

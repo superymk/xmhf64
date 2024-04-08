@@ -110,6 +110,7 @@ INTEGRITY_MEASUREMENT_VALUES g_init_gold /* __attribute__(( section("") )) */ = 
 
 //size of SL + runtime in bytes
 size_t sl_rt_size;
+uint64_t sl_rt_base_spaddr;
 
 
 //---MP config table handling---------------------------------------------------
@@ -1140,6 +1141,7 @@ void cstartup(multiboot_info_t *mbi)
 	 */
 	hypervisor_image_baseaddress = xei->slrt_start;
 	HALT_ON_ERRORCOND((u64)hypervisor_image_baseaddress == xei->slrt_start);
+    sl_rt_base_spaddr = xei->slrt_start;
 
 	/* Set sl_rt_size */
 	{
@@ -1149,6 +1151,8 @@ void cstartup(multiboot_info_t *mbi)
 	}
 
 #else /* !__UEFI__ */
+
+    // In BIOS boot, xmhf-SL and xmhf-runtime are loaded into the fixed spaddr __TARGET_BASE_SL.
 
     //check number of elements in mod_array. Currently bootloader assumes that
     //mod_array[0] is SL+RT, mod_array[1] is guest OS boot module.

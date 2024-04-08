@@ -291,7 +291,6 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
     #error "Unsupported Arch"
 #endif /* !defined(__AMD64__) */
 
-#ifdef __DEBUG_QEMU__
 		/*
 		 * Logic to allow the guest detect the presence of XMHF. We assume
 		 * other software / hardware will not have 0x46484d58U in CPUID, which
@@ -310,7 +309,6 @@ static void _vmx_handle_intercept_cpuid(VCPU *vcpu, struct regs *r){
 				r->edx = 0x46484d58U;
 			}
 		}
-#endif
 		break;
 
 	default:

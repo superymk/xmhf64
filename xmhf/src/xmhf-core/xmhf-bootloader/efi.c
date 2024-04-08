@@ -71,7 +71,7 @@ typedef short unsigned int wchar_t;
 		if (EFI_ERROR(_status)) { \
 			printf("UEFI_CALL(%s) error at %s:%d (status = 0x%08lx)\n", \
 				   #__VA_ARGS__, __FILE__, __LINE__, _status); \
-			Print(L"UEFI_CALL returns EFI_STATUS: %r\n", _status); \
+			Print(L"UEFI_CALL error at line %d, returns EFI_STATUS: %r\n", __LINE__, _status); \
 			HALT(); \
 		} \
 	} while(0)
@@ -180,6 +180,9 @@ static void xmhf_efi_check_max_phys_mem(void)
 		printf("Begin UEFI GetMemoryMap result\n");
 		printf("Type PhysicalStart      VirtualStart       NumberOfPages      "
 			   "Attribute\n");
+        Print(L"Begin UEFI GetMemoryMap result (First 20 entries)\n");
+		Print(L"Type PhysicalStart      VirtualStart       NumberOfPages      "
+			   "Attribute\n");
 		for (UINTN i = 0; i * desc_size < buf_size; i++) {
 			EFI_MEMORY_DESCRIPTOR *desc;
 			UINT64 PhysEnd;
@@ -189,6 +192,12 @@ static void xmhf_efi_check_max_phys_mem(void)
 			printf("  %2d 0x%016llx 0x%016llx 0x%016llx 0x%016llx\n",
 				   desc->Type, desc->PhysicalStart, desc->VirtualStart,
 				   desc->NumberOfPages, desc->Attribute);
+            if(i <= 20)
+            {
+                Print(L"  %2d 0x%016llx 0x%016llx 0x%016llx 0x%016llx\n",
+                    desc->Type, desc->PhysicalStart, desc->VirtualStart,
+                    desc->NumberOfPages, desc->Attribute);
+            }
 
 			/* Check the highest memory map is lower than MAX_PHYS_ADDR */
 			PhysEnd = (desc->PhysicalStart +
@@ -197,11 +206,14 @@ static void xmhf_efi_check_max_phys_mem(void)
 			if (PhysEnd > MAX_PHYS_ADDR) {
 				printf("The entry above exceeds MAX_PHYS_ADDR (%016llx)\n",
 					   (UINT64)MAX_PHYS_ADDR);
+                Print(L"The entry above exceeds MAX_PHYS_ADDR (%016llx)\n",
+					   (UINT64)MAX_PHYS_ADDR);
 				error_flag = true;
 			}
 			HALT_ON_ERRORCOND(PhysEnd <= MAX_PHYS_ADDR);
 		}
 		printf("End UEFI GetMemoryMap result\n");
+        Print(L"End UEFI GetMemoryMap result\n");
 
 		HALT_ON_ERRORCOND(!error_flag && "MAX_PHYS_ADDR too small");
 	}
@@ -467,9 +479,10 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 
 		pages = buf_size >> PAGE_SHIFT_4K;
 		HALT_ON_ERRORCOND((pages << PAGE_SHIFT_4K) == buf_size);
+        Print(L"[<xmhf_efi_load_slrt> XMHF SL+RT memory size:0x%llX\n", buf_size);
 		UEFI_CALL(BS->AllocatePages, 4, AllocateAddress, EfiRuntimeServicesData,
 				  pages, &addr);
-		HALT_ON_ERRORCOND(addr == start);
+		// HALT_ON_ERRORCOND(addr == start);
 	}
 
 	/* Copy file */
@@ -749,6 +762,14 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	EFI_FILE_HANDLE volume = NULL;
 
 	InitializeLib(ImageHandle, SystemTable);
+
+#if defined(__DEBUG_SERIAL__)
+    {
+        // initialize debugging early on
+	    xmhf_debug_init((char *)&g_uart_config);
+    }
+#endif // __DEBUG_SERIAL__
+    // dbg_x86_uart_pci_init(NULL);
 
 	Print(L"Hello, world from console!\n");
 	printf("Hello, world from serial!\n");

@@ -42,6 +42,7 @@ export DEBUG_SYMBOLS := @DEBUG_SYMBOLS@
 export DEBUG_QEMU := @DEBUG_QEMU@
 export DEBUG_SERIAL := @DEBUG_SERIAL@
 export DEBUG_SERIAL_PORT := @DEBUG_SERIAL_PORT@
+export DEBUG_PCI_SERIAL_PIO_ADDR := @DEBUG_PCI_SERIAL_PIO_ADDR@
 export DEBUG_VGA := @DEBUG_VGA@
 export DEBUG_EVENT_LOGGER := @DEBUG_EVENT_LOGGER@
 export DRT := @DRT@
@@ -130,6 +131,7 @@ LIBBAREMETAL_BUILD = $(CURDIR)/_build_libbaremetal
 ifeq ($(TARGET_UEFI), y)
 export GNUEFI_SRC := $(realpath @GNUEFI_SRC@)
 export GNUEFI_BUILD := $(CURDIR)/_build_gnuefi
+export UEFI_FLASHDRIVE_IMAGE := $(CURDIR)/uefi_flushdrive_img
 endif
 
 # For bootloader (always i386 regardless of runtime subarch), compile separate
@@ -334,8 +336,8 @@ endif
 ifeq ($(DEBUG_SERIAL), y)
 	CFLAGS += -D__DEBUG_SERIAL__
 	VFLAGS += -D__DEBUG_SERIAL__
-	CFLAGS += -DDEBUG_PORT=$(DEBUG_SERIAL_PORT)
-	VFLAGS += -DDEBUG_PORT=$(DEBUG_SERIAL_PORT)
+	CFLAGS += -DDEBUG_PORT=$(DEBUG_SERIAL_PORT) -DDEBUG_PCI_SERIAL_PORT=$(DEBUG_PCI_SERIAL_PIO_ADDR)
+	VFLAGS += -DDEBUG_PORT=$(DEBUG_SERIAL_PORT) -DDEBUG_PCI_SERIAL_PORT=$(DEBUG_PCI_SERIAL_PIO_ADDR)
 endif
 ifeq ($(DEBUG_VGA), y)
 	CFLAGS += -D__DEBUG_VGA__
@@ -522,8 +524,20 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 	@echo XMHF core/hyperapp build SUCCESS
 	@echo ---------------------------------------------------------------
 
+ifeq ($(TARGET_UEFI), y)
+# One needs to download the <debian11efi.qcow2> from 
+# <https://drive.google.com/drive/folders/1rXDTAGcT9zeWmGbOrLvnexD9xJpoNrsl?usp=sharing> first
+.PHONY: debug
+debug:
+	cd debug && ./qemu_uefi_ubuntu.sh
+endif
+
 .PHONY: install
+ifeq ($(TARGET_UEFI), y)
+install: install-efi
+else
 install: install-bin
+endif
 
 .PHONY: install-bin
 install-bin:
@@ -531,6 +545,21 @@ install-bin:
 	install -d $(DESTDIR)/boot
 	install --mode=644 $(HYPOUTDIR)/hypervisor-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin.gz $(DESTDIR)/boot
 	install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot
+
+.PHONY: install-efi
+install-efi: build-efi-flashdrive
+	# Install the _actual_ final product
+	bash -c "mkdir -p $(DESTDIR)/boot/efi/EFI/xmhf && \
+			install -d $(DESTDIR)/boot/efi/EFI/xmhf && \
+			install --mode=644 $(HYPOUTDIR)/hypervisor-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot/efi/EFI/xmhf && \
+			install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).efi $(DESTDIR)/boot/efi/EFI/xmhf"
+	
+.PHONY: build-efi-flashdrive
+build-efi-flashdrive:
+	# Build UEFI flashdrive image
+	mkdir -p $(UEFI_FLASHDRIVE_IMAGE)
+	DSTDIR="$(UEFI_FLASHDRIVE_IMAGE)" ./uefi_build_flashdrive_img.sh
+
 
 .PHONY: install-dev
 install-dev:
@@ -606,6 +635,9 @@ endif
 	@echo ---------------------------------------------------------------
 	@echo auto-generated docs cleanup SUCCESS
 	@echo ---------------------------------------------------------------
+	$(RM) -rf uefi_flushdrive_img
+	$(RM) -rf xmhf-bootloader
+	$(RM) -rf _build_libtommath32
 
 distclean: clean
 	$(RM) config.log config.status

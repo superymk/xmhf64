@@ -68,4 +68,3 @@ _DEP_FILES = $(patsubst %.o, %.d, $(OBJECTS) $(OBJECTS_BL))
 .PHONY: clean
 clean:
 	$(RM) -rf $(OBJECTS) $(OBJECTS_BL) $(_DEP_FILES) $(EXTRA_CLEAN)
-

@@ -73,6 +73,12 @@ void dbg_x86_uart_init(char *params);
 void dbg_x86_uart_putc(char ch);
 void dbg_x86_uart_putstr(const char *str);
 
+void dbg_x86_uart_pci_init(char *params);
+void dbg_x86_uart_pci_putc(char ch);
+void dbg_x86_uart_pci_putstr(const char *str);
+
+
+
 //#ifdef __DEBUG_VGA__
 void dbg_x86_vgamem_init(char *params);
 void dbg_x86_vgamem_putc(int c);

@@ -249,6 +249,15 @@ AS_IF([test "x${enable_debug_serial}" != "xno"],
        DEBUG_SERIAL_PORT=$[]enable_debug_serial],
       [DEBUG_SERIAL=n])
 
+# Use PCI-serial card to print output (default 0x3060 for HP Aero G8)
+AC_SUBST([DEBUG_PCI_SERIAL_PIO_ADDR])
+AC_ARG_WITH([pci_serial_pio_addr],
+        AS_HELP_STRING([--with-pci-serial-pio-addr=@<:@PCI_SERIAL_PIO_ADDR@:>@],
+                [enable PCI-serial debugging]),
+                , [with_pci_serial_pio_addr=0x3060])
+DEBUG_PCI_SERIAL_PIO_ADDR=$[]with_pci_serial_pio_addr
+
+
 AC_SUBST([DEBUG_VGA])
 AC_ARG_ENABLE([debug_vga],
         AS_HELP_STRING([--enable-debug-vga@<:@=yes|no@:>@],
