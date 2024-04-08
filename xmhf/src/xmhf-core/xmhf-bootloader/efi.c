@@ -763,6 +763,14 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	InitializeLib(ImageHandle, SystemTable);
 
+#if defined(__DEBUG_SERIAL__)
+    {
+        // initialize debugging early on
+	    xmhf_debug_init((char *)&g_uart_config);
+    }
+#endif // __DEBUG_SERIAL__
+    // dbg_x86_uart_pci_init(NULL);
+
 	Print(L"Hello, world from console!\n");
 	printf("Hello, world from serial!\n");
 

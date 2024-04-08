@@ -43,6 +43,7 @@ qemu-system-x86_64 \
 ```
 
 ## Debugging on baremetal
+
 ### Use PCI-serial card (16550 UART)
 I bought a PCI-serial card from https://www.amazon.com/StarTech-com-Profile-Native-Express-PEX1S553LP/dp/B0041ULUX6
 
@@ -83,3 +84,17 @@ card, see https://forum.osdev.org/viewtopic.php?f=1&t=56649
 
 * Notes:
 (1) One should be careful with multi-ports PCI-serial card, because the code initialize the first logical port only.
+
+### Use Intel ME and Serial-over-LAN (SOL)
+
+On the debuggee machine:
+* Step 1. Install Windows 10
+* Step 2. Install tools/ACUWizardInstaller-12.1.0.87.msi on Windows 10
+* Step 3. Run "Intel SCS ACUWizard" with admin priviledge. If using WIFI, then "Edit Configuration" --> "Network 
+Configuration" --> Tick the "Enable synchronization of Intel AMT with host platform WIFI profiles" and empty "Allow WIFI 
+connection with the following WIFI setups" list.
+
+On the debugger machine:
+* Install OpenSUSE 2024 or above (or use a VM which can use the host IP network).
+* Install amtterm-1.7 or above in OpenSUSE.
+* Run "amtterm -p <debuggee's AMT password> <debuggee's AMT IP address>"; e.g., "amtterm -p 82B6qr@Rtx 192.168.68.76"
