@@ -46,7 +46,7 @@
 
 /*
  * XMHF: The following file is taken from:
- *  tboot-1.10.5/tboot/common/tpm.c
+ *  tboot-1.11.3/tboot/common/tpm.c
  * Changes made include:
  *  TODO: Hard coded ARRAY_SIZE macro.
  *  TODO: Hard coded cpu_relax() function.

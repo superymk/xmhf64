@@ -46,7 +46,7 @@
 
 /*
  * XMHF: The following file is taken from:
- *  tboot-1.10.5/tboot/common/tpm_20.c
+ *  tboot-1.11.3/tboot/common/tpm_20.c
  * Changes made include:
  *  TODO: Workaround declarations
  *  Remove unused external variable.
@@ -2225,6 +2225,28 @@ static uint32_t _tpm20_context_flush(uint32_t locality,
     return ret;
 }
 
+static bool tpm20_context_flush(struct tpm_if *ti, u32 locality, TPM_HANDLE handle)
+{
+    tpm_flushcontext_in in;
+    u32 ret;
+
+    if (ti == NULL || locality >= TPM_NR_LOCALITIES)
+        return false;
+    if (handle == 0)
+        return false;
+    in.flushHandle = handle;
+    ret = _tpm20_context_flush(locality, &in);
+    if (ret != TPM_RC_SUCCESS)
+    {
+        printf("TPM: tpm2 context flush returned , return value = %08X\n", ret);
+        ti->error = ret;
+        return false;
+    }
+    else
+        printf("TPM: tpm2 context flush successful, return value = %08X\n", ret);
+    return true;
+}
+
 TPM_CMD_SESSION_DATA_IN pw_session;
 static void create_pw_session(TPM_CMD_SESSION_DATA_IN *ses)
 {
@@ -2675,6 +2697,12 @@ static bool tpm20_unseal(struct tpm_if *ti, uint32_t locality,
     *secret_size = unseal_out.data.t.size;
     memcpy(secret, &(unseal_out.data.t.buffer[0]), *secret_size);
 
+    if ( !tpm20_context_flush(ti, locality, load_out.obj_handle) ) {
+        printf("TPM: Failed to flush context\n");
+        ti->error = ret;
+        return false;
+    }
+
     return true;
 }
 
@@ -2865,28 +2893,6 @@ static bool tpm20_context_load(struct tpm_if *ti, u32 locality, void *context_sa
     else
         printf("TPM: tpm2 context load successful, return value = %08X\n", ret);
     *handle = out.loadedHandle;
-    return true;
-}
-
-static bool tpm20_context_flush(struct tpm_if *ti, u32 locality, TPM_HANDLE handle)
-{
-    tpm_flushcontext_in in;
-    u32 ret;
-
-    if (ti == NULL || locality >= TPM_NR_LOCALITIES)
-        return false;
-    if (handle == 0)
-        return false;
-    in.flushHandle = handle;
-    ret = _tpm20_context_flush(locality, &in);
-    if (ret != TPM_RC_SUCCESS)
-    {
-        printf("TPM: tpm2 context flush returned , return value = %08X\n", ret);
-        ti->error = ret;
-        return false;
-    }
-    else
-        printf("TPM: tpm2 context flush successful, return value = %08X\n", ret);
     return true;
 }
 

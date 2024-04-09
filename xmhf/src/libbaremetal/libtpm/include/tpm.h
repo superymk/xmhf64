@@ -46,7 +46,7 @@
 
 /*
  * XMHF: The following file is taken from:
- *  tboot-1.10.5/tboot/include/tpm.h
+ *  tboot-1.11.3/tboot/include/tpm.h
  * Changes made include:
  *  Remove _read_tpm_reg() and _write_tpm_reg().
  */
@@ -501,7 +501,7 @@ struct tpm_if {
     /*
      * Only for version>=2. PCR extend policy.
      */
-#define TB_EXTPOL_AGILE         0
+#define TB_EXTPOL_AGILE         0   // deprecated
 #define TB_EXTPOL_EMBEDDED      1
 #define TB_EXTPOL_FIXED         2
     u8 extpol;
