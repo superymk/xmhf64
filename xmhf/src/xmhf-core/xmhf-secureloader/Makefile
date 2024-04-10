@@ -18,7 +18,7 @@ AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-sup.S
 
 C_SOURCES = sl.c
 C_SOURCES += ./arch/x86/sl-x86.c
-
+C_SOURCES += ./hash/sha1.c ./hash/sha2.c ./hash/hash.c
 
 OBJECTS = $(patsubst %.S, %.o, $(AS_SOURCES))
 OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
@@ -31,7 +31,8 @@ OBJECTS += ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
 
 
 #tie components used by SL
-OBJECTS_PRECOMPILED = ../xmhf-runtime/xmhf-debug/lib.a
+OBJECTS_PRECOMPILED = 
+OBJECTS_PRECOMPILED += ../xmhf-runtime/xmhf-debug/lib.a
 
 OBJECTS_PRECOMPILED += ../xmhf-runtime/xmhf-tpm/tpm-interface.o
 OBJECTS_PRECOMPILED += ../xmhf-runtime/xmhf-tpm/arch/x86/tpm-x86.o
@@ -63,8 +64,8 @@ ifeq ($(DRT), y)
 OBJECTS_PRECOMPILED += ../xmhf-runtime/xmhf-baseplatform/arch/x86/vmx/bplt-x86vmx-mtrrs-common.o
 endif
 
-# separate from OBJECTS_PRECOMPILED becasue needs to come after libs on link line
-OBJECTS_PRECOMPILED_LIBBACKENDS = ../xmhf-runtime/xmhf-xmhfcbackend/xmhfc-putchar.o
+# separate from OBJECTS_PRECOMPILED because needs to come after libs on link line
+OBJECTS_PRECOMPILED_LIBBACKENDS = ../xmhf-runtime/xmhf-xmhfcbackend/xmhfc-putchar.o ../xmhf-runtime/xmhf-debug/lib.a
 
 # FIXME: ADDL_INCLUDES is overly general; sl/ doesn't need all of them
 CFLAGS += $(ADDL_INCLUDES)
@@ -111,4 +112,5 @@ clean:
 	$(RM) -rf *.sha1
 
 	cd libtpm && $(MAKE) -w clean
+	$(RM) -rf ./hash/*.o
 

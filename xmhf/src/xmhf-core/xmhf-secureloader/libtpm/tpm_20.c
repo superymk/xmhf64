@@ -441,6 +441,9 @@ static bool reverse_copy_digest_values_out(TPML_DIGEST_VALUES *tpml_digest,
     return true;
 }
 
+// XMHF: Disabled unused functions.
+#if 0
+
 /*
  * Copy public data from input data structure into output data stream
  * for commands that require it.
@@ -1159,6 +1162,8 @@ static bool reverse_copy_context_out(TPMS_CONTEXT *context, void **other)
 
     return true;
 }
+#endif // 0 XMHF unused functions
+
 
 static uint32_t _tpm20_pcr_read(u32 locality,
                                 tpm_pcr_read_in *in,
@@ -1363,6 +1368,8 @@ static uint32_t _tpm20_pcr_reset(uint32_t locality,
     return ret;
 }
 
+// XMHF: Note: external dependencies for "Disabled unused functions" below.
+#if 0
 static uint32_t _tpm20_sequence_start(uint32_t locality,
                                       tpm_sequence_start_in *in,
                                       tpm_sequence_start_out *out)
@@ -1772,8 +1779,12 @@ static uint32_t _tpm20_shutdown(uint32_t locality, u16 type)
     reverse_copy(&ret, rsp_buf + RSP_RST_OFFSET, sizeof(ret));
     return ret;
 }
+#endif // 0 XMHF unused functions
 
 u32 handle2048 = 0;
+
+// XMHF: Disabled unused functions.
+#if 0
 static const char auth_str[] = "test";
 static uint32_t _tpm20_create_primary(uint32_t locality,
                                       tpm_create_primary_in *in,
@@ -2246,6 +2257,8 @@ static bool tpm20_context_flush(struct tpm_if *ti, u32 locality, TPM_HANDLE hand
         printf("TPM: tpm2 context flush successful, return value = %08X\n", ret);
     return true;
 }
+#endif // 0 XMHF unused functions
+
 
 TPM_CMD_SESSION_DATA_IN pw_session;
 static void create_pw_session(TPM_CMD_SESSION_DATA_IN *ses)
@@ -2344,6 +2357,9 @@ static bool tpm20_pcr_reset(struct tpm_if *ti, uint32_t locality, uint32_t pcr)
 
     return true;
 }
+
+// XMHF: Disabled unused functions.
+#if 0
 
 static bool tpm20_hash(struct tpm_if *ti, u32 locality, const u8 *data,
                        u32 data_size, hash_list_t *hl)
@@ -2793,8 +2809,6 @@ static uint32_t tpm20_save_state(struct tpm_if *ti, uint32_t locality)
     return ret;
 }
 
-// XMHF: Disabled unused functions.
-#if 0
 #define TPM_NR_PCRS 24
 #define TPM_PCR_RESETABLE_MIN 16
 static bool tpm20_cap_pcrs(struct tpm_if *ti, u32 locality, int pcr)
@@ -2846,6 +2860,9 @@ static bool alg_is_supported(u16 alg)
 }
 tpm_contextsave_out tpm2_context_saved;
 
+// XMHF: Disabled unused functions.
+#if 0
+
 static bool tpm20_context_save(struct tpm_if *ti, u32 locality, TPM_HANDLE handle, void *context_saved)
 {
     tpm_contextsave_in in;
@@ -2895,6 +2912,7 @@ static bool tpm20_context_load(struct tpm_if *ti, u32 locality, void *context_sa
     *handle = out.loadedHandle;
     return true;
 }
+#endif
 
 static bool tpm20_init(struct tpm_if *ti)
 {
@@ -2904,8 +2922,12 @@ static bool tpm20_init(struct tpm_if *ti)
     // tpm_info_list_t *info_list = get_tpm_info_list(g_sinit);
     tpm_pcr_event_in event_in;
     tpm_pcr_event_out event_out;
+    
+// XMHF: Disabled unused functions.
+#if 0
     tpm_create_primary_in primary_in;
     tpm_create_primary_out primary_out;
+#endif // 0 XMHF unused functions
 
     // XMHF: TODO: Assume info_list->capabilities.tpm_nv_index_set == 0.
     // if ( ti == NULL || info_list == NULL )
@@ -3005,10 +3027,9 @@ static bool tpm20_init(struct tpm_if *ti)
     }
 
     // XMHF: Skip CreatePrimary() to be faster (cannot tpm_seal / unseal).
-    if (1)
-    {
-        goto out;
-    }
+
+// XMHF: Disabled unused functions.
+#if 0
 
     if (handle2048 != 0)
         goto out;
@@ -3058,7 +3079,10 @@ static bool tpm20_init(struct tpm_if *ti)
     handle2048 = primary_out.obj_handle;
 
     printf("TPM:CreatePrimary created object handle = %08X\n", handle2048);
+
 out:
+#endif // 0 XMHF unused functions
+
     tpm_print(ti);
     return true;
 }
@@ -3067,23 +3091,38 @@ const struct tpm_if_fp tpm_20_if_fp = {
     .init = tpm20_init,
     .pcr_read = tpm20_pcr_read,
     .pcr_extend = tpm20_pcr_extend,
-    .hash = tpm20_hash,
-    .pcr_reset = tpm20_pcr_reset,
-    .nv_read = tpm20_nv_read,
-    .nv_write = tpm20_nv_write,
-    .get_nvindex_size = tpm20_get_nvindex_size,
-    .get_nvindex_permission = tpm20_get_nvindex_permission,
-    .seal = tpm20_seal,
-    .unseal = tpm20_unseal,
-    .verify_creation = tpm20_verify_creation,
-    .get_random = tpm20_get_random,
-    .save_state = tpm20_save_state,
+    
     // XMHF: Disabled unused functions.
-    //.cap_pcrs = tpm20_cap_pcrs,
-    .cap_pcrs = NULL,
-    .context_save = tpm20_context_save,
-    .context_load = tpm20_context_load,
-    .context_flush = tpm20_context_flush,
+    // .hash = tpm20_hash,
+    // .pcr_reset = tpm20_pcr_reset,
+    // .nv_read = tpm20_nv_read,
+    // .nv_write = tpm20_nv_write,
+    // .get_nvindex_size = tpm20_get_nvindex_size,
+    // .get_nvindex_permission = tpm20_get_nvindex_permission,
+    // .seal = tpm20_seal,
+    // .unseal = tpm20_unseal,
+    // .verify_creation = tpm20_verify_creation,
+    // .get_random = tpm20_get_random,
+    // .save_state = tpm20_save_state,
+    // .cap_pcrs = tpm20_cap_pcrs,
+    // .context_save = tpm20_context_save,
+    // .context_load = tpm20_context_load,
+    // .context_flush = tpm20_context_flush,
+    .hash = NULL,
+    .pcr_reset = NULL,
+    .nv_read = NULL,
+    .nv_write = NULL,
+    .get_nvindex_size = NULL,
+    .get_nvindex_permission = NULL,
+    .seal = NULL,
+    .unseal = NULL,
+    .verify_creation = NULL,
+    .get_random = NULL,
+    .save_state = NULL,
+    //.cap_pcrs = NULL,
+    .context_save = NULL,
+    .context_load = NULL,
+    .context_flush = NULL,
 };
 
 /*

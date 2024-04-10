@@ -392,6 +392,9 @@ typedef struct __packed
     uint8_t pcr_select[3];
 } tpm_pcr_selection_t;
 
+// XMHF: Disabled unused functions.
+#if 0
+
 /* PCRs lower than 16 are not resetable */
 #define TPM_PCR_RESETABLE_MIN 16
 static bool tpm12_pcr_reset(struct tpm_if *ti, uint32_t locality, uint32_t pcr)
@@ -538,6 +541,7 @@ static bool tpm12_nv_write_value(struct tpm_if *ti, uint32_t locality,
 
     return true;
 }
+#endif // 0 XMHF unused functions
 
 #define TPM_CAP_VERSION_VAL 0x1A
 
@@ -1521,7 +1525,7 @@ static bool tpm12_verify_creation(struct tpm_if *ti, uint32_t sealed_data_size,
 
     return true;
 }
-#endif
+#endif // 0 XMHF unused functions
 
 typedef uint32_t tpm_capability_area_t;
 
@@ -1570,6 +1574,9 @@ static uint32_t tpm12_get_capability(uint32_t locality, tpm_capability_area_t ca
 
     return ret;
 }
+
+// XMHF: Disabled unused functions.
+#if 0
 
 typedef struct __packed
 {
@@ -1754,6 +1761,7 @@ static bool tpm12_get_nvindex_permission(struct tpm_if *ti, uint32_t locality,
 
     return true;
 }
+#endif // 0 XMHF unused functions
 
 typedef struct __packed
 {
@@ -1835,6 +1843,7 @@ static uint32_t tpm12_get_flags(uint32_t locality, uint32_t flag_id,
 
     return ret;
 }
+
 
 #define TPM_CAP_PROPERTY 0x00000005
 #define TPM_CAP_PROP_TIS_TIMEOUT 0x00000115
@@ -2047,7 +2056,6 @@ static uint32_t tpm12_save_state(struct tpm_if *ti, uint32_t locality)
 
     return ret;
 }
-#endif
 
 static bool tpm12_get_random(struct tpm_if *ti, uint32_t locality,
                              uint8_t *random_data, uint32_t *data_size)
@@ -2134,8 +2142,6 @@ static bool tpm12_get_random(struct tpm_if *ti, uint32_t locality,
     return true;
 }
 
-// XMHF: Disabled unused functions.
-#if 0
 static bool tpm12_cap_pcrs(struct tpm_if *ti, u32 locality, int pcr)
 {
 #pragma GCC diagnostic push
@@ -2170,7 +2176,7 @@ static bool tpm12_cap_pcrs(struct tpm_if *ti, u32 locality, int pcr)
     return true;
 #pragma GCC diagnostic pop
 }
-#endif
+#endif // 0 XMHF unused functions
 
 static bool tpm12_check(void)
 {
@@ -2184,24 +2190,31 @@ const struct tpm_if_fp tpm_12_if_fp = {
     .init = tpm12_init,
     .pcr_read = tpm12_pcr_read,
     .pcr_extend = tpm12_pcr_extend,
-    .pcr_reset = tpm12_pcr_reset,
-    .nv_read = tpm12_nv_read_value,
-    .nv_write = tpm12_nv_write_value,
-    .get_nvindex_size = tpm12_get_nvindex_size,
-    .get_nvindex_permission = tpm12_get_nvindex_permission,
+
     // XMHF: Disabled unused functions.
+    // .pcr_reset = tpm12_pcr_reset,
+    // .nv_read = tpm12_nv_read_value,
+    // .nv_write = tpm12_nv_write_value,
+    // .get_nvindex_size = tpm12_get_nvindex_size,
+    // .get_nvindex_permission = tpm12_get_nvindex_permission,
     //.seal = tpm12_seal,
     //.unseal = tpm12_unseal,
     //.verify_creation = tpm12_verify_creation,
+    // .get_random = tpm12_get_random,
+    //.save_state = tpm12_save_state,
+    //.cap_pcrs = tpm12_cap_pcrs,
+    .pcr_reset = NULL,
+    .nv_read = NULL,
+    .nv_write = NULL,
+    .get_nvindex_size = NULL,
+    .get_nvindex_permission = NULL,
     .seal = NULL,
     .unseal = NULL,
     .verify_creation = NULL,
-    .get_random = tpm12_get_random,
-    // XMHF: Disabled unused functions.
-    //.save_state = tpm12_save_state,
-    //.cap_pcrs = tpm12_cap_pcrs,
+    .get_random = NULL,
     .save_state = NULL,
     .cap_pcrs = NULL,
+
     .check = tpm12_check,
 };
 

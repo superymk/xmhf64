@@ -25,6 +25,9 @@ OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
 OBJECTS += ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
 # CFLAGS += -I$(current_dir)/libtpm
 
+# Hash
+OBJECTS += ./hash/sha1.o ./hash/sha2.o ./hash/hash.o
+
 ifeq ($(TARGET_UEFI), y)
 OBJECTS += $(GNUEFI_BUILD)/x86_64/gnuefi/crt0-efi-x86_64.o
 # Note: efi.o is compiled differently with other object files
