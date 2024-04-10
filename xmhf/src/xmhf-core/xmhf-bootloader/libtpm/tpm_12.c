@@ -111,7 +111,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <print_hex.h>
-#include <tpm.h>
+#include <libtpm/tpm.h>
 
 /*
  * return code:

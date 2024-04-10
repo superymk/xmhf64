@@ -91,7 +91,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <print_hex.h>
-#include <tpm.h>
+#include <libtpm/tpm.h>
 
 // XMHF: TODO: Hard coded ARRAY_SIZE macro.
 #define ARRAY_SIZE(a)     (sizeof(a) / sizeof((a)[0]))

@@ -94,7 +94,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <integrity.h>
+#include "integrity.h"
 
 /* un-comment to enable detailed command tracing */
 //#define TPM_TRACE

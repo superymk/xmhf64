@@ -83,7 +83,7 @@
 //pull in required TPM library
 //libtpm
 #ifndef __ASSEMBLY__
-	#include <tpm.h>
+	#include <libtpm/tpm.h>
 #endif /* __ASSEMBLY__ */
 
 #include <xmhf-debug.h>			//XMHF debug component

@@ -90,7 +90,7 @@
 #ifndef _TBOOT_INTEGRITY_H_
 #define _TBOOT_INTEGRITY_H_
 
-#include <hash.h>
+#include "hash.h"
 
 // XMHF: Skip including poly1305.h.
 //#include <poly1305.h>

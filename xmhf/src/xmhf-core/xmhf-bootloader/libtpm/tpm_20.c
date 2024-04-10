@@ -94,8 +94,8 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
-#include <tpm.h>
-#include <tpm_20.h>
+#include <libtpm/tpm.h>
+#include <libtpm/tpm_20.h>
 
 // XMHF: TODO: Workaround declarations
 

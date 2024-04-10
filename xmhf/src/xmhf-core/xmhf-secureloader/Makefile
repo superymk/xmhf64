@@ -23,6 +23,12 @@ C_SOURCES += ./arch/x86/sl-x86.c
 OBJECTS = $(patsubst %.S, %.o, $(AS_SOURCES))
 OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
 
+# current_dir = $(shell pwd)
+
+# LibTPM
+OBJECTS += ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
+# CFLAGS += -I$(current_dir)/libtpm
+
 
 #tie components used by SL
 OBJECTS_PRECOMPILED = ../xmhf-runtime/xmhf-debug/lib.a
@@ -103,4 +109,6 @@ clean:
 	$(RM) -rf *.gz
 	$(RM) -rf *.lds
 	$(RM) -rf *.sha1
+
+	cd libtpm && $(MAKE) -w clean
 
