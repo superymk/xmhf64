@@ -18,14 +18,14 @@
 #ifndef _TPM_COMMON_H
 #define _HASH_FUNCS_H
 
-// XMHF-SL only: The TPM functions used by XMHF-SL need a small input and output buffer only.
-#define XMHF_SL_TPM_MAX_COMMAND_SIZE   (96)
-#define XMHF_SL_TPM_MAX_RESPONSE_SIZE  (96)
+// // XMHF-SL only: The TPM functions used by XMHF-SL need a small input and output buffer only.
+// #define XMHF_SL_TPM_MAX_COMMAND_SIZE   (96)
+// #define XMHF_SL_TPM_MAX_RESPONSE_SIZE  (96)
 
 #ifndef __ASSEMBLY__
 
-extern u8 cmd_buf[XMHF_SL_TPM_MAX_COMMAND_SIZE];
-extern u8 rsp_buf[XMHF_SL_TPM_MAX_RESPONSE_SIZE];
+// extern u8 cmd_buf[XMHF_SL_TPM_MAX_COMMAND_SIZE];
+// extern u8 rsp_buf[XMHF_SL_TPM_MAX_RESPONSE_SIZE];
 
 #endif // __ASSEMBLY__
 #endif // _HASH_FUNCS_H

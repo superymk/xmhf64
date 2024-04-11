@@ -927,14 +927,18 @@ bool tpm_detect(void)
 			return false;
 			}
 		/* determine TPM family from command check */
-		if ( tpm_fp->check() )  {
+#ifdef __FORCE_TPM_1_2__
+		if ( tpm_fp->check() )  
+        {
 			g_tpm_family = TPM_IF_12;
 			printf("TPM: discrete TPM1.2 Family 0x%d\n", g_tpm_family);
-			}
-		else {
+		}
+		else 
+#endif // __FORCE_TPM_1_2__
+        {
 			g_tpm_family = TPM_IF_20_FIFO;
 			printf("TPM: discrete TPM2.0 Family 0x%d\n", g_tpm_family);
-			}
+		}
 	}
 
     if (g_tpm_family == TPM_IF_12)  g_tpm_ver = TPM_VER_12;
@@ -952,8 +956,9 @@ void tpm_print(struct tpm_if *ti)
 
     printf("TPM attribute:\n");
     printf("\t extend policy: %d\n", ti->extpol);
-    printf("\t current alg id: 0x%x\n", ti->cur_alg);
-    printf("\t timeout values: A: %u, B: %u, C: %u, D: %u\n", ti->timeout.timeout_a, ti->timeout.timeout_b, ti->timeout.timeout_c, ti->timeout.timeout_d);
+    // [TODO] XMHF-SL crashes in the next print. Need fix.
+    // printf("\t current alg id: 0x%x\n", ti->cur_alg);
+    // printf("\t timeout values: A: %u, B: %u, C: %u, D: %u\n", ti->timeout.timeout_a, ti->timeout.timeout_b, ti->timeout.timeout_c, ti->timeout.timeout_d);
 }
 
 struct tpm_if *get_tpm(void)
@@ -963,10 +968,14 @@ struct tpm_if *get_tpm(void)
 
 const struct tpm_if_fp *get_tpm_fp(void)
 {
+#ifdef __FORCE_TPM_1_2__
     if ( g_tpm_ver == TPM_VER_12 )
         return &tpm_12_if_fp;
-    else if ( g_tpm_ver == TPM_VER_20)
+    else 
+#else
+    if ( g_tpm_ver == TPM_VER_20)
         return &tpm_20_if_fp;
+#endif // __FORCE_TPM_1_2__
 
     return NULL;
 

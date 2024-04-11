@@ -110,26 +110,27 @@ SECTIONS
     *(.rodata.*)
     *(.rel.rodata)
     *(.rel.rodata.*)
+    . = ALIGN(0x10000);
   } >low
 
-  .bss : {
+  /* .bss : {
     *(.bss)
     *(.bss.*)
     *(.rel.bss)
     *(.rel.bss.*)
-    /*. = ALIGN(4096);*/
+    //. = ALIGN(4096);
     . = ALIGN(16);
-  } >low
+  } >low */
 
   /* protected DMA protection buffer for DMA protection boot-strapping */
   /*.protdmabuffer : {
     *(.protdmabuffer)
   } >low*/
 
-  .sl_stack : {
+  /* .sl_stack : {
     *(.sl_stack)
     . = ALIGN(0x10000);
-  } >low
+  } >low */
 
   /* Content below is UNTRUSTED.
    * SL *MUST* sanitize any data here prior to use!
@@ -140,6 +141,21 @@ SECTIONS
     . = ALIGN(4096);
     /* .sl_long_pt is only used in amd64 XMHF */
     *(.sl_long_pt)
+    // . = ALIGN(0x200000);
+  } >high
+
+  .bss : {
+    *(.bss)
+    *(.bss.*)
+    *(.rel.bss)
+    *(.rel.bss.*)
+    //. = ALIGN(4096);
+    . = ALIGN(16);
+  } >high 
+
+  .sl_stack : {
+    *(.sl_stack)
+    // . = ALIGN(0x10000);
     . = ALIGN(0x200000);
   } >high
 

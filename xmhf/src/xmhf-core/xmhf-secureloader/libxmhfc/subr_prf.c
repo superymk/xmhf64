@@ -87,6 +87,16 @@
 /* Max number conversion buffer length: a u_quad_t in base 2, plus NUL byte. */
 #define MAXNBUF	(sizeof(intmax_t) * NBBY + 1)
 
+/* struct putchar_arg { */
+/* 	int	flags; */
+/* 	int	pri; */
+/* 	struct	tty *tty; */
+/* 	char	*p_bufr; */
+/* 	size_t	n_bufr; */
+/* 	char	*p_next; */
+/* 	size_t	remain; */
+/* }; */
+
 #include "emhfc_callbacks.h"
 
 struct snprintf_arg {
@@ -102,6 +112,199 @@ static char *ksprintn(char *nbuf, uintmax_t num, int base, int *len, int upper);
 static void  snprintf_func(int ch, void *arg);
 static int
 kvprintf(char const *fmt, void (*func)(int, void*), void *arg, int radix, va_list ap);
+
+/* static int msgbufmapped;		/\* Set when safe to use msgbuf *\/ */
+/* int msgbuftrigger; */
+
+/* static int      log_console_output = 1; */
+/* TUNABLE_INT("kern.log_console_output", &log_console_output); */
+/* SYSCTL_INT(_kern, OID_AUTO, log_console_output, CTLFLAG_RW, */
+/*     &log_console_output, 0, "Duplicate console output to the syslog."); */
+
+/* static int	always_console_output = 0; */
+/* TUNABLE_INT("kern.always_console_output", &always_console_output); */
+/* SYSCTL_INT(_kern, OID_AUTO, always_console_output, CTLFLAG_RW, */
+/*     &always_console_output, 0, "Always output to console despite TIOCCONS."); */
+
+/*
+ * Warn that a system table is full.
+ */
+/* void */
+/* tablefull(const char *tab) */
+/* { */
+
+/* 	log(LOG_ERR, "%s: table is full\n", tab); */
+/* } */
+
+/*
+ * Uprintf prints to the controlling terminal for the current process.
+ */
+/* int */
+/* uprintf(const char *fmt, ...) */
+/* { */
+/* 	va_list ap; */
+/* 	struct putchar_arg pca; */
+/* 	struct proc *p; */
+/* 	struct thread *td; */
+/* 	int retval; */
+
+/* 	td = curthread; */
+/* 	if (TD_IS_IDLETHREAD(td)) */
+/* 		return (0); */
+
+/* 	sx_slock(&proctree_lock); */
+/* 	p = td->td_proc; */
+/* 	PROC_LOCK(p); */
+/* 	if ((p->p_flag & P_CONTROLT) == 0) { */
+/* 		PROC_UNLOCK(p); */
+/* 		retval = 0; */
+/* 		goto out; */
+/* 	} */
+/* 	SESS_LOCK(p->p_session); */
+/* 	pca.tty = p->p_session->s_ttyp; */
+/* 	SESS_UNLOCK(p->p_session); */
+/* 	PROC_UNLOCK(p); */
+/* 	if (pca.tty == NULL) { */
+/* 		retval = 0; */
+/* 		goto out; */
+/* 	} */
+/* 	pca.flags = TOTTY; */
+/* 	va_start(ap, fmt); */
+/* 	tty_lock(pca.tty); */
+/* 	retval = kvprintf(fmt, putchar, &pca, 10, ap); */
+/* 	tty_unlock(pca.tty); */
+/* 	va_end(ap); */
+/* out: */
+/* 	sx_sunlock(&proctree_lock); */
+/* 	return (retval); */
+/* } */
+
+/*
+ * tprintf prints on the controlling terminal associated with the given
+ * session, possibly to the log as well.
+ */
+/* void */
+/* tprintf(struct proc *p, int pri, const char *fmt, ...) */
+/* { */
+/* 	struct tty *tp = NULL; */
+/* 	int flags = 0; */
+/* 	va_list ap; */
+/* 	struct putchar_arg pca; */
+/* 	struct session *sess = NULL; */
+
+/* 	sx_slock(&proctree_lock); */
+/* 	if (pri != -1) */
+/* 		flags |= TOLOG; */
+/* 	if (p != NULL) { */
+/* 		PROC_LOCK(p); */
+/* 		if (p->p_flag & P_CONTROLT && p->p_session->s_ttyvp) { */
+/* 			sess = p->p_session; */
+/* 			sess_hold(sess); */
+/* 			PROC_UNLOCK(p); */
+/* 			tp = sess->s_ttyp; */
+/* 			if (tp != NULL && tty_checkoutq(tp)) */
+/* 				flags |= TOTTY; */
+/* 			else */
+/* 				tp = NULL; */
+/* 		} else */
+/* 			PROC_UNLOCK(p); */
+/* 	} */
+/* 	pca.pri = pri; */
+/* 	pca.tty = tp; */
+/* 	pca.flags = flags; */
+/* 	va_start(ap, fmt); */
+/* 	if (pca.tty != NULL) */
+/* 		tty_lock(pca.tty); */
+/* 	kvprintf(fmt, putchar, &pca, 10, ap); */
+/* 	if (pca.tty != NULL) */
+/* 		tty_unlock(pca.tty); */
+/* 	va_end(ap); */
+/* 	if (sess != NULL) */
+/* 		sess_release(sess); */
+/* 	msgbuftrigger = 1; */
+/* 	sx_sunlock(&proctree_lock); */
+/* } */
+
+/*
+ * Ttyprintf displays a message on a tty; it should be used only by
+ * the tty driver, or anything that knows the underlying tty will not
+ * be revoke(2)'d away.  Other callers should use tprintf.
+ */
+/* int */
+/* ttyprintf(struct tty *tp, const char *fmt, ...) */
+/* { */
+/* 	va_list ap; */
+/* 	struct putchar_arg pca; */
+/* 	int retval; */
+
+/* 	va_start(ap, fmt); */
+/* 	pca.tty = tp; */
+/* 	pca.flags = TOTTY; */
+/* 	retval = kvprintf(fmt, putchar, &pca, 10, ap); */
+/* 	va_end(ap); */
+/* 	return (retval); */
+/* } */
+
+/*
+ * Log writes to the log buffer, and guarantees not to sleep (so can be
+ * called by interrupt routines).  If there is no process reading the
+ * log yet, it writes to the console also.
+ */
+/* void */
+/* log(int level, const char *fmt, ...) */
+/* { */
+/* 	va_list ap; */
+/* 	struct putchar_arg pca; */
+
+/* 	pca.tty = NULL; */
+/* 	pca.pri = level; */
+/* 	pca.flags = log_open ? TOLOG : TOCONS; */
+/* 	pca.p_bufr = NULL; */
+
+/* 	va_start(ap, fmt); */
+/* 	kvprintf(fmt, putchar, &pca, 10, ap); */
+/* 	va_end(ap); */
+
+/* 	msgbuftrigger = 1; */
+/* } */
+
+/* #define CONSCHUNK 128 */
+
+/* void */
+/* log_console(struct uio *uio) */
+/* { */
+/* 	int c, i, error, nl; */
+/* 	char *consbuffer; */
+/* 	int pri; */
+
+/* 	if (!log_console_output) */
+/* 		return; */
+
+/* 	pri = LOG_INFO | LOG_CONSOLE; */
+/* 	uio = cloneuio(uio); */
+/* 	consbuffer = malloc(CONSCHUNK, M_TEMP, M_WAITOK); */
+
+/* 	nl = 0; */
+/* 	while (uio->uio_resid > 0) { */
+/* 		c = imin(uio->uio_resid, CONSCHUNK); */
+/* 		error = uiomove(consbuffer, c, uio); */
+/* 		if (error != 0) */
+/* 			break; */
+/* 		for (i = 0; i < c; i++) { */
+/* 			msglogchar(consbuffer[i], pri); */
+/* 			if (consbuffer[i] == '\n') */
+/* 				nl = 1; */
+/* 			else */
+/* 				nl = 0; */
+/* 		} */
+/* 	} */
+/* 	if (!nl) */
+/* 		msglogchar('\n', pri); */
+/* 	msgbuftrigger = 1; */
+/* 	free(uio, M_IOV); */
+/* 	free(consbuffer, M_TEMP); */
+/* 	return; */
+/* } */
 
 int
 printf(const char *fmt, ...)
@@ -154,6 +357,68 @@ vprintf(const char *fmt, va_list ap)
 
 	return (retval);
 }
+
+/* static void */
+/* putcons(int c, struct putchar_arg *ap) */
+/* { */
+/* 	/\* Check if no console output buffer was provided. *\/ */
+/* 	if (ap->p_bufr == NULL) */
+/* 		/\* Output direct to the console. *\/ */
+/* 		cnputc(c); */
+/* 	else { */
+/* 		/\* Buffer the character: *\/ */
+/* 		if (c == '\n') { */
+/* 			*ap->p_next++ = '\r'; */
+/* 			ap->remain--; */
+/* 		} */
+/* 		*ap->p_next++ = c; */
+/* 		ap->remain--; */
+
+/* 		/\* Always leave the buffer zero terminated. *\/ */
+/* 		*ap->p_next = '\0'; */
+
+/* 		/\* Check if the buffer needs to be flushed. *\/ */
+/* 		if (ap->remain < 3 || c == '\n') { */
+/* 			cnputs(ap->p_bufr); */
+/* 			ap->p_next = ap->p_bufr; */
+/* 			ap->remain = ap->n_bufr; */
+/* 			*ap->p_next = '\0'; */
+/* 		} */
+/* 	} */
+/* } */
+
+/*
+ * Print a character on console or users terminal.  If destination is
+ * the console then the last bunch of characters are saved in msgbuf for
+ * inspection later.
+ */
+/* static void */
+/* putchar(int c, void *arg) */
+/* { */
+/* 	struct putchar_arg *ap = (struct putchar_arg*) arg; */
+/* 	struct tty *tp = ap->tty; */
+/* 	int flags = ap->flags; */
+
+/* 	/\* Don't use the tty code after a panic or while in ddb. *\/ */
+/* 	if (kdb_active) { */
+/* 		if (c != '\0') */
+/* 			cnputc(c); */
+/* 	} else if (panicstr || ((flags & TOCONS) && constty == NULL)) { */
+/* 		if (c != '\0') */
+/* 			putcons(c, ap); */
+/* 	} else { */
+/* 		if ((flags & TOTTY) && tp != NULL) */
+/* 			tty_putchar(tp, c); */
+/* 		if (flags & TOCONS) { */
+/* 			if (constty != NULL) */
+/* 				msgbuf_addchar(&consmsgbuf, c); */
+/* 			if (always_console_output && c != '\0') */
+/* 				putcons(c, ap); */
+/* 		} */
+/* 	} */
+/* 	if ((flags & TOLOG)) */
+/* 		msglogchar(c, ap->pri); */
+/* } */
 
 /*
  * Scaled down version of sprintf(3).
@@ -298,8 +563,8 @@ kvprintf(char const *fmt, void (*func)(int, void*), void *arg, int radix, va_lis
 #define PCHAR(c) {int cc=(c); if (func) (*func)(cc,arg); else *d++ = cc; retval++; }
 	char nbuf[MAXNBUF];
 	char *d;
-	const char *p, *percent; //*q;
-	// u_char *up;
+	const char *p, *percent, *q;
+	u_char *up;
 	int ch, n;
 	uintmax_t num;
 	int base, lflag, qflag, tmp, width, ladjust, sharpflag, neg, sign, dot;
@@ -393,7 +658,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			else
 				width = n;
 			goto reswitch;
-		/*case 'b':
+		case 'b':
 			num = (u_int)va_arg(ap, int);
 			p = va_arg(ap, char *);
 			for (q = ksprintn(nbuf, num, *p++, NULL, 0); *q;)
@@ -437,7 +702,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 		case 'i':
 			base = 10;
 			sign = 1;
-			goto handle_sign; 
+			goto handle_sign;
 		case 'h':
 			if (hflag) {
 				hflag = 0;
@@ -473,7 +738,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			break;
 		case 'o':
 			base = 8;
-			goto handle_nosign; 
+			goto handle_nosign;
 		case 'p':
 			base = 16;
 			sharpflag = (width == 0);
@@ -487,7 +752,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			base = radix;
 			if (sign)
 				goto handle_sign;
-			goto handle_nosign; */
+			goto handle_nosign;
 		case 's':
 			p = va_arg(ap, char *);
 			if (p == NULL)
@@ -509,25 +774,25 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 				while (width--)
 					PCHAR(padc);
 			break;
-		/*case 't':
+		case 't':
 			tflag = 1;
-			goto reswitch; */
+			goto reswitch;
 		case 'u':
 			base = 10;
 			goto handle_nosign;
 		case 'X':
 			upper = 1;
-			// fallthrough 
+			/* fallthrough */
 		case 'x':
 			base = 16;
 			goto handle_nosign;
-		/*case 'y':
+		case 'y':
 			base = 16;
 			sign = 1;
 			goto handle_sign;
 		case 'z':
 			zflag = 1;
-			goto reswitch;*/
+			goto reswitch;
 handle_nosign:
 			sign = 0;
 			if (jflag)
@@ -547,7 +812,7 @@ handle_nosign:
 			else
 				num = va_arg(ap, u_int);
 			goto number;
-/*handle_sign:
+handle_sign:
 			if (jflag)
 				num = va_arg(ap, intmax_t);
 			else if (qflag)
@@ -563,7 +828,7 @@ handle_nosign:
 			else if (cflag)
 				num = (char)va_arg(ap, int);
 			else
-				num = va_arg(ap, int); */
+				num = va_arg(ap, int);
 number:
 			if (sign && (intmax_t)num < 0) {
 				neg = 1;
@@ -623,3 +888,180 @@ number:
 	}
 #undef PCHAR
 }
+
+/*
+ * Put character in log buffer with a particular priority.
+ */
+/* static void */
+/* msglogchar(int c, int pri) */
+/* { */
+/* 	static int lastpri = -1; */
+/* 	static int dangling; */
+/* 	char nbuf[MAXNBUF]; */
+/* 	char *p; */
+
+/* 	if (!msgbufmapped) */
+/* 		return; */
+/* 	if (c == '\0' || c == '\r') */
+/* 		return; */
+/* 	if (pri != -1 && pri != lastpri) { */
+/* 		if (dangling) { */
+/* 			msgbuf_addchar(msgbufp, '\n'); */
+/* 			dangling = 0; */
+/* 		} */
+/* 		msgbuf_addchar(msgbufp, '<'); */
+/* 		for (p = ksprintn(nbuf, (uintmax_t)pri, 10, NULL, 0); *p;) */
+/* 			msgbuf_addchar(msgbufp, *p--); */
+/* 		msgbuf_addchar(msgbufp, '>'); */
+/* 		lastpri = pri; */
+/* 	} */
+/* 	msgbuf_addchar(msgbufp, c); */
+/* 	if (c == '\n') { */
+/* 		dangling = 0; */
+/* 		lastpri = -1; */
+/* 	} else { */
+/* 		dangling = 1; */
+/* 	} */
+/* } */
+
+/* void */
+/* msgbufinit(void *ptr, int size) */
+/* { */
+/* 	char *cp; */
+/* 	static struct msgbuf *oldp = NULL; */
+
+/* 	size -= sizeof(*msgbufp); */
+/* 	cp = (char *)ptr; */
+/* 	msgbufp = (struct msgbuf *)(cp + size); */
+/* 	msgbuf_reinit(msgbufp, cp, size); */
+/* 	if (msgbufmapped && oldp != msgbufp) */
+/* 		msgbuf_copy(oldp, msgbufp); */
+/* 	msgbufmapped = 1; */
+/* 	oldp = msgbufp; */
+/* } */
+
+/* static int unprivileged_read_msgbuf = 1; */
+/* SYSCTL_INT(_security_bsd, OID_AUTO, unprivileged_read_msgbuf, */
+/*     CTLFLAG_RW, &unprivileged_read_msgbuf, 0, */
+/*     "Unprivileged processes may read the kernel message buffer"); */
+
+/* /\* Sysctls for accessing/clearing the msgbuf *\/ */
+/* static int */
+/* sysctl_kern_msgbuf(SYSCTL_HANDLER_ARGS) */
+/* { */
+/* 	char buf[128]; */
+/* 	u_int seq; */
+/* 	int error, len; */
+
+/* 	if (!unprivileged_read_msgbuf) { */
+/* 		error = priv_check(req->td, PRIV_MSGBUF); */
+/* 		if (error) */
+/* 			return (error); */
+/* 	} */
+
+/* 	/\* Read the whole buffer, one chunk at a time. *\/ */
+/* 	msgbuf_peekbytes(msgbufp, NULL, 0, &seq); */
+/* 	while ((len = msgbuf_peekbytes(msgbufp, buf, sizeof(buf), &seq)) > 0) { */
+/* 		error = sysctl_handle_opaque(oidp, buf, len, req); */
+/* 		if (error) */
+/* 			return (error); */
+/* 	} */
+/* 	return (0); */
+/* } */
+
+/* SYSCTL_PROC(_kern, OID_AUTO, msgbuf, CTLTYPE_STRING | CTLFLAG_RD, */
+/*     NULL, 0, sysctl_kern_msgbuf, "A", "Contents of kernel message buffer"); */
+
+/* static int msgbuf_clearflag; */
+
+/* static int */
+/* sysctl_kern_msgbuf_clear(SYSCTL_HANDLER_ARGS) */
+/* { */
+/* 	int error; */
+/* 	error = sysctl_handle_int(oidp, oidp->oid_arg1, oidp->oid_arg2, req); */
+/* 	if (!error && req->newptr) { */
+/* 		msgbuf_clear(msgbufp); */
+/* 		msgbuf_clearflag = 0; */
+/* 	} */
+/* 	return (error); */
+/* } */
+
+/* SYSCTL_PROC(_kern, OID_AUTO, msgbuf_clear, */
+/*     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_SECURE, &msgbuf_clearflag, 0, */
+/*     sysctl_kern_msgbuf_clear, "I", "Clear kernel message buffer"); */
+
+/* #ifdef DDB */
+
+/* DB_SHOW_COMMAND(msgbuf, db_show_msgbuf) */
+/* { */
+/* 	int i, j; */
+
+/* 	if (!msgbufmapped) { */
+/* 		db_printf("msgbuf not mapped yet\n"); */
+/* 		return; */
+/* 	} */
+/* 	db_printf("msgbufp = %p\n", msgbufp); */
+/* 	db_printf("magic = %x, size = %d, r= %u, w = %u, ptr = %p, cksum= %u\n", */
+/* 	    msgbufp->msg_magic, msgbufp->msg_size, msgbufp->msg_rseq, */
+/* 	    msgbufp->msg_wseq, msgbufp->msg_ptr, msgbufp->msg_cksum); */
+/* 	for (i = 0; i < msgbufp->msg_size && !db_pager_quit; i++) { */
+/* 		j = MSGBUF_SEQ_TO_POS(msgbufp, i + msgbufp->msg_rseq); */
+/* 		db_printf("%c", msgbufp->msg_ptr[j]); */
+/* 	} */
+/* 	db_printf("\n"); */
+/* } */
+
+/* #endif /\* DDB *\/ */
+
+/* void */
+/* hexdump(const void *ptr, int length, const char *hdr, int flags) */
+/* { */
+/* 	int i, j, k; */
+/* 	int cols; */
+/* 	const unsigned char *cp; */
+/* 	char delim; */
+
+/* 	if ((flags & HD_DELIM_MASK) != 0) */
+/* 		delim = (flags & HD_DELIM_MASK) >> 8; */
+/* 	else */
+/* 		delim = ' '; */
+
+/* 	if ((flags & HD_COLUMN_MASK) != 0) */
+/* 		cols = flags & HD_COLUMN_MASK; */
+/* 	else */
+/* 		cols = 16; */
+
+/* 	cp = ptr; */
+/* 	for (i = 0; i < length; i+= cols) { */
+/* 		if (hdr != NULL) */
+/* 			printf("%s", hdr); */
+
+/* 		if ((flags & HD_OMIT_COUNT) == 0) */
+/* 			printf("%04x  ", i); */
+
+/* 		if ((flags & HD_OMIT_HEX) == 0) { */
+/* 			for (j = 0; j < cols; j++) { */
+/* 				k = i + j; */
+/* 				if (k < length) */
+/* 					printf("%c%02x", delim, cp[k]); */
+/* 				else */
+/* 					printf("   "); */
+/* 			} */
+/* 		} */
+
+/* 		if ((flags & HD_OMIT_CHARS) == 0) { */
+/* 			printf("  |"); */
+/* 			for (j = 0; j < cols; j++) { */
+/* 				k = i + j; */
+/* 				if (k >= length) */
+/* 					printf(" "); */
+/* 				else if (cp[k] >= ' ' && cp[k] <= '~') */
+/* 					printf("%c", cp[k]); */
+/* 				else */
+/* 					printf("."); */
+/* 			} */
+/* 			printf("|"); */
+/* 		} */
+/* 		printf("\n"); */
+/* 	} */
+/* } */

@@ -110,7 +110,9 @@ spa_t vmx_find_dmar_paddr(VTD_DMAR *dmar)
     // get ACPI RSDP
     status = xmhf_baseplatform_arch_x86_acpi_getRSDP(&rsdp);
     HALT_ON_ERRORCOND(status != 0); // we need a valid RSDP to proceed
-    printf("%s: RSDP at %lx\n", __FUNCTION__, status);
+
+    // [TODO] XMHF-SL crashes in the next print. Need fix.
+    // printf("%s: RSDP at %lx\n", __FUNCTION__, status);
 
     // Use RSDT if it is ACPI v1, or use XSDT addr if it is ACPI v2
     if (rsdp.revision == 0) // ACPI v1
@@ -136,14 +138,18 @@ spa_t vmx_find_dmar_paddr(VTD_DMAR *dmar)
     rsdt_xsdt_vaddr = (hva_t)rsdt_xsdt_spaddr;
 
     xmhf_baseplatform_arch_flat_copy((u8 *)&rsdt, (u8 *)rsdt_xsdt_vaddr, sizeof(ACPI_RSDT));
-    printf("%s: RSDT at %lx, len=%u bytes, hdrlen=%u bytes\n",
-           __FUNCTION__, rsdt_xsdt_vaddr, rsdt.length, sizeof(ACPI_RSDT));
+
+    // [TODO] XMHF-SL crashes in the next print. Need fix.
+    // printf("%s: RSDT at %lx, len=%u bytes, hdrlen=%u bytes\n",
+    //        __FUNCTION__, rsdt_xsdt_vaddr, rsdt.length, sizeof(ACPI_RSDT));
 
     // get the RSDT entry list
     num_rsdtentries = (rsdt.length - sizeof(ACPI_RSDT)) / rsdt_xsdt_entry_size;
     HALT_ON_ERRORCOND(num_rsdtentries < ACPI_MAX_RSDT_ENTRIES);
-    printf("%s: RSDT entry list at %lx, len=%u\n", __FUNCTION__,
-           (rsdt_xsdt_vaddr + sizeof(ACPI_RSDT)), num_rsdtentries);
+
+    // [TODO] XMHF-SL crashes in the next print. Need fix.
+    // printf("%s: RSDT entry list at %lx, len=%u\n", __FUNCTION__,
+    //        (rsdt_xsdt_vaddr + sizeof(ACPI_RSDT)), num_rsdtentries);
 
     // find the VT-d DMAR table in the list (if any)
     for (i = 0; i < num_rsdtentries; i++)
@@ -173,7 +179,8 @@ spa_t vmx_find_dmar_paddr(VTD_DMAR *dmar)
     if (!dmarfound)
         return 0;
 
-    printf("%s: DMAR at %08x\n", __FUNCTION__, dmaraddrphys);
+    // [TODO] XMHF-SL crashes in the next print. Need fix.
+    // printf("%s: DMAR at %08x\n", __FUNCTION__, dmaraddrphys);
 
     // Read DMAR out, check length
     xmhf_baseplatform_arch_flat_copy((u8 *)dmar, (u8 *)(uintptr_t)dmaraddrphys,

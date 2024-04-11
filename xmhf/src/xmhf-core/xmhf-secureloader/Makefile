@@ -26,8 +26,14 @@ OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
 # current_dir = $(shell pwd)
 
 # LibTPM
-OBJECTS += ./libtpm/tpm_common.o ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
+OBJECTS += ./libtpm/tpm_common.o ./libtpm/tpm.o
 # CFLAGS += -I$(current_dir)/libtpm
+
+ifeq ($(FORCE_TPM_1_2), y)
+OBJECTS += ./libtpm/tpm_12.o
+else
+OBJECTS += ./libtpm/tpm_20.o
+endif
 
 
 #tie components used by SL
@@ -118,6 +124,8 @@ clean:
 	$(RM) -rf *.lds
 	$(RM) -rf *.sha1
 
+	cd xmhf-debug && $(MAKE) -w clean
 	cd libtpm && $(MAKE) -w clean
+	cd libxmhfc && $(MAKE) -w clean
 	$(RM) -rf ./hash/*.o
 

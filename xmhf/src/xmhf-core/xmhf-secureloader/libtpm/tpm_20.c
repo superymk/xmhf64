@@ -98,10 +98,6 @@
 #include <libtpm/tpm_20.h>
 #include "tpm_common.h"
 
-// // XMHF-SL only: The TPM functions used by XMHF-SL need a small input and output buffer only.
-// #define XMHF_SL_TPM20_MAX_COMMAND_SIZE   (96)
-// #define XMHF_SL_TPM20_MAX_RESPONSE_SIZE  (96)
-
 // XMHF: TODO: Workaround declarations
 
 extern void copy_hash(tb_hash_t *dest_hash, const tb_hash_t *src_hash,
@@ -109,8 +105,8 @@ extern void copy_hash(tb_hash_t *dest_hash, const tb_hash_t *src_hash,
 
 // XMHF: TODO: End workaround declarations
 
-// static u8 cmd_buf[XMHF_SL_TPM20_MAX_COMMAND_SIZE];
-// static u8 rsp_buf[XMHF_SL_TPM20_MAX_RESPONSE_SIZE];
+static u8 cmd_buf[MAX_COMMAND_SIZE];
+static u8 rsp_buf[MAX_RESPONSE_SIZE];
 
 // XMHF: Remove unused external variable.
 // extern loader_ctx *g_ldr_ctx;
@@ -3007,7 +3003,10 @@ static bool tpm20_init(struct tpm_if *ti)
     {
         ti->algs_banks[i] = event_out.digests.digests[i].hash_alg;
         ;
-        printf("TPM: bank alg = %08x\n", ti->algs_banks[i]);
+        
+        // [TODO] XMHF-SL crashes in the next print. Need fix.
+        // printf("TPM: bank alg = %08x\n", ti->algs_banks[i]);
+        
     }
 
     /* init supported alg list */
@@ -3022,7 +3021,10 @@ static bool tpm20_init(struct tpm_if *ti)
     }
     printf("tboot: supported alg count = %d\n", ti->alg_count);
     for (unsigned int i = 0; i < ti->alg_count; i++)
-        printf("tboot: hash alg = %08X\n", ti->algs[i]);
+    {
+        // [TODO] XMHF-SL crashes in the next print. Need fix.
+        // printf("tboot: hash alg = 0x%08X\n", ti->algs[i]);
+    }
 
     /* reset debug PCR 16 */
     if (!tpm20_pcr_reset(ti, ti->cur_loc, 16))

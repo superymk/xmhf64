@@ -154,4 +154,5 @@ clean:
 	$(RM) -rf *.efi
 	
 	cd libtpm && $(MAKE) -w clean
+	$(RM) -rf ./hash/*.o
 

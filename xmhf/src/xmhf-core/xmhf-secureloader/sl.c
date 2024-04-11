@@ -140,9 +140,13 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
 	//is our launch before the OS has been loaded (early) is loaded or
 	//is it after the OS has been loaded (late)
 	if(slpb.isEarlyInit)
+    {
 		printf("SL(early-init): at 0x%08x, starting...\n", sl_baseaddr);
+    }
     else
+    {
 		printf("SL(late-init): at 0x%08x, starting...\n", sl_baseaddr);
+    }
 
 	//debug: dump SL parameter block
 	printf("SL: slpb at = 0x%08lx\n", (sla_t)&slpb);
@@ -173,6 +177,7 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
 
 	printf("SL: runtime at 0x%08x; size=0x%08x bytes adjusted to 0x%08x bytes (2M aligned)\n",
 			runtime_physical_base, slpb.runtime_size, runtime_size_2Maligned);
+    (void)runtime_size_2Maligned;
 
 	//setup runtime parameter block with required parameters
 	{
@@ -259,15 +264,22 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
     {
         union sha_digest digest = {0};
         struct tpm_if *tpm = get_tpm();
-        const struct tpm_if_fp *tpm_fp = get_tpm_fp();
+        const struct tpm_if_fp *tpm_fp = NULL;
         int result = 0;
 
         if(!tpm)
+        {
+            printf("SL: Failed to get <tpm>!\n");
+            HALT();
+        }
+
+        if(!tpm_detect())
         {
             printf("SL: Failed to get TPM version!\n");
             HALT();
         }
 
+        tpm_fp = get_tpm_fp();
         if(!tpm_fp)
         {
             printf("SL: Failed to get <tpm_fp>!\n");

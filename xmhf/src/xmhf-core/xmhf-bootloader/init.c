@@ -861,17 +861,24 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
     {
         union sha_digest digest = {0};
         struct tpm_if *tpm = get_tpm();
-        const struct tpm_if_fp *tpm_fp = get_tpm_fp();
+        const struct tpm_if_fp *tpm_fp = NULL;
         int result = 0;
         void* slbase_ptr = spa2hva((spa_t)slbase);
         size_t sl_size = TEMPORARY_HARDCODED_MLE_SIZE;
 
         if(!tpm)
         {
+            printf("xmhf-bootloader: Failed to get <tpm>!\n");
+            HALT();
+        }
+
+        if(!tpm_detect())
+        {
             printf("xmhf-bootloader: Failed to get TPM version!\n");
             HALT();
         }
 
+        tpm_fp = get_tpm_fp();
         if(!tpm_fp)
         {
             printf("xmhf-bootloader: Failed to get <tpm_fp>!\n");

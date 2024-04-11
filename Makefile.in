@@ -360,6 +360,11 @@ ifeq ($(DMAP), y)
 	VFLAGS += -D__DMAP__
 endif
 
+ifeq ($(FORCE_TPM_1_2), y)
+	CFLAGS += -D__FORCE_TPM_1_2__
+	VFLAGS += -D__FORCE_TPM_1_2__
+endif
+
 CFLAGS += -D__SL_BASE__=$(SL_BASE)
 VFLAGS += -D__SL_BASE__=$(SL_BASE)
 
