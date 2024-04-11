@@ -2998,7 +2998,9 @@ static bool tpm20_init(struct tpm_if *ti)
         return false;
     }
     ti->banks = event_out.digests.count;
-    printf("TPM: supported bank count = %d\n", ti->banks);
+
+    // [TODO] XMHF-SL crashes in the next print. Need fix.
+    // printf("TPM: supported bank count = %d\n", ti->banks);
     for (i = 0; i < ti->banks; i++)
     {
         ti->algs_banks[i] = event_out.digests.digests[i].hash_alg;
@@ -3019,7 +3021,9 @@ static bool tpm20_init(struct tpm_if *ti)
             ti->alg_count++;
         }
     }
-    printf("tboot: supported alg count = %d\n", ti->alg_count);
+
+    // [TODO] XMHF-SL crashes in the next print. Need fix.
+    // printf("tboot: supported alg count = %d\n", ti->alg_count);
     for (unsigned int i = 0; i < ti->alg_count; i++)
     {
         // [TODO] XMHF-SL crashes in the next print. Need fix.

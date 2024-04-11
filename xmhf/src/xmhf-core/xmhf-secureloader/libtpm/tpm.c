@@ -954,9 +954,9 @@ void tpm_print(struct tpm_if *ti)
     if ( ti == NULL )
         return;
 
-    printf("TPM attribute:\n");
-    printf("\t extend policy: %d\n", ti->extpol);
     // [TODO] XMHF-SL crashes in the next print. Need fix.
+    // printf("TPM attribute:\n");
+    // printf("\t extend policy: %d\n", ti->extpol);
     // printf("\t current alg id: 0x%x\n", ti->cur_alg);
     // printf("\t timeout values: A: %u, B: %u, C: %u, D: %u\n", ti->timeout.timeout_a, ti->timeout.timeout_b, ti->timeout.timeout_c, ti->timeout.timeout_d);
 }
