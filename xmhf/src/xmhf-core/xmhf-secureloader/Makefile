@@ -18,7 +18,7 @@ AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-sup.S
 
 C_SOURCES = sl.c
 C_SOURCES += ./arch/x86/sl-x86.c
-C_SOURCES += ./hash/sha1.c ./hash/sha2.c ./hash/hash.c
+C_SOURCES += ./hash/sha2.c ./hash/hash.c
 
 OBJECTS = $(patsubst %.S, %.o, $(AS_SOURCES))
 OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
@@ -26,13 +26,12 @@ OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
 # current_dir = $(shell pwd)
 
 # LibTPM
-OBJECTS += ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
+OBJECTS += ./libtpm/tpm_common.o ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
 # CFLAGS += -I$(current_dir)/libtpm
 
 
 #tie components used by SL
 OBJECTS_PRECOMPILED = 
-OBJECTS_PRECOMPILED += ../xmhf-runtime/xmhf-debug/lib.a
 
 OBJECTS_PRECOMPILED += ../xmhf-runtime/xmhf-tpm/tpm-interface.o
 OBJECTS_PRECOMPILED += ../xmhf-runtime/xmhf-tpm/arch/x86/tpm-x86.o
@@ -65,7 +64,7 @@ OBJECTS_PRECOMPILED += ../xmhf-runtime/xmhf-baseplatform/arch/x86/vmx/bplt-x86vm
 endif
 
 # separate from OBJECTS_PRECOMPILED because needs to come after libs on link line
-OBJECTS_PRECOMPILED_LIBBACKENDS = ../xmhf-runtime/xmhf-xmhfcbackend/xmhfc-putchar.o ../xmhf-runtime/xmhf-debug/lib.a
+OBJECTS_PRECOMPILED_LIBBACKENDS = ../xmhf-runtime/xmhf-xmhfcbackend/xmhfc-putchar.o
 
 # FIXME: ADDL_INCLUDES is overly general; sl/ doesn't need all of them
 CFLAGS += $(ADDL_INCLUDES)
@@ -81,12 +80,20 @@ endif
 
 # targets
 .PHONY: all
+all: libxmhfc xmhf-debug sl.bin
 
-all: sl.bin
+.PHONY: libxmhfc
+libxmhfc:
+	@$(MAKE) -C ./libxmhfc all
+
+.PHONY: xmhf-debug
+xmhf-debug:
+	@$(MAKE) -C ./xmhf-debug all
 
 # FIXME: ADDL_LIBS is overly general; sl/ doesn't need all of them
 sl.bin: $(OBJECTS) $(OBJECTS_PRECOMPILED) sl.lds
-	$(LD) $(LDFLAGS) -T sl.lds -o sl.exe $(OBJECTS) $(OBJECTS_PRECOMPILED) $(ADDL_LIBS) $(OBJECTS_PRECOMPILED_LIBBACKENDS) -L$(CCLIB) -lgcc
+	$(LD) $(LDFLAGS) -T sl.lds -o sl.exe $(OBJECTS) $(OBJECTS_PRECOMPILED) $(OBJECTS_PRECOMPILED_LIBBACKENDS) ./libxmhfc/libemhfc.a ./xmhf-debug/debug.a -L$(CCLIB) -lgcc
+	# $(LD) $(LDFLAGS) -T sl.lds -o sl.exe $(OBJECTS) $(OBJECTS_PRECOMPILED) /home/superymk/greenbox/code/uberxmhf/_build_libbaremetal/_objects/libbaremetal.a $(OBJECTS_PRECOMPILED_LIBBACKENDS) -L$(CCLIB) -lgcc
 	$(CP) sl.exe sl_syms.exe
 	$(STRIP) -s sl.exe
 	$(OBJCOPY) --output-format=binary sl.exe sl.bin

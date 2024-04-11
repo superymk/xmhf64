@@ -96,6 +96,11 @@
 #include <stdio.h>
 #include <libtpm/tpm.h>
 #include <libtpm/tpm_20.h>
+#include "tpm_common.h"
+
+// // XMHF-SL only: The TPM functions used by XMHF-SL need a small input and output buffer only.
+// #define XMHF_SL_TPM20_MAX_COMMAND_SIZE   (96)
+// #define XMHF_SL_TPM20_MAX_RESPONSE_SIZE  (96)
 
 // XMHF: TODO: Workaround declarations
 
@@ -104,8 +109,8 @@ extern void copy_hash(tb_hash_t *dest_hash, const tb_hash_t *src_hash,
 
 // XMHF: TODO: End workaround declarations
 
-static u8 cmd_buf[MAX_COMMAND_SIZE];
-static u8 rsp_buf[MAX_RESPONSE_SIZE];
+// static u8 cmd_buf[XMHF_SL_TPM20_MAX_COMMAND_SIZE];
+// static u8 rsp_buf[XMHF_SL_TPM20_MAX_RESPONSE_SIZE];
 
 // XMHF: Remove unused external variable.
 // extern loader_ctx *g_ldr_ctx;

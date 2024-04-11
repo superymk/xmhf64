@@ -112,6 +112,7 @@
 #include <stdio.h>
 #include <print_hex.h>
 #include <libtpm/tpm.h>
+#include "tpm_common.h"
 
 /*
  * return code:
@@ -176,8 +177,12 @@ typedef uint8_t tpm_locality_selection_t;
  * specified as minimum cmd buffer size should be supported by all 1.2 TPM
  * device in the TCG_PCClientTPMSpecification_1-20_1-00_FINAL.pdf
  */
-#define TPM_CMD_SIZE_MAX 768
-#define TPM_RSP_SIZE_MAX 768
+// #define TPM_CMD_SIZE_MAX 768
+// #define TPM_RSP_SIZE_MAX 768
+
+// XMHF-SL only: The TPM functions used by XMHF-SL need a small input and output buffer only.
+#define TPM_CMD_SIZE_MAX   (XMHF_SL_TPM_MAX_COMMAND_SIZE)
+#define TPM_RSP_SIZE_MAX  (XMHF_SL_TPM_MAX_RESPONSE_SIZE)
 
 /*
  * The _tpm12_submit_cmd function comes with 2 global buffers: cmd_buf & rsp_buf.
@@ -204,8 +209,8 @@ typedef uint8_t tpm_locality_selection_t;
  *              The out_size MUST NOT be NULL.
  *   return   : TPM_SUCCESS for success, for other error code, refer to the .h
  */
-static uint8_t cmd_buf[TPM_CMD_SIZE_MAX];
-static uint8_t rsp_buf[TPM_RSP_SIZE_MAX];
+// static uint8_t cmd_buf[TPM_CMD_SIZE_MAX];
+// static uint8_t rsp_buf[TPM_RSP_SIZE_MAX];
 #define WRAPPER_IN_BUF (cmd_buf + CMD_HEAD_SIZE)
 #define WRAPPER_OUT_BUF (rsp_buf + RSP_HEAD_SIZE)
 #define WRAPPER_IN_MAX_SIZE (TPM_CMD_SIZE_MAX - CMD_HEAD_SIZE)
@@ -266,24 +271,29 @@ static uint32_t _tpm12_submit_cmd(uint32_t locality, uint16_t tag, uint32_t cmd,
     return ret;
 }
 
-static inline uint32_t tpm12_submit_cmd(uint32_t locality, uint32_t cmd, uint32_t arg_size, uint32_t *out_size)
+static uint32_t tpm12_submit_cmd(uint32_t locality, uint32_t cmd, uint32_t arg_size, uint32_t *out_size)
 {
     return _tpm12_submit_cmd(locality, TPM_TAG_RQU_COMMAND, cmd, arg_size, out_size);
 }
 
-static inline uint32_t tpm12_submit_cmd_auth1(uint32_t locality, uint32_t cmd,
+// XMHF: Disabled unused functions.
+#if 0
+
+static uint32_t tpm12_submit_cmd_auth1(uint32_t locality, uint32_t cmd,
                                               uint32_t arg_size, uint32_t *out_size)
 {
     return _tpm12_submit_cmd(locality, TPM_TAG_RQU_AUTH1_COMMAND, cmd,
                              arg_size, out_size);
 }
 
-static inline uint32_t tpm12_submit_cmd_auth2(uint32_t locality, uint32_t cmd,
+static uint32_t tpm12_submit_cmd_auth2(uint32_t locality, uint32_t cmd,
                                               uint32_t arg_size, uint32_t *out_size)
 {
     return _tpm12_submit_cmd(locality, TPM_TAG_RQU_AUTH2_COMMAND, cmd,
                              arg_size, out_size);
 }
+#endif // 0 XMHF unused functions
+
 
 typedef struct __packed
 {

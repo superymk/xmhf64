@@ -34,25 +34,36 @@
 
 #include "hash.h"
 
-// int sha1_mem(const void *m, size_t mlen, uint8_t *d)
-// {
-//     (void)m;(void)mlen;(void)d;
-//     return 0;
-// }
-
 int sha1_mem(const void *m, size_t mlen, uint8_t *d)
 {
-    SHA1_CTX ctx;
+    SHA2_CTX ctx;
+    uint8_t d_sha256[SHA256_DIGEST_LENGTH];
 
     if(!m || !mlen || !d)
         return -1;
 
-    SHA1Init(&ctx);
-	SHA1Update(&ctx, (const uint8_t *)m, mlen);
-	SHA1Final(d, &ctx);
+    SHA256Init(&ctx);
+	SHA256Update(&ctx, (const uint8_t *)m, mlen);
+	SHA256Final(d_sha256, &ctx);
+
+    memcpy(d, d_sha256, SHA1_DIGEST_LENGTH);
 
     return 0;
 }
+
+// int sha1_mem(const void *m, size_t mlen, uint8_t *d)
+// {
+//     SHA1_CTX ctx;
+
+//     if(!m || !mlen || !d)
+//         return -1;
+
+//     SHA1Init(&ctx);
+// 	SHA1Update(&ctx, (const uint8_t *)m, mlen);
+// 	SHA1Final(d, &ctx);
+
+//     return 0;
+// }
 
 int sha2_256_mem(const void *m, size_t mlen, uint8_t *d)
 {
