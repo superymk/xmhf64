@@ -886,6 +886,7 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
         }
 
         // Measure xmhf-runtime
+        printf("SL: Measure xmhf-SL start\n");
         if(tpm->major == TPM12_VER_MAJOR)
         {
             result = sha1_mem(slbase_ptr, sl_size, digest.sha1_digest);
@@ -942,6 +943,8 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
             }
         }
         // No need to check invalid <tpm->major> again, because we have checked it.
+
+        printf("xmhf-bootloader: Extended xmhf-SL measurement\n");
     }
 
     // Start the xmhf-SL
