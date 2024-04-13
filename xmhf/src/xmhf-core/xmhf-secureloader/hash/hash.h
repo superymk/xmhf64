@@ -32,7 +32,14 @@ union sha_digest
     uint8_t sha2_256_digest[SHA256_DIGEST_LENGTH];
 };
 
-extern int sha1_mem(const void *m, size_t mlen, uint8_t *d);
+// extern int sha1_mem(const void *m, size_t mlen, uint8_t *d);
+
+/// @brief Save code space in xmhf-SL by replacing SHA1 with SHA256 truncated to 20 bytes.
+/// @param m 
+/// @param mlen 
+/// @param d 
+/// @return 
+extern int sha2_256_mem_to_20bytes(const void *m, size_t mlen, uint8_t *d);
 extern int sha2_256_mem(const void *m, size_t mlen, uint8_t *d);
 
 #endif // __ASSEMBLY__

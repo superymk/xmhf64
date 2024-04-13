@@ -34,7 +34,7 @@
 
 #include "hash.h"
 
-int sha1_mem(const void *m, size_t mlen, uint8_t *d)
+int sha2_256_mem_to_20bytes(const void *m, size_t mlen, uint8_t *d)
 {
     SHA2_CTX ctx;
     uint8_t d_sha256[SHA256_DIGEST_LENGTH];

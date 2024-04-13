@@ -419,7 +419,7 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb){
         printf("SL: Measure xmhf-runtime start. XMHF-runtime code and data size:0x%lX\n", xmhf_rt_code_data_size);
         if(tpm->major == TPM12_VER_MAJOR)
         {
-            result = sha1_mem((void*)__TARGET_BASE, xmhf_rt_code_data_size, digest.sha1_digest);
+            result = sha2_256_mem_to_20bytes((void*)__TARGET_BASE, xmhf_rt_code_data_size, digest.sha1_digest);
             if(result)
             {
                 printf("SL: Measure xmhf-runtime with SHA1 error!\n");
