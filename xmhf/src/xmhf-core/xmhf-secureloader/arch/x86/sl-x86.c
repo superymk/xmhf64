@@ -394,6 +394,7 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb){
         struct tpm_if *tpm = get_tpm();
         const struct tpm_if_fp *tpm_fp = NULL;
         int result = 0;
+        size_t xmhf_rt_code_data_size = rpb->XtVmmRuntimeDataEnd - __TARGET_BASE;
 
         if(!tpm)
         {
@@ -415,10 +416,10 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb){
         }
 
         // Measure xmhf-runtime
-        printf("SL: Measure xmhf-runtime start\n");
+        printf("SL: Measure xmhf-runtime start. XMHF-runtime code and data size:0x%lX\n", xmhf_rt_code_data_size);
         if(tpm->major == TPM12_VER_MAJOR)
         {
-            result = sha1_mem((void*)__TARGET_BASE, rpb->XtVmmRuntimeSize, digest.sha1_digest);
+            result = sha1_mem((void*)__TARGET_BASE, xmhf_rt_code_data_size, digest.sha1_digest);
             if(result)
             {
                 printf("SL: Measure xmhf-runtime with SHA1 error!\n");
@@ -427,7 +428,7 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb){
         }
         else if(tpm->major == TPM20_VER_MAJOR)
         {
-            result = sha2_256_mem((void*)__TARGET_BASE, rpb->XtVmmRuntimeSize, digest.sha2_256_digest);
+            result = sha2_256_mem((void*)__TARGET_BASE, xmhf_rt_code_data_size, digest.sha2_256_digest);
             if(result)
             {
                 printf("SL: Measure xmhf-runtime with SHA256 error!\n");

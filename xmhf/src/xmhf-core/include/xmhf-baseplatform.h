@@ -134,6 +134,9 @@ extern volatile u32 g_lock_ap_go_signal __attribute__(( section(".data") ));
 //Flag of whether all cores have booted up. Set to 1 if so, otherwise 0.
 extern u32 g_all_cores_booted_up __attribute__(( section(".data") ));
 
+// The end of the XMHF-runtime's data section
+extern uint32_t _end_rt_data[];
+
 #ifdef __SKIP_RUNTIME_BSS__
 extern u32 _begin_rt_bss[];
 extern u32 _end_rt_bss[];
