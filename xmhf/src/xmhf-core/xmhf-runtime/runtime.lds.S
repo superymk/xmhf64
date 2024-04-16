@@ -100,6 +100,7 @@ SECTIONS
     KEEP(*(.xcph_table))
     *(.xcph_table)
     _end_xcph_table = .;
+    _end_rt_data = .;
   } =0x9090
 
   /*

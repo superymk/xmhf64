@@ -46,7 +46,7 @@
 
 /*
  * XMHF: The following file is taken from:
- *  tboot-1.10.5/tboot/common/tpm_12.c
+ *  tboot-1.11.3/tboot/common/tpm_12.c
  * Changes made include:
  *  Disabled unused functions.
  * List of functions disabled:
@@ -111,7 +111,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <print_hex.h>
-#include <tpm.h>
+#include <libtpm/tpm.h>
 
 /*
  * return code:

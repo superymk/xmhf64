@@ -6,8 +6,16 @@
 # TODO: Fix it.
 # OBJECTS_PRECOMPILED = ./xmhf-debug/lib.a
 
+OBJECTS_PRECOMPILED =
+
+# LibTPM for XMHF-Runtime only
+OBJECTS_PRECOMPILED += ./libtpm/tpm_12.o
+OBJECTS_PRECOMPILED += ./libtpm/tpm_20.o
+OBJECTS_PRECOMPILED += ./libtpm/tpm.o
+
+# XMHF-TPM
 # OBJECTS_PRECOMPILED += ./xmhf-tpm/tpm-interface.o 
-OBJECTS_PRECOMPILED = ./xmhf-tpm/tpm-interface.o 
+OBJECTS_PRECOMPILED += ./xmhf-tpm/tpm-interface.o 
 OBJECTS_PRECOMPILED += ./xmhf-tpm/arch/x86/tpm-x86.o
 OBJECTS_PRECOMPILED += ./xmhf-tpm/arch/x86/svm/tpm-x86svm.o
 OBJECTS_PRECOMPILED += ./xmhf-tpm/arch/x86/vmx/tpm-x86vmx.o
@@ -119,8 +127,10 @@ OBJECTS_PRECOMPILED_LIBBACKENDS = ./xmhf-xmhfcbackend/xmhfc-putchar.o
 OBJECTS_PRECOMPILED_LIBBACKENDS += ./xmhf-xmhfcbackend/stl/xmhfc-bitmap.o
 OBJECTS_PRECOMPILED_LIBBACKENDS += ./xmhf-xmhfcbackend/stl/xmhfc-dlist.o
 
+# LibTPM component
+RUNTIME_COMPONENTS = libtpm
 #XMHF memory protection component
-RUNTIME_COMPONENTS = xmhf-memprot
+RUNTIME_COMPONENTS += xmhf-memprot
 #XMHF Memory management component
 RUNTIME_COMPONENTS += xmhf-mm
 #XMHF partition event-hub component
@@ -193,6 +203,7 @@ clean:
 	$(RM) -rf *.lds
 	$(RM) -rf *.sha1
 
+	cd libtpm && $(MAKE) -w clean
 	cd xmhf-mm && $(MAKE) -w clean
 	cd xmhf-memprot && $(MAKE) -w clean
 	cd xmhf-eventhub && $(MAKE) -w clean

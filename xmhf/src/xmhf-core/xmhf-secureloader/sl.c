@@ -49,6 +49,7 @@
 //author: amit vasudevan (amitvasudevan@acm.org)
 
 #include <xmhf.h>
+#include "./hash/hash.h"
 
 RPB * rpb;
 u32 sl_baseaddr=0;
@@ -125,8 +126,8 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 	//xmhf_baseplatform_arch_x86_acpi_getRSDP() cannot find ACPI RSDP.
 	g_uefi_rsdp = slpb.uefi_acpi_rsdp;
 
-	//initialize debugging early on
-	xmhf_debug_init((char *)&slpb.uart_config);
+	// //initialize debugging early on
+	// xmhf_debug_init((char *)&slpb.uart_config);
 
 	//initialze sl_baseaddr variable and print its value out
 	sl_baseaddr = baseaddr;

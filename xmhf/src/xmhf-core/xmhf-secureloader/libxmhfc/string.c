@@ -44,24 +44,66 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-#include <xmhf.h>
+#include <stdint.h>
+#include <string.h>
 
-void *emhfc_putchar_arg;
+void *memmove(void *dst_void, const void *src_void, size_t length){
+  char *dst = dst_void;
+  const char *src = src_void;
 
-static u32 emhfc_putchar_linelock_spinlock = 1;
-void *emhfc_putchar_linelock_arg = &emhfc_putchar_linelock_spinlock;
+  if (src < dst && dst < src + length){
+      // Have to copy backwards
+      src += length;
+      dst += length;
+      while (length--){
+	     *--dst = *--src;
+	     }
+  }else{
+      while (length--){
+	     *dst++ = *src++;
+	    }
+  }
 
-void emhfc_putchar(int ch, void *arg)
-{
-  (void)ch;(void)arg;
+  return dst_void;
 }
 
-void emhfc_putchar_linelock(void *arg)
-{
-  (void)arg;
+
+size_t strnlen(const char * s, size_t count){
+	const char *sc;
+
+	for (sc = s; count-- && *sc != '\0'; ++sc);
+	return (size_t)(sc - s);
 }
 
-void emhfc_putchar_lineunlock(void *arg)
+void *memcpy(void * to, const void * from, size_t n)
 {
-  (void)arg;
+  size_t i;
+  for(i=0; i<n; i++) {
+    ((uint8_t*)to)[i] = ((const uint8_t*)from)[i];
+  }
+  return to;
 }
+
+void *memset (void *str, int c, size_t len) {
+  register u8 *st = str;
+
+  while (len-- > 0)
+    *st++ = (u8)c;
+  return str;
+}
+
+#ifndef HAVE_MEMCMP
+int
+memcmp(const void *s1, const void *s2, size_t n)
+{
+    if (n != 0) {
+        const unsigned char *p1 = s1, *p2 = s2;
+
+        do {
+            if (*p1++ != *p2++)
+                return (*--p1 - *--p2);
+        } while (--n != 0);
+    }
+    return (0);
+}
+#endif /* HAVE_MEMCMP */

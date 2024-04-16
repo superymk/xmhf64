@@ -47,8 +47,14 @@
 //init.c - EMHF early initialization blob functionality
 //author: amit vasudevan (amitvasudevan@acm.org)
 
+// author: Miao Yu (superymk)
+// Implement SRTM and the chain of measurement missed in DRTM.
+
 //---includes-------------------------------------------------------------------
 #include <xmhf.h>
+#include "./hash/hash.h"
+
+#define TPM_PCR_BOOT_STATE   (7)
 
 //---forward prototypes---------------------------------------------------------
 u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp);
@@ -848,6 +854,100 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
     printf("INIT(early): sent INIT IPI to APs\n");
 #endif
 
+    // Measure xmhf-SL into TPM PCR7 (TPM_PCR_BOOT_STATE)
+    // [NOTE] Even with DRTM enabled, xmhf-bootloader must measure xmhf-SL into PCR7 to maintain the security of red OS.
+    // Otherwise, remote attackers can compromise xmhf-SL or xmhf-runtime to steal Bitlocker "volume master key" without
+    // getting exposed in PCR7 (or anywhere in PCR0-15). 
+    {
+        union sha_digest digest = {0};
+        struct tpm_if *tpm = get_tpm();
+        const struct tpm_if_fp *tpm_fp = NULL;
+        int result = 0;
+        void* slbase_ptr = spa2hva((spa_t)slbase);
+        size_t sl_size = TEMPORARY_HARDCODED_MLE_SIZE;
+
+        if(!tpm)
+        {
+            printf("xmhf-bootloader: Failed to get <tpm>!\n");
+            HALT();
+        }
+
+        if(!tpm_detect())
+        {
+            printf("xmhf-bootloader: Failed to get TPM version!\n");
+            HALT();
+        }
+
+        tpm_fp = get_tpm_fp();
+        if(!tpm_fp)
+        {
+            printf("xmhf-bootloader: Failed to get <tpm_fp>!\n");
+            HALT();
+        }
+
+        // Measure xmhf-runtime
+        printf("SL: Measure xmhf-SL start\n");
+        if(tpm->major == TPM12_VER_MAJOR)
+        {
+            result = sha1_mem(slbase_ptr, sl_size, digest.sha1_digest);
+            if(result)
+            {
+                printf("xmhf-bootloader: Measure xmhf-sl with SHA1 error!\n");
+                HALT();
+            }
+        }
+        else if(tpm->major == TPM20_VER_MAJOR)
+        {
+            result = sha2_256_mem(slbase_ptr, sl_size, digest.sha2_256_digest);
+            if(result)
+            {
+                printf("xmhf-bootloader: Measure xmhf-sl with SHA256 error!\n");
+                HALT();
+            }
+        }
+        else
+        {
+            printf("xmhf-bootloader: Invalid TPM version!\n");
+            HALT();
+        }
+
+        //// Extend into PCRs
+        if(tpm->major == TPM12_VER_MAJOR)
+        {
+            hash_list_t hl;
+
+            hl.count = 1;
+            hl.entries[0].alg = TB_HALG_SHA1;
+            memcpy(&hl.entries[0].hash.sha1, digest.sha1_digest, SHA1_DIGEST_LENGTH);
+
+            result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
+            if(!result)
+            {
+                printf("xmhf-bootloader (TPM1.2): Extend to PCR7 error!\n");
+                HALT();
+            }
+        }
+        else if(tpm->major == TPM20_VER_MAJOR)
+        {
+            hash_list_t hl;
+
+            hl.count = 1;
+            hl.entries[0].alg = TB_HALG_SHA256;
+            memcpy(&hl.entries[0].hash.sha256, digest.sha2_256_digest, SHA256_DIGEST_LENGTH);
+
+            result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
+            if(!result)
+            {
+                printf("xmhf-bootloader (TPM2): Extend to PCR7 error!\n");
+                HALT();
+            }
+        }
+        // No need to check invalid <tpm->major> again, because we have checked it.
+
+        printf("xmhf-bootloader: Extended xmhf-SL measurement\n");
+    }
+
+    // Start the xmhf-SL
 #if defined (__DRT__)
 
     if(vcpu->cpu_vendor == CPU_VENDOR_AMD){
@@ -1425,6 +1525,8 @@ void mp_cstartup (VCPU *vcpu){
             xmhf_cpu_relax();
         }
 #endif /* __SKIP_INIT_SMP__ */
+
+        // Measure 
 
         //put all APs in INIT state
 

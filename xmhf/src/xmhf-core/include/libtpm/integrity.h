@@ -46,7 +46,7 @@
 
 /*
  * XMHF: The following file is taken from:
- *  tboot-1.10.5/tboot/include/integrity.h
+ *  tboot-1.11.3/tboot/include/integrity.h
  * Changes made include:
  *  Skip including poly1305.h.
  */
@@ -90,7 +90,7 @@
 #ifndef _TBOOT_INTEGRITY_H_
 #define _TBOOT_INTEGRITY_H_
 
-#include <hash.h>
+#include "hash.h"
 
 // XMHF: Skip including poly1305.h.
 //#include <poly1305.h>

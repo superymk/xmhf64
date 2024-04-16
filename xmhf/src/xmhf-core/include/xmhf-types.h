@@ -125,6 +125,7 @@ typedef struct {
 #elif !defined(__XMHF_I386__)
     #error "Unsupported Arch"
 #endif /* !defined(__XMHF_I386__) */
+    hva_t   XtVmmRuntimeDataEnd;        // End of the xmhf-runtime DATA section
     hva_t   XtVmmPdptBase;
     hva_t   XtVmmPdtsBase;
     hva_t   XtGuestOSBootModuleBase;

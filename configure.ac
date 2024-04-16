@@ -306,6 +306,17 @@ AS_IF([test "x${enable_dmap}" != "xno"],
       [DMAP=y],
       [DMAP=n])
 
+# Force Enable TPM 1.2 not TPM 2
+AC_SUBST([FORCE_TPM_1_2])
+AC_ARG_ENABLE([force-tpm12],
+        AS_HELP_STRING([--enable-force-tpm12@<:@=yes|no@:>@],
+                [enable TPM 1.2 not TPM 2]),
+                , [enable_force_tpm_1_2=yes])
+AS_IF([test "x${enable_force_tpm_1_2}" != "xno"],
+      [FORCE_TPM_1_2=y],
+      [FORCE_TPM_1_2=n])
+
+
 # select address of SL and runtime
 AC_SUBST([SL_BASE])
 AC_ARG_WITH([sl_base],

@@ -282,8 +282,9 @@ sl_startnew:
     movw %bx, %fs
     movw %bx, %gs
 
-    /* Setup ESP to top of 64K (it will already be there on AMD)*/
-    movl $0x10000, %esp /* XXX TODO Get rid of magic number*/
+    /* Setup ESP to the top of 2MB */
+    /* [TODO][Issue 139] In AMD-SEV (DRTM only), xmhf-sl does not DMA protect the memory [SL_Base+64KB, SL_BASE+2MB) prior to access the memory region. */
+    movl $0x200000, %esp /* XXX TODO Get rid of magic number*/
 
 /*#ifdef __INIT_LATE__
     //setup 115200,8n1 on ttyS0

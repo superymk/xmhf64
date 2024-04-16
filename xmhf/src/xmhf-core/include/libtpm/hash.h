@@ -46,7 +46,7 @@
 
 /*
  * XMHF: The following file is taken from:
- *  tboot-1.10.5/include/hash.h
+ *  tboot-1.11.3/include/hash.h
  * Changes made include:
  *  Split to hash.h (in libbaremetal) and _txt_hash.h (in xmhf-core).
  * List of symbols in hash.h (others are in _txt_hash.h):
