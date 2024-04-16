@@ -86,7 +86,7 @@ endif
 
 # targets
 .PHONY: all
-all: libxmhfc xmhf-debug sl.bin
+all: sl.bin
 
 .PHONY: libxmhfc
 libxmhfc:
@@ -97,7 +97,7 @@ xmhf-debug:
 	@$(MAKE) -C ./xmhf-debug all
 
 # FIXME: ADDL_LIBS is overly general; sl/ doesn't need all of them
-sl.bin: $(OBJECTS) $(OBJECTS_PRECOMPILED) sl.lds
+sl.bin: $(OBJECTS) $(OBJECTS_PRECOMPILED) libxmhfc xmhf-debug sl.lds
 	$(LD) $(LDFLAGS) -T sl.lds -o sl.exe $(OBJECTS) $(OBJECTS_PRECOMPILED) $(OBJECTS_PRECOMPILED_LIBBACKENDS) ./libxmhfc/libemhfc.a ./xmhf-debug/debug.a -L$(CCLIB) -lgcc
 	# $(LD) $(LDFLAGS) -T sl.lds -o sl.exe $(OBJECTS) $(OBJECTS_PRECOMPILED) /home/superymk/greenbox/code/uberxmhf/_build_libbaremetal/_objects/libbaremetal.a $(OBJECTS_PRECOMPILED_LIBBACKENDS) -L$(CCLIB) -lgcc
 	$(CP) sl.exe sl_syms.exe

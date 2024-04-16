@@ -103,7 +103,9 @@ shift
 while [ "$#" -gt 0 ]; do
 	case "$1" in
 		--drt)
-			DRT="y"
+            # DRT="y" # Force disable DRT because (1) We need to separate Intel code and AMD code to reduce its size, 
+            # (2) current implementation is insecure, see [Issue 139]
+			DRT="n"
 			;;
 		--dmap)
 			DMAP="y"
@@ -168,7 +170,9 @@ while [ "$#" -gt 0 ]; do
 			;;
 		release)
 			# For GitHub actions
-			DRT="y"
+            # DRT="y" # Force disable DRT because (1) We need to separate Intel code and AMD code to reduce its size, 
+            # (2) current implementation is insecure, see [Issue 139]
+			DRT="n" 
 			DMAP="y"
 			QEMU="n"
 			;;
