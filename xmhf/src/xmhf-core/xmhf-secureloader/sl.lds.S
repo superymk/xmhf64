@@ -110,7 +110,6 @@ SECTIONS
     *(.rodata.*)
     *(.rel.rodata)
     *(.rel.rodata.*)
-    . = ALIGN(0x10000);
   } >low
 
   /* protected DMA protection buffer for DMA protection boot-strapping */
