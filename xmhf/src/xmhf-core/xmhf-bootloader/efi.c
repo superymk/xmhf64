@@ -47,34 +47,7 @@
 //efi.c - XMHF UEFI entry point
 //author: Eric Li (xiaoyili@andrew.cmu.edu)
 
-/* Hack: GCC cannot find <wchar.h>, so manually define wchar_t here */
-typedef short unsigned int wchar_t;
-/* Hack: tomcrypt assumes wchar_t is 4 bytes, so don't include it */
-#define TOMCRYPT_H_
-/* Include XMHF headers */
-#include <xmhf.h>
-/* Hack: gnu-efi provides efistdarg.h, so undefine related macros here */
-#undef va_start
-#undef va_arg
-#undef va_end
-
-#include <efi.h>
-#include <efilib.h>
-
-/* HALT() contains an infinite loop to indicate that it never exits */
-#define HALT() do { __asm__ __volatile__ ("hlt\r\n"); } while (1)
-
-#define UEFI_CALL(...) \
-	do { \
-		EFI_STATUS _status; \
-		_status = uefi_call_wrapper(__VA_ARGS__); \
-		if (EFI_ERROR(_status)) { \
-			printf("UEFI_CALL(%s) error at %s:%d (status = 0x%08lx)\n", \
-				   #__VA_ARGS__, __FILE__, __LINE__, _status); \
-			Print(L"UEFI_CALL error at line %d, returns EFI_STATUS: %r\n", __LINE__, _status); \
-			HALT(); \
-		} \
-	} while(0)
+#include "efi/header.h"
 
 /*
  * Configuration file for XMHF bootloader.
@@ -312,41 +285,7 @@ static EFI_FILE_HANDLE xmhf_efi_open_config(EFI_FILE_HANDLE volume,
 	return file_handle;
 }
 
-/*
- * Return size of opened file.
- *
- * file_handle: opened file handle.
- * Return size of file.
- */
-static UINT64 xmhf_efi_get_file_size(EFI_FILE_HANDLE file_handle)
-{
-	UINTN size = 0;
-	EFI_FILE_INFO *info = NULL;
-	UINT64 ans = 0;
 
-	/* Get buffer size */
-	{
-		EFI_STATUS status;
-		status = uefi_call_wrapper(file_handle->GetInfo, 4, file_handle,
-								   &GenericFileInfo, &size, info);
-		HALT_ON_ERRORCOND(status == EFI_BUFFER_TOO_SMALL);
-	}
-
-	/* Allocate buffer */
-	HALT_ON_ERRORCOND((info = AllocatePool(size)) != NULL);
-
-	/* Get buffer */
-	UEFI_CALL(file_handle->GetInfo, 4, file_handle, &GenericFileInfo, &size,
-			  info);
-
-	/* Record ans */
-	ans = info->FileSize;
-
-	/* Free buffer */
-	FreePool(info);
-
-	return ans;
-}
 
 /*
  * Read and parse config file.
@@ -365,7 +304,7 @@ static void xmhf_efi_read_config(EFI_FILE_HANDLE file_handle,
 	UINT64 index;
 
 	/* Prepare buffer */
-	size = xmhf_efi_get_file_size(file_handle);
+	size = efi_file_get_size(file_handle);
 	buf_size = size + 1;
 	HALT_ON_ERRORCOND(buf_size > size);
 	HALT_ON_ERRORCOND((buf = AllocatePool(buf_size)) != NULL);
@@ -444,7 +383,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 
 	/* Get file size */
 	start = __TARGET_BASE_SL;
-	file_size = xmhf_efi_get_file_size(file_handle);
+	file_size = efi_file_get_size(file_handle);
 	nonzero_end = start + file_size;
 	HALT_ON_ERRORCOND(nonzero_end > start);
 
@@ -534,7 +473,7 @@ static void xmhf_efi_load_sinit(EFI_FILE_HANDLE volume, char *pathname,
 	FreePool(wpathname);
 
 	/* Get file size */
-	file_size = xmhf_efi_get_file_size(file_handle);
+	file_size = efi_file_get_size(file_handle);
 
 	/* Compute buffer size (larger than file size, 4K aligned) */
 	buf_size = PA_PAGE_ALIGN_UP_4K(file_size + 1);
@@ -832,6 +771,28 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	{
 		xmhf_efi_refresh_guest_state(&efi_info);
 	}
+
+    // Measure OS bootloader
+    // [TODO][Issue 141] In BIOS mode (not UEFI), Measure OS bootloader to PCR 7.
+    {
+        EFI_FILE_HANDLE volume = NULL;
+        CHAR16* os_bootloader_filepath = NULL;
+
+        volume = efi_os_bootloader_find(&os_bootloader_filepath);
+        if(volume)
+        {
+            int ret = 0;
+
+#define EFI_OS_BOOTLOADER_MEASURE_EXTEND_LOCALITY   (0)
+#define EFI_OS_BOOTLOADER_MEASURE_EXTEND_PCR        (7)
+
+            ret = efi_file_measure_and_extend_in_tpm(volume, os_bootloader_filepath, EFI_OS_BOOTLOADER_MEASURE_EXTEND_LOCALITY, EFI_OS_BOOTLOADER_MEASURE_EXTEND_PCR);
+            if(!ret)
+            {
+                Print(L"Measured OS bootloader: %s\n", os_bootloader_filepath);
+            }
+        }
+    }
 
 	/* Clean up */
 	{
