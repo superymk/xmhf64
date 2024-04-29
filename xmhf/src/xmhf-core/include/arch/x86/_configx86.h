@@ -75,7 +75,7 @@
 #endif /* !defined(__I386__) && !defined(__AMD64__) */
 
 //8K stack for each core in "init"
-#define INIT_STACK_SIZE					(8192)
+#define INIT_STACK_SIZE					(65536)//(8192)
 
 //maximum system memory map entries (e.g., E820) currently supported
 #define MAX_E820_ENTRIES    			(64)

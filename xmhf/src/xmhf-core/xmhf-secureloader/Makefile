@@ -18,7 +18,7 @@ AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-sup.S
 
 C_SOURCES = sl.c
 C_SOURCES += ./arch/x86/sl-x86.c
-C_SOURCES += ./hash/sha2.c ./hash/hash.c
+# C_SOURCES += ./hash/sha2.c ./hash/hash.c
 
 OBJECTS = $(patsubst %.S, %.o, $(AS_SOURCES))
 OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
@@ -26,7 +26,8 @@ OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
 # current_dir = $(shell pwd)
 
 # LibTPM
-OBJECTS += ./libtpm/tpm_common.o ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
+# OBJECTS += ./libtpm/tpm_common.o ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
+OBJECTS += ./libtpm/tpm_common.o ./libtpm/tpm_20.o ./libtpm/tpm.o
 # CFLAGS += -I$(current_dir)/libtpm
 
 

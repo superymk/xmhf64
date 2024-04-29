@@ -2967,42 +2967,42 @@ static bool tpm20_init(struct tpm_if *ti)
     event_in.data.t.buffer[1] = 0xff;
     event_in.data.t.buffer[2] = 0x55;
     event_in.data.t.buffer[3] = 0xaa;
-    ret = _tpm20_pcr_event(ti->cur_loc, &event_in, &event_out);
-    if (ret != TPM_RC_SUCCESS)
-    {
-        printf("TPM: PcrEvent not successful, return value = %08X\n", ret);
-        ti->error = ret;
-        return false;
-    }
-    ti->banks = event_out.digests.count;
-    printf("TPM: supported bank count = %d\n", ti->banks);
-    for (i = 0; i < ti->banks; i++)
-    {
-        ti->algs_banks[i] = event_out.digests.digests[i].hash_alg;
-        ;
-        printf("TPM: bank alg = %08x\n", ti->algs_banks[i]);
-    }
+    // ret = _tpm20_pcr_event(ti->cur_loc, &event_in, &event_out);
+    // if (ret != TPM_RC_SUCCESS)
+    // {
+    //     printf("TPM: PcrEvent not successful, return value = %08X\n", ret);
+    //     ti->error = ret;
+    //     return false;
+    // }
+    // ti->banks = event_out.digests.count;
+    // printf("TPM: supported bank count = %d\n", ti->banks);
+    // for (i = 0; i < ti->banks; i++)
+    // {
+    //     ti->algs_banks[i] = event_out.digests.digests[i].hash_alg;
+    //     ;
+    //     printf("TPM: bank alg = %08x\n", ti->algs_banks[i]);
+    // }
 
-    /* init supported alg list */
-    ti->alg_count = 0;
-    for (i = 0; i < ti->banks; i++)
-    {
-        if (alg_is_supported(ti->algs_banks[i]))
-        {
-            ti->algs[ti->alg_count] = ti->algs_banks[i];
-            ti->alg_count++;
-        }
-    }
-    printf("tboot: supported alg count = %d\n", ti->alg_count);
-    for (unsigned int i = 0; i < ti->alg_count; i++)
-        printf("tboot: hash alg = %08X\n", ti->algs[i]);
+    // /* init supported alg list */
+    // ti->alg_count = 0;
+    // for (i = 0; i < ti->banks; i++)
+    // {
+    //     if (alg_is_supported(ti->algs_banks[i]))
+    //     {
+    //         ti->algs[ti->alg_count] = ti->algs_banks[i];
+    //         ti->alg_count++;
+    //     }
+    // }
+    // printf("tboot: supported alg count = %d\n", ti->alg_count);
+    // for (unsigned int i = 0; i < ti->alg_count; i++)
+    //     printf("tboot: hash alg = %08X\n", ti->algs[i]);
 
-    /* reset debug PCR 16 */
-    if (!tpm20_pcr_reset(ti, ti->cur_loc, 16))
-    {
-        printf("TPM: tpm20_pcr_reset failed...\n");
-        return false;
-    }
+    // /* reset debug PCR 16 */
+    // if (!tpm20_pcr_reset(ti, ti->cur_loc, 16))
+    // {
+    //     printf("TPM: tpm20_pcr_reset failed...\n");
+    //     return false;
+    // }
 
     // XMHF: Skip CreatePrimary() to be faster (cannot tpm_seal / unseal).
     if (1)

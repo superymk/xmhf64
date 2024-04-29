@@ -94,6 +94,7 @@ ifdef SLBELOW64K_INTEGRITY_HASH
 CFLAGS += -D___SLBELOW64K_INTEGRITY_HASH___=\"$(SLBELOW64K_INTEGRITY_HASH)\"
 endif
 
+CFLAGS := $(filter-out -Werror,$(CFLAGS))
 
 # targets
 .PHONY: all

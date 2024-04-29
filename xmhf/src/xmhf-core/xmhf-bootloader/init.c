@@ -841,6 +841,104 @@ static bool svm_prepare_cpu(void)
 }
 #endif /* __DRT__ */
 
+
+bool is_tpm_crb2(void)
+{
+     tpm_crb_interface_id_t crb_interface;
+     read_tpm_reg(0, TPM_INTERFACE_ID, &crb_interface);
+     if (crb_interface.interface_type == TPM_INTERFACE_ID_CRB  ) {
+	 printf("TPM: PTP CRB interface is active...\n");
+	 if (g_tpm_family != TPM_IF_20_CRB ) g_tpm_family = TPM_IF_20_CRB;
+        return true;
+     }
+     if (crb_interface.interface_type == TPM_INTERFACE_ID_FIFO_20) {
+	  printf("TPM: TPM 2.0 FIFO interface is active...\n");
+	  if (g_tpm_family != TPM_IF_20_FIFO) g_tpm_family = TPM_IF_20_FIFO;
+     }
+     return false;
+}
+
+bool is_tpm_crb3(void)
+{
+    g_tpm_family = TPM_IF_20_FIFO;
+    return false;
+}
+
+bool tpm_detect2(void)
+{
+    struct tpm_if *tpm = get_tpm(); /* Don't leave tpm as NULL */
+    const struct tpm_if_fp *tpm_fp;
+    if (is_tpm_crb3()) {
+         printf("TPM: This is Intel PTT, TPM Family 0x%d\n", g_tpm_family);
+         if (!txt_is_launched()) {
+               if ( tpm_validate_locality_crb(0) )
+	             printf("TPM: CRB_INF Locality 0 is open\n");
+		 else {
+		 	printf("TPM: CRB_INF request access to Locality 0...\n");
+			if (!tpm_request_locality_crb(0)) {
+			        printf("TPM: CRB_INF Locality 0 request failed...\n");
+				 return false;
+			 }
+                }
+	  }
+    	  else {
+              if ( tpm_validate_locality_crb(2) )
+		     printf("TPM: CRB_INF Locality 2 is open\n");
+		else {
+		      printf("TPM: CRB_INF request access to Locality 2...\n");
+		      if (!tpm_request_locality_crb(2)) {
+		 	     printf("TPM: CRB_INF Locality 2 request failed...\n");
+                          return false;
+			}
+		}
+    	  }
+    }
+    else {
+		g_tpm_ver = TPM_VER_12;
+		tpm_fp = get_tpm_fp(); /* Don't leave tpm_fp as NULL */
+
+		if ( tpm_validate_locality(0) )  printf("TPM: FIFO_INF Locality 0 is open\n");
+		else {
+			printf("TPM: FIFO_INF Locality 0 is not open\n");
+			return false;
+			}
+		/* determine TPM family from command check */
+		if ( tpm_fp->check() )  {
+			g_tpm_family = TPM_IF_12;
+			printf("TPM: discrete TPM1.2 Family 0x%d\n", g_tpm_family);
+			}
+		else {
+			g_tpm_family = TPM_IF_20_FIFO;
+			printf("TPM: discrete TPM2.0 Family 0x%d\n", g_tpm_family);
+			}
+	}
+
+    if (g_tpm_family == TPM_IF_12)  g_tpm_ver = TPM_VER_12;
+    if (g_tpm_family == TPM_IF_20_FIFO)  g_tpm_ver = TPM_VER_20;
+    if (g_tpm_family == TPM_IF_20_CRB)  g_tpm_ver = TPM_VER_20;
+
+    tpm_fp = get_tpm_fp();
+    return tpm_fp->init(tpm);
+}
+
+bool tpm_detect3(void)
+{
+    struct tpm_if *tpm = get_tpm(); /* Don't leave tpm as NULL */
+    const struct tpm_if_fp *tpm_fp;
+
+    is_tpm_crb3();
+    g_tpm_ver = TPM_VER_20;
+
+    tpm_fp = get_tpm_fp();
+    (void)tpm;(void)tpm_fp;
+    
+    
+    return tpm_fp->init(tpm);
+}
+
+
+
+
 //---do_drtm--------------------------------------------------------------------
 //this establishes a dynamic root of trust
 //inputs:
@@ -861,7 +959,7 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
     {
         union sha_digest digest = {0};
         struct tpm_if *tpm = get_tpm();
-        const struct tpm_if_fp *tpm_fp = get_tpm_fp();
+        struct tpm_if_fp *tpm_fp = NULL;
         int result = 0;
         void* slbase_ptr = spa2hva((spa_t)slbase);
         size_t sl_size = TEMPORARY_HARDCODED_MLE_SIZE;
@@ -872,70 +970,89 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
             HALT();
         }
 
-        if(!tpm_fp)
+
+
+        if(!tpm_detect3())
         {
-            printf("xmhf-bootloader: Failed to get <tpm_fp>!\n");
+            printf("xmhf-bootloader: Failed to get TPM version2!\n");
             HALT();
         }
 
-        // Measure xmhf-runtime
-        if(tpm->major == TPM12_VER_MAJOR)
-        {
-            result = sha1_mem(slbase_ptr, sl_size, digest.sha1_digest);
-            if(result)
-            {
-                printf("xmhf-bootloader: Measure xmhf-sl with SHA1 error!\n");
-                HALT();
-            }
-        }
-        else if(tpm->major == TPM20_VER_MAJOR)
-        {
-            result = sha2_256_mem(slbase_ptr, sl_size, digest.sha2_256_digest);
-            if(result)
-            {
-                printf("xmhf-bootloader: Measure xmhf-sl with SHA256 error!\n");
-                HALT();
-            }
-        }
-        else
-        {
-            printf("xmhf-bootloader: Invalid TPM version!\n");
-            HALT();
-        }
 
-        //// Extend into PCRs
-        if(tpm->major == TPM12_VER_MAJOR)
-        {
-            hash_list_t hl;
 
-            hl.count = 1;
-            hl.entries[0].alg = TB_HALG_SHA1;
-            memcpy(&hl.entries[0].hash.sha1, digest.sha1_digest, SHA1_DIGEST_LENGTH);
 
-            result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
-            if(!result)
-            {
-                printf("xmhf-bootloader (TPM1.2): Extend to PCR7 error!\n");
-                HALT();
-            }
-        }
-        else if(tpm->major == TPM20_VER_MAJOR)
-        {
-            hash_list_t hl;
 
-            hl.count = 1;
-            hl.entries[0].alg = TB_HALG_SHA256;
-            memcpy(&hl.entries[0].hash.sha256, digest.sha2_256_digest, SHA256_DIGEST_LENGTH);
 
-            result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
-            if(!result)
-            {
-                printf("xmhf-bootloader (TPM2): Extend to PCR7 error!\n");
-                HALT();
-            }
-        }
-        // No need to check invalid <tpm->major> again, because we have checked it.
+
+
+        // tpm_fp = (struct tpm_if_fp *)get_tpm_fp();
+        // if(!tpm_fp)
+        // {
+        //     printf("xmhf-bootloader: Failed to get <tpm_fp>!\n");
+        //     HALT();
+        // }
+
+        // // Measure xmhf-runtime
+        // if(tpm->major == TPM12_VER_MAJOR)
+        // {
+        //     result = sha1_mem(slbase_ptr, sl_size, digest.sha1_digest);
+        //     if(result)
+        //     {
+        //         printf("xmhf-bootloader: Measure xmhf-sl with SHA1 error!\n");
+        //         HALT();
+        //     }
+        // }
+        // else if(tpm->major == TPM20_VER_MAJOR)
+        // {
+        //     result = sha2_256_mem(slbase_ptr, sl_size, digest.sha2_256_digest);
+        //     if(result)
+        //     {
+        //         printf("xmhf-bootloader: Measure xmhf-sl with SHA256 error!\n");
+        //         HALT();
+        //     }
+        // }
+        // else
+        // {
+        //     printf("xmhf-bootloader: Invalid TPM version!\n");
+        //     HALT();
+        // }
+
+        (void)digest;(void)tpm;(void)tpm_fp;(void)result;(void)slbase_ptr;(void)sl_size;
     }
+
+    //     //// Extend into PCRs
+    //     if(tpm->major == TPM12_VER_MAJOR)
+    //     {
+    //         hash_list_t hl;
+
+    //         hl.count = 1;
+    //         hl.entries[0].alg = TB_HALG_SHA1;
+    //         memcpy(&hl.entries[0].hash.sha1, digest.sha1_digest, SHA1_DIGEST_LENGTH);
+
+    //         result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
+    //         if(!result)
+    //         {
+    //             printf("xmhf-bootloader (TPM1.2): Extend to PCR7 error!\n");
+    //             HALT();
+    //         }
+    //     }
+    //     else if(tpm->major == TPM20_VER_MAJOR)
+    //     {
+    //         hash_list_t hl;
+
+    //         hl.count = 1;
+    //         hl.entries[0].alg = TB_HALG_SHA256;
+    //         memcpy(&hl.entries[0].hash.sha256, digest.sha2_256_digest, SHA256_DIGEST_LENGTH);
+
+    //         result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
+    //         if(!result)
+    //         {
+    //             printf("xmhf-bootloader (TPM2): Extend to PCR7 error!\n");
+    //             HALT();
+    //         }
+    //     }
+    //     // No need to check invalid <tpm->major> again, because we have checked it.
+    // }
 
     // Start the xmhf-SL
 #if defined (__DRT__)

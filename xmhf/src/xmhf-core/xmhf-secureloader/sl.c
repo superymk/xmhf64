@@ -252,104 +252,104 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
 	xmhf_sl_clear_rt_bss();
 #endif /* __SKIP_RUNTIME_BSS__ */
 
-    // Measure xmhf-runtime into TPM PCRs
-    // [NOTE] Even with DRTM enabled, xmhf-bootloader must measure xmhf-runtime into PCR7 to maintain the security of 
-    // red OS. Otherwise, remote attackers can compromise xmhf-runtime to steal Bitlocker "volume master key" and reboot
-    // immediately. So the attacker can get the secret without getting exposed in PCR7 (or anywhere in PCR0-15). 
-    {
-        union sha_digest digest = {0};
-        struct tpm_if *tpm = get_tpm();
-        const struct tpm_if_fp *tpm_fp = get_tpm_fp();
-        int result = 0;
+//     // Measure xmhf-runtime into TPM PCRs
+//     // [NOTE] Even with DRTM enabled, xmhf-bootloader must measure xmhf-runtime into PCR7 to maintain the security of 
+//     // red OS. Otherwise, remote attackers can compromise xmhf-runtime to steal Bitlocker "volume master key" and reboot
+//     // immediately. So the attacker can get the secret without getting exposed in PCR7 (or anywhere in PCR0-15). 
+//     {
+//         union sha_digest digest = {0};
+//         struct tpm_if *tpm = get_tpm();
+//         const struct tpm_if_fp *tpm_fp = get_tpm_fp();
+//         int result = 0;
 
-        if(!tpm)
-        {
-            printf("SL: Failed to get TPM version!\n");
-            HALT();
-        }
+//         if(!tpm)
+//         {
+//             printf("SL: Failed to get TPM version!\n");
+//             HALT();
+//         }
 
-        if(!tpm_fp)
-        {
-            printf("SL: Failed to get <tpm_fp>!\n");
-            HALT();
-        }
+//         if(!tpm_fp)
+//         {
+//             printf("SL: Failed to get <tpm_fp>!\n");
+//             HALT();
+//         }
 
-        // Measure xmhf-runtime
-        if(tpm->major == TPM12_VER_MAJOR)
-        {
-            result = sha1_mem((void*)rpb->XtVmmRuntimeVirtBase, rpb->XtVmmRuntimeSize, digest.sha1_digest);
-            if(result)
-            {
-                printf("SL: Measure xmhf-runtime with SHA1 error!\n");
-                HALT();
-            }
-        }
-        else if(tpm->major == TPM20_VER_MAJOR)
-        {
-            result = sha2_256_mem((void*)rpb->XtVmmRuntimeVirtBase, rpb->XtVmmRuntimeSize, digest.sha2_256_digest);
-            if(result)
-            {
-                printf("SL: Measure xmhf-runtime with SHA256 error!\n");
-                HALT();
-            }
-        }
-        else
-        {
-            printf("SL: Invalid TPM version!\n");
-            HALT();
-        }
+//         // Measure xmhf-runtime
+//         if(tpm->major == TPM12_VER_MAJOR)
+//         {
+//             result = sha1_mem((void*)rpb->XtVmmRuntimeVirtBase, rpb->XtVmmRuntimeSize, digest.sha1_digest);
+//             if(result)
+//             {
+//                 printf("SL: Measure xmhf-runtime with SHA1 error!\n");
+//                 HALT();
+//             }
+//         }
+//         else if(tpm->major == TPM20_VER_MAJOR)
+//         {
+//             result = sha2_256_mem((void*)rpb->XtVmmRuntimeVirtBase, rpb->XtVmmRuntimeSize, digest.sha2_256_digest);
+//             if(result)
+//             {
+//                 printf("SL: Measure xmhf-runtime with SHA256 error!\n");
+//                 HALT();
+//             }
+//         }
+//         else
+//         {
+//             printf("SL: Invalid TPM version!\n");
+//             HALT();
+//         }
 
-        //// Extend into PCRs
-        if(tpm->major == TPM12_VER_MAJOR)
-        {
-            hash_list_t hl;
+//         //// Extend into PCRs
+//         if(tpm->major == TPM12_VER_MAJOR)
+//         {
+//             hash_list_t hl;
 
-            hl.count = 1;
-            hl.entries[0].alg = TB_HALG_SHA1;
-            memcpy(&hl.entries[0].hash.sha1, digest.sha1_digest, SHA1_DIGEST_LENGTH);
+//             hl.count = 1;
+//             hl.entries[0].alg = TB_HALG_SHA1;
+//             memcpy(&hl.entries[0].hash.sha1, digest.sha1_digest, SHA1_DIGEST_LENGTH);
 
-            result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
-            if(!result)
-            {
-                printf("SL (TPM1.2): Extend to PCR7 error!\n");
-                HALT();
-            }
+//             result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
+//             if(!result)
+//             {
+//                 printf("SL (TPM1.2): Extend to PCR7 error!\n");
+//                 HALT();
+//             }
 
-#if defined (__DRT__)
-            result = tpm_fp->pcr_extend(tpm, 2, TPM_PCR_DRTM_IMAGE, &hl);
-            if(!result)
-            {
-                printf("SL (TPM1.2): Extend to PCR17 error!\n");
-                HALT();
-            }
-#endif	//__DRT__
-        }
-        else if(tpm->major == TPM20_VER_MAJOR)
-        {
-            hash_list_t hl;
+// #if defined (__DRT__)
+//             result = tpm_fp->pcr_extend(tpm, 2, TPM_PCR_DRTM_IMAGE, &hl);
+//             if(!result)
+//             {
+//                 printf("SL (TPM1.2): Extend to PCR17 error!\n");
+//                 HALT();
+//             }
+// #endif	//__DRT__
+//         }
+//         else if(tpm->major == TPM20_VER_MAJOR)
+//         {
+//             hash_list_t hl;
 
-            hl.count = 1;
-            hl.entries[0].alg = TB_HALG_SHA256;
-            memcpy(&hl.entries[0].hash.sha256, digest.sha2_256_digest, SHA256_DIGEST_LENGTH);
+//             hl.count = 1;
+//             hl.entries[0].alg = TB_HALG_SHA256;
+//             memcpy(&hl.entries[0].hash.sha256, digest.sha2_256_digest, SHA256_DIGEST_LENGTH);
 
-            result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
-            if(!result)
-            {
-                printf("SL (TPM2): Extend to PCR7 error!\n");
-                HALT();
-            }
+//             result = tpm_fp->pcr_extend(tpm, 0, TPM_PCR_BOOT_STATE, &hl);
+//             if(!result)
+//             {
+//                 printf("SL (TPM2): Extend to PCR7 error!\n");
+//                 HALT();
+//             }
 
-#if defined (__DRT__)
-            result = tpm_fp->pcr_extend(tpm, 2, TPM_PCR_DRTM_IMAGE, &hl);
-            if(!result)
-            {
-                printf("SL (TPM2): Extend to PCR17 error!\n");
-                HALT();
-            }
-#endif	//__DRT__
-        }
-        // No need to check invalid <tpm->major> again, because we have checked it.
-    }
+// #if defined (__DRT__)
+//             result = tpm_fp->pcr_extend(tpm, 2, TPM_PCR_DRTM_IMAGE, &hl);
+//             if(!result)
+//             {
+//                 printf("SL (TPM2): Extend to PCR17 error!\n");
+//                 HALT();
+//             }
+// #endif	//__DRT__
+//         }
+//         // No need to check invalid <tpm->major> again, because we have checked it.
+//     }
 
 #if defined (__DMAP__)
 	//setup DMA protection on runtime (secure loader is already DMA protected)
