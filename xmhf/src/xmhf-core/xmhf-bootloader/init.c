@@ -649,7 +649,8 @@ txt_verify_platform();
 prepare_tpm();
 txt_launch_environment(mbi);*/
 
-bool txt_do_senter(void *phys_mle_start, size_t mle_size) {
+bool txt_do_senter(void *phys_mle_start, size_t mle_size) 
+{
     tb_error_t err;
 
     if (!tpm_detect()) {
@@ -849,6 +850,15 @@ static bool _is_tpm_present(struct tpm_if **out_tpm, struct tpm_if_fp **out_tpm_
 {
     struct tpm_if *tpm = get_tpm();
     struct tpm_if_fp *tpm_fp = NULL;
+
+// [TODO][Github-XMHF64 Issue 13] A QEMU issue? If XMHF accesses SW TPM of QEMU with tpm20.c, then QEMU reports the 
+// error "Buffer Too Small" when loading the OS bootloader
+#if defined(__DEBUG_QEMU__) && defined(__UEFI__) && !defined(__FORCE_TPM_1_2__)
+    {
+        printf("xmhf-bootloader: No support of SW TPM2.0 in QEMU!\n");
+        return false;
+    }
+#endif // defined(__DEBUG_QEMU__) && defined(__UEFI__)
 
     if(!tpm)
     {
