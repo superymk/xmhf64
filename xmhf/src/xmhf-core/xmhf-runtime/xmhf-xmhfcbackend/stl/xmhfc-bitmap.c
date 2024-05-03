@@ -91,8 +91,10 @@ bool xmhfstl_bitmap_set_bit(XMHF_STL_BITMAP* bitmap, const uint32_t bit_idx)
 	if(test_bit & (1 << bit_offset))
 		return true;  // already set
 	else
+    {
 		bitmap->mem_table[pg_offset][byte_offset] = (char)(test_bit | (1 << bit_offset));
-	bitmap->bits_stat[pg_offset] = bits_stat + 1;
+	    bitmap->bits_stat[pg_offset] = bits_stat + 1;
+    }
 
 	return true;
 }
