@@ -649,7 +649,8 @@ txt_verify_platform();
 prepare_tpm();
 txt_launch_environment(mbi);*/
 
-bool txt_do_senter(void *phys_mle_start, size_t mle_size) {
+bool txt_do_senter(void *phys_mle_start, size_t mle_size) 
+{
     tb_error_t err;
 
     if (!tpm_detect()) {
@@ -841,12 +842,86 @@ static bool svm_prepare_cpu(void)
 }
 #endif /* __DRT__ */
 
+/// @brief Return true iff xmhf-bootloader can use the physical TPM device (either TPM 1.2 or TPM 2.0).
+/// @param out_tpm 
+/// @param out_tpm_fp 
+/// @return 
+static bool _is_tpm_present(struct tpm_if **out_tpm, struct tpm_if_fp **out_tpm_fp)
+{
+    struct tpm_if *tpm = get_tpm();
+    struct tpm_if_fp *tpm_fp = NULL;
+
+// [TODO][Github-XMHF64 Issue 13] A QEMU issue? If XMHF accesses SW TPM of QEMU with tpm20.c, then QEMU reports the 
+// error "Buffer Too Small" when loading the OS bootloader
+#if defined(__DEBUG_QEMU__) && defined(__UEFI__) && !defined(__FORCE_TPM_1_2__)
+    {
+        printf("xmhf-bootloader: No support of SW TPM2.0 in QEMU!\n");
+        return false;
+    }
+#endif // defined(__DEBUG_QEMU__) && defined(__UEFI__)
+
+    if(!tpm)
+    {
+        printf("xmhf-bootloader: Failed to get <tpm>!\n");
+        return false;
+    }
+
+    if(!tpm_detect())
+    {
+        printf("xmhf-bootloader: Failed to get TPM version!\n");
+        return false;
+    }
+
+    tpm_fp = (struct tpm_if_fp *)get_tpm_fp();
+    if(!tpm_fp)
+    {
+        printf("xmhf-bootloader: Failed to get <tpm_fp>!\n");
+        return false;
+    }
+
+    // Check TPM versions
+    if((tpm->major != TPM12_VER_MAJOR) && (tpm->major != TPM20_VER_MAJOR))
+    {
+        printf("xmhf-bootloader: Unknown TPM version!\n");
+        return false;
+    }
+
+    // On success
+    *out_tpm = tpm;
+    *out_tpm_fp = tpm_fp;
+    return true;
+}
+
+static void _boot_sl_far_jump(uintptr_t slbase)
+{
+    uintptr_t sl_entry_point;
+    u16 *sl_entry_point_offset = (u16 *)slbase;
+    typedef void(*FCALL)(void);
+    FCALL invokesl;
+
+    printf("\n****** NO DRTM startup ******\n");
+    printf("slbase=0x%08lx, sl_entry_point_offset=0x%08hx\n", slbase, *sl_entry_point_offset);
+    sl_entry_point = slbase + (uintptr_t)(*sl_entry_point_offset);
+    invokesl = (FCALL)sl_entry_point;
+    printf("SL entry point to transfer control to: 0x%08lx\n", invokesl);
+    invokesl();
+    printf("INIT(early): error(fatal), should never come here!\n");
+    HALT();
+}
+
+
+
 //---do_drtm--------------------------------------------------------------------
 //this establishes a dynamic root of trust
 //inputs:
 //cpu_vendor = intel or amd
 //slbase= physical memory address of start of sl
-void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_size __attribute__((unused))){
+void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_size __attribute__((unused)))
+{
+    struct tpm_if *tpm = NULL;
+    struct tpm_if_fp *tpm_fp = NULL;
+    bool found_tpm = false;
+
 #ifdef __MP_VERSION__
     HALT_ON_ERRORCOND(vcpu->id == 0);
     //send INIT IPI to all APs
@@ -854,39 +929,28 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
     printf("INIT(early): sent INIT IPI to APs\n");
 #endif
 
+    found_tpm = _is_tpm_present(&tpm, &tpm_fp);
+    if(!found_tpm)
+    {
+        // XMHF cannot use TPM. Warn it loud.
+        printf("**********************************************************************************************\n");
+        printf("[INSECURITY] XMHF CANNOT USE TPM!\n");
+        printf("**********************************************************************************************\n");
+        _boot_sl_far_jump(slbase);
+    }
+
     // Measure xmhf-SL into TPM PCR7 (TPM_PCR_BOOT_STATE)
     // [NOTE] Even with DRTM enabled, xmhf-bootloader must measure xmhf-SL into PCR7 to maintain the security of red OS.
     // Otherwise, remote attackers can compromise xmhf-SL or xmhf-runtime to steal Bitlocker "volume master key" without
     // getting exposed in PCR7 (or anywhere in PCR0-15). 
     {
         union sha_digest digest = {0};
-        struct tpm_if *tpm = get_tpm();
-        const struct tpm_if_fp *tpm_fp = NULL;
         int result = 0;
         void* slbase_ptr = spa2hva((spa_t)slbase);
         size_t sl_size = TEMPORARY_HARDCODED_MLE_SIZE;
 
-        if(!tpm)
-        {
-            printf("xmhf-bootloader: Failed to get <tpm>!\n");
-            HALT();
-        }
-
-        if(!tpm_detect())
-        {
-            printf("xmhf-bootloader: Failed to get TPM version!\n");
-            HALT();
-        }
-
-        tpm_fp = get_tpm_fp();
-        if(!tpm_fp)
-        {
-            printf("xmhf-bootloader: Failed to get <tpm_fp>!\n");
-            HALT();
-        }
-
         // Measure xmhf-runtime
-        printf("SL: Measure xmhf-SL start\n");
+        printf("xmhf-bootloader: Measure xmhf-SL start\n");
         if(tpm->major == TPM12_VER_MAJOR)
         {
             result = sha1_mem(slbase_ptr, sl_size, digest.sha1_digest);
@@ -905,11 +969,7 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
                 HALT();
             }
         }
-        else
-        {
-            printf("xmhf-bootloader: Invalid TPM version!\n");
-            HALT();
-        }
+        // No need to check invalid <tpm->major> again, because we have checked it.
 
         //// Extend into PCRs
         if(tpm->major == TPM12_VER_MAJOR)
@@ -949,8 +1009,8 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
 
     // Start the xmhf-SL
 #if defined (__DRT__)
-
-    if(vcpu->cpu_vendor == CPU_VENDOR_AMD){
+    if(vcpu->cpu_vendor == CPU_VENDOR_AMD)
+    {
         if(!svm_verify_platform()) {
             printf("\nINIT(early): ERROR: svm_verify_platform FAILED!\n");
             HALT();
@@ -976,22 +1036,8 @@ void do_drtm(VCPU __attribute__((unused))*vcpu, uintptr_t slbase, size_t mle_siz
     }
 
 #else  //!__DRT__
-	//don't use SKINIT or SENTER
-	{
-		uintptr_t sl_entry_point;
-		u16 *sl_entry_point_offset = (u16 *)slbase;
-		typedef void(*FCALL)(void);
-		FCALL invokesl;
-
-		printf("\n****** NO DRTM startup ******\n");
-		printf("slbase=0x%08lx, sl_entry_point_offset=0x%08hx\n", slbase, *sl_entry_point_offset);
-		sl_entry_point = slbase + (uintptr_t)(*sl_entry_point_offset);
-		invokesl = (FCALL)sl_entry_point;
-		printf("SL entry point to transfer control to: 0x%08lx\n", invokesl);
-		invokesl();
-        printf("INIT(early): error(fatal), should never come here!\n");
-        HALT();
-	}
+	// don't use SKINIT or SENTER
+	_boot_sl_far_jump(slbase);
 #endif
 
 }

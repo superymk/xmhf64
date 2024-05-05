@@ -32,6 +32,7 @@ ifeq ($(TARGET_UEFI), y)
 OBJECTS += $(GNUEFI_BUILD)/x86_64/gnuefi/crt0-efi-x86_64.o
 # Note: efi.o is compiled differently with other object files
 OBJECTS += efi.o
+OBJECTS += ./efi/utils_fs.o ./efi/os_bootloader.o 
 endif
 
 OBJECTS_PRECOMPILED = ../xmhf-runtime/xmhf-debug/lib.a
@@ -131,6 +132,10 @@ OBJCOPY_FLAGS = -j .text -j .sdata -j .data -j .dynamic -j .dynsym  -j .rel
 OBJCOPY_FLAGS += -j .rela -j .rel.* -j .rela.* -j .reloc
 OBJCOPY_FLAGS += --target efi-app-x86_64 --subsystem=12
 
+./efi/utils_fs.o: ./efi/utils_fs.c
+	$(CC) $(EFI_CFLAGS) -c $< -o $@
+./efi/os_bootloader.o: ./efi/os_bootloader.c
+	$(CC) $(EFI_CFLAGS) -c $< -o $@
 efi.o: efi.c
 	$(CC) $(EFI_CFLAGS) -c $< -o $@
 
@@ -155,4 +160,5 @@ clean:
 	
 	cd libtpm && $(MAKE) -w clean
 	$(RM) -rf ./hash/*.o
+	$(RM) -rf ./efi/*.o
 
