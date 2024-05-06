@@ -189,7 +189,7 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 
 		//store runtime physical and virtual base addresses along with size
 		rpb->XtVmmRuntimePhysBase = runtime_physical_base;
-		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE;
+		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE + 0x200000;
 		rpb->XtVmmRuntimeSize = slpb.runtime_size;
 
 		//store revised E820 map and number of entries

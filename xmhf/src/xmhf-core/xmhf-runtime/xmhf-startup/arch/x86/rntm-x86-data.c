@@ -74,7 +74,7 @@ u64 x_gdt_start[] __attribute__(( section(".data"), aligned(16) )) = {
 //runtime GDT descriptor
 arch_x86_gdtdesc_t x_gdt __attribute__(( section(".data"), aligned(16) )) = {
 	.size=sizeof(x_gdt_start)-1,
-	.base=(uintptr_t)&x_gdt_start,
+	.base=(uintptr_t)&x_gdt_start + 0x200000,
 };
 
 
@@ -98,14 +98,14 @@ u8 x_init_stack[RUNTIME_STACK_SIZE] __attribute__((aligned(PAGE_SIZE_4K)));
 
 RPB arch_rpb __attribute__(( section(".s_rpb") )) = {
 	.magic= RUNTIME_PARAMETER_BLOCK_MAGIC,
-	.XtVmmEntryPoint= (hva_t)xmhf_runtime_entry,
+	.XtVmmEntryPoint= (hva_t)xmhf_runtime_entry + 0x200000,
 #ifdef __AMD64__
-	.XtVmmPml4Base= (hva_t)x_4level_pml4,
-	.XtVmmPdptBase= (hva_t)x_4level_pdpt,
-	.XtVmmPdtsBase= (hva_t)x_4level_pdt,
+	.XtVmmPml4Base= (hva_t)x_4level_pml4 + 0x200000,
+	.XtVmmPdptBase= (hva_t)x_4level_pdpt + 0x200000,
+	.XtVmmPdtsBase= (hva_t)x_4level_pdt + 0x200000,
 #elif defined(__I386__)
-	.XtVmmPdptBase= (hva_t)x_3level_pdpt,
-	.XtVmmPdtsBase= (hva_t)x_3level_pdt,
+	.XtVmmPdptBase= (hva_t)x_3level_pdpt + 0x200000,
+	.XtVmmPdtsBase= (hva_t)x_3level_pdt + 0x200000,
 #else /* !defined(__I386__) && !defined(__AMD64__) */
     #error "Unsupported Arch"
 #endif /* !defined(__I386__) && !defined(__AMD64__) */
@@ -114,11 +114,11 @@ RPB arch_rpb __attribute__(( section(".s_rpb") )) = {
 	.runtime_appmodule_base= 0,
 	.runtime_appmodule_size= 0,
 	.XtGuestOSBootDrive = 0x80u,
-	.XtVmmStackBase= (hva_t)x_init_stack,
+	.XtVmmStackBase= (hva_t)x_init_stack + 0x200000,
 	.XtVmmStackSize= 8192,
-	.XtVmmGdt= (hva_t)&x_gdt,
-	.XtVmmIdt= (hva_t)xmhf_xcphandler_idt,
-	.XtVmmIdtFunctionPointers= (hva_t)xmhf_xcphandler_exceptionstubs,
+	.XtVmmGdt= (hva_t)&x_gdt + 0x200000,
+	.XtVmmIdt= (hva_t)xmhf_xcphandler_idt + 0x200000,
+	.XtVmmIdtFunctionPointers= (hva_t)xmhf_xcphandler_exceptionstubs + 0x200000,
 	.XtVmmIdtEntries= 32,
 	.XtVmmRuntimePhysBase= 0,
 	.XtVmmRuntimeVirtBase= 0,
@@ -128,11 +128,11 @@ RPB arch_rpb __attribute__(( section(".s_rpb") )) = {
     .XtVmmRuntimeBssEnd= (uintptr_t)_end_rt_bss,
 #endif /* __SKIP_RUNTIME_BSS__ */
     .XtVmmRuntimeDataEnd = (uintptr_t)_end_rt_data,
-	.XtVmmE820Buffer= (hva_t)g_e820map,
+	.XtVmmE820Buffer= (hva_t)g_e820map + 0x200000,
 	.XtVmmE820NumEntries= 0,
-	.XtVmmMPCpuinfoBuffer= (hva_t)g_cpumap,
+	.XtVmmMPCpuinfoBuffer= (hva_t)g_cpumap + 0x200000,
 	.XtVmmMPCpuinfoNumEntries= 0,
-	.XtVmmTSSBase= (hva_t)g_runtime_TSS,
+	.XtVmmTSSBase= (hva_t)g_runtime_TSS + 0x200000,
 	.RtmUartConfig = {0, 0, 0, 0},
 	.isEarlyInit=1,					//1 for an "early init" else 0 (late-init)
 };

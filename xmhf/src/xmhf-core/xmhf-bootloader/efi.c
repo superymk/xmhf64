@@ -382,7 +382,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	FreePool(wpathname);
 
 	/* Get file size */
-	start = __TARGET_BASE_SL;
+	start = __TARGET_BASE_SL + 0x200000;
 	file_size = efi_file_get_size(file_handle);
 	nonzero_end = start + file_size;
 	HALT_ON_ERRORCOND(nonzero_end > start);
@@ -400,8 +400,8 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0);
 
 		/* Set end */
-		HALT_ON_ERRORCOND(nonzero_end <= rpb.XtVmmRuntimeBssBegin);
-		end = rpb.XtVmmRuntimeBssEnd;
+		HALT_ON_ERRORCOND(nonzero_end <= rpb.XtVmmRuntimeBssBegin + 0x200000);
+		end = rpb.XtVmmRuntimeBssEnd + 0x200000;
 	}
 #else /* !__SKIP_RUNTIME_BSS__ */
 	end = nonzero_end;
