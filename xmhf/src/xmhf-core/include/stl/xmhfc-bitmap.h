@@ -16,7 +16,7 @@
 // xmhfstl_bitmap page to allocate/revoke memory on demand
 typedef struct{
 	uint32_t max_bits;
-	char** mem_table; // Contains page aligned addresses for holding xmhfstl_bitmap content
+	uint8_t** mem_table; // Contains page aligned addresses for holding xmhfstl_bitmap content
 	uint16_t* bits_stat; // num of set bit in the corresponding xmhfstl_bitmap page
 }XMHF_STL_BITMAP;
 
