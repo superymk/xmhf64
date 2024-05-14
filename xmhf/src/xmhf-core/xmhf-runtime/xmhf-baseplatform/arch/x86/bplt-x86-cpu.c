@@ -75,7 +75,7 @@ bool xmhf_baseplatform_arch_x86_cpuhasxsavefeature(void){
 }
 
 //! @brief Sleep the current core for <us> micro-second.
-void xmhf_cpu_delay_us(uint64_t us)
+void xmhf_cpu_delay_us_rdtsc(uint64_t us)
 {
     uint64_t cycles = CPU_CYCLES_PER_MICRO_SEC * us;
     uint64_t start = rdtsc64();
@@ -94,4 +94,20 @@ void xmhf_cpu_flush_cache_range(void *vaddr, unsigned int size)
 
 	for (; p < vend; p += clflush_size)
 		clflush_ins(p);
+}
+
+#define UDELAY_PER_ROUND    (10000)
+void xmhf_cpu_delay_us(uint64_t usecs)
+{
+    uint64_t round = usecs / UDELAY_PER_ROUND;
+    uint32_t remain = usecs % UDELAY_PER_ROUND;
+    uint64_t i = 0;
+
+    // <xmhf_baseplatform_arch_x86_udelay> must be <= 65000us, so we use a loop for longer sleep time.
+    xmhf_baseplatform_arch_x86_udelay(remain);
+
+    for(i = 0; i < round; i++)
+    {
+        xmhf_baseplatform_arch_x86_udelay(UDELAY_PER_ROUND);
+    }
 }

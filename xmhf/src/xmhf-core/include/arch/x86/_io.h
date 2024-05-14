@@ -128,7 +128,7 @@
 
 #endif //__XMHF_VERIFICATION__
 
-void udelay(u32 usecs);
+void xmhf_cpu_delay_us(uint64_t usecs);
 
 #endif /* __ASSEMBLY__ */
 
