@@ -102,6 +102,7 @@ SECTIONS
     *(.xcph_table)
     _end_xcph_table = .;
     /* .rela.dyn allows XMHF runtime to be loaded as PIE. */
+    . = ALIGN(16);
     _begin_rela_dyn = .;
     KEEP(*(.rela.*))
     *(.rela.*)

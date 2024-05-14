@@ -142,6 +142,11 @@ extern u32 _begin_rt_bss[];
 extern u32 _end_rt_bss[];
 #endif /* __SKIP_RUNTIME_BSS__ */
 
+#ifdef __XMHF_PIE_RUNTIME__
+extern u32 _begin_rela_dyn[];
+extern u32 _end_rela_dyn[];
+#endif /* __XMHF_PIE_RUNTIME__ */
+
 //----------------------------------------------------------------------
 //exported FUNCTIONS
 //----------------------------------------------------------------------

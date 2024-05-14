@@ -119,6 +119,10 @@ typedef struct {
     #error "Unsupported Arch"
 #endif /* !defined(__XMHF_I386__) && !defined(__XMHF_AMD64__) */
 #endif /* __SKIP_RUNTIME_BSS__ */
+#ifdef __XMHF_PIE_RUNTIME__
+    hva_t   XtVmmRuntimeRelaDynBegin;
+    hva_t   XtVmmRuntimeRelaDynEnd;
+#endif /* __XMHF_PIE_RUNTIME__ */
     hva_t   XtVmmEntryPoint;
 #ifdef __XMHF_AMD64__
     hva_t   XtVmmPml4Base;

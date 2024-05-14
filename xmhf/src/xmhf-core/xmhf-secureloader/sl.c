@@ -97,6 +97,43 @@ static void xmhf_sl_clear_rt_bss(void)
 }
 #endif /* __SKIP_RUNTIME_BSS__ */
 
+#ifdef __XMHF_PIE_RUNTIME__
+/* https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html */
+typedef struct {
+	u64 r_offset;
+	u64 r_info;
+	u64 r_addend;
+} rela_t;
+
+/*
+ * Handle runtime's .rela.dyn section.
+ */
+static void xmhf_sl_handle_rt_rela_dyn(void)
+{
+	hva_t begin = (hva_t)hva2sla((void *)rpb->XtVmmRuntimeRelaDynBegin);
+	hva_t end = (hva_t)hva2sla((void *)rpb->XtVmmRuntimeRelaDynEnd);
+
+	HALT_ON_ERRORCOND(begin < end);
+	HALT_ON_ERRORCOND((end - begin) % 24 == 0);
+
+	for (hva_t i = begin; i < end; i += 24) {
+		rela_t *rela = (rela_t *)i;
+		/* Address to write to. */
+		u64 *p = (u64 *)((sla_t)hva2sla((void *)rela->r_offset) + 0x200000);
+		/* Type is always 8, probably R_AMD64_RELATIVE. */
+		HALT_ON_ERRORCOND(rela->r_info == 8ULL);
+		/* Current value should match r_addend. */
+		HALT_ON_ERRORCOND(*p == rela->r_addend);
+		/* Modify value. */
+		*p += 0x200000;
+		// TODO: unmodify 0x200000 in RT
+		printf("Modified %p\n", p);
+	}
+	printf(    "Original %p\n", &rpb->XtVmmRuntimeRelaDynBegin);
+	printf(    "Original %p\n", &rpb->XtVmmRuntimeRelaDynEnd);
+}
+#endif /* __XMHF_PIE_RUNTIME__ */
+
 //we get here from slheader.S
 // rdtsc_* are valid only if PERF_CRIT is not defined.  slheader.S
 // sets them to 0 otherwise.
@@ -239,6 +276,11 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 #if defined (__DRT__)
     xmhf_sl_arch_sanitize_post_launch();
 #endif	//__DRT__
+
+	// Modify XMHF runtime image to make it work as PIE.
+#ifdef __XMHF_PIE_RUNTIME__
+	xmhf_sl_handle_rt_rela_dyn();
+#endif /* __XMHF_PIE_RUNTIME__ */
 
 	// Zero .bss section of XMHF runtime.
 	// We call this function after MTRR is restored, otherwise memory is not
