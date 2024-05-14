@@ -110,8 +110,8 @@ typedef struct {
  */
 static void xmhf_sl_handle_rt_rela_dyn(void)
 {
-	hva_t begin = (hva_t)hva2sla((void *)rpb->XtVmmRuntimeRelaDynBegin);
-	hva_t end = (hva_t)hva2sla((void *)rpb->XtVmmRuntimeRelaDynEnd);
+	sla_t begin = (hva_t)hva2sla((void *)rpb->XtVmmRuntimeRelaDynBegin + 0x200000);
+	sla_t end = (hva_t)hva2sla((void *)rpb->XtVmmRuntimeRelaDynEnd + 0x200000);
 
 	HALT_ON_ERRORCOND(begin < end);
 	HALT_ON_ERRORCOND((end - begin) % 24 == 0);
@@ -126,11 +126,7 @@ static void xmhf_sl_handle_rt_rela_dyn(void)
 		HALT_ON_ERRORCOND(*p == rela->r_addend);
 		/* Modify value. */
 		*p += 0x200000;
-		// TODO: unmodify 0x200000 in RT
-		printf("Modified %p\n", p);
 	}
-	printf(    "Original %p\n", &rpb->XtVmmRuntimeRelaDynBegin);
-	printf(    "Original %p\n", &rpb->XtVmmRuntimeRelaDynEnd);
 }
 #endif /* __XMHF_PIE_RUNTIME__ */
 
@@ -229,6 +225,12 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE + 0x200000;
 		rpb->XtVmmRuntimeSize = slpb.runtime_size;
 
+		// Modify XMHF runtime image to make it work as PIE.
+		// This step should be done as early as possible.
+#ifdef __XMHF_PIE_RUNTIME__
+		xmhf_sl_handle_rt_rela_dyn();
+#endif /* __XMHF_PIE_RUNTIME__ */
+
 		//store revised E820 map and number of entries
 		#ifndef __XMHF_VERIFICATION__
 		memcpy(hva2sla((void *)rpb->XtVmmE820Buffer), (void *)&slpb.memmapbuffer, (sizeof(slpb.memmapbuffer)) );
@@ -276,11 +278,6 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 #if defined (__DRT__)
     xmhf_sl_arch_sanitize_post_launch();
 #endif	//__DRT__
-
-	// Modify XMHF runtime image to make it work as PIE.
-#ifdef __XMHF_PIE_RUNTIME__
-	xmhf_sl_handle_rt_rela_dyn();
-#endif /* __XMHF_PIE_RUNTIME__ */
 
 	// Zero .bss section of XMHF runtime.
 	// We call this function after MTRR is restored, otherwise memory is not

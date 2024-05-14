@@ -74,7 +74,7 @@ u64 x_gdt_start[] __attribute__(( section(".data"), aligned(16) )) = {
 //runtime GDT descriptor
 arch_x86_gdtdesc_t x_gdt __attribute__(( section(".data"), aligned(16) )) = {
 	.size=sizeof(x_gdt_start)-1,
-	.base=(uintptr_t)&x_gdt_start + 0x200000,
+	.base=(uintptr_t)&x_gdt_start,
 };
 
 
@@ -98,14 +98,14 @@ u8 x_init_stack[RUNTIME_STACK_SIZE] __attribute__((aligned(PAGE_SIZE_4K)));
 
 RPB arch_rpb __attribute__(( section(".s_rpb") )) = {
 	.magic= RUNTIME_PARAMETER_BLOCK_MAGIC,
-	.XtVmmEntryPoint= (hva_t)xmhf_runtime_entry + 0x200000,
+	.XtVmmEntryPoint= (hva_t)xmhf_runtime_entry,
 #ifdef __AMD64__
-	.XtVmmPml4Base= (hva_t)x_4level_pml4 + 0x200000,
-	.XtVmmPdptBase= (hva_t)x_4level_pdpt + 0x200000,
-	.XtVmmPdtsBase= (hva_t)x_4level_pdt + 0x200000,
+	.XtVmmPml4Base= (hva_t)x_4level_pml4,
+	.XtVmmPdptBase= (hva_t)x_4level_pdpt,
+	.XtVmmPdtsBase= (hva_t)x_4level_pdt,
 #elif defined(__I386__)
-	.XtVmmPdptBase= (hva_t)x_3level_pdpt + 0x200000,
-	.XtVmmPdtsBase= (hva_t)x_3level_pdt + 0x200000,
+	.XtVmmPdptBase= (hva_t)x_3level_pdpt,
+	.XtVmmPdtsBase= (hva_t)x_3level_pdt,
 #else /* !defined(__I386__) && !defined(__AMD64__) */
     #error "Unsupported Arch"
 #endif /* !defined(__I386__) && !defined(__AMD64__) */
@@ -114,29 +114,29 @@ RPB arch_rpb __attribute__(( section(".s_rpb") )) = {
 	.runtime_appmodule_base= 0,
 	.runtime_appmodule_size= 0,
 	.XtGuestOSBootDrive = 0x80u,
-	.XtVmmStackBase= (hva_t)x_init_stack + 0x200000,
+	.XtVmmStackBase= (hva_t)x_init_stack,
 	.XtVmmStackSize= 8192,
-	.XtVmmGdt= (hva_t)&x_gdt + 0x200000,
-	.XtVmmIdt= (hva_t)xmhf_xcphandler_idt + 0x200000,
-	.XtVmmIdtFunctionPointers= (hva_t)xmhf_xcphandler_exceptionstubs + 0x200000,
+	.XtVmmGdt= (hva_t)&x_gdt,
+	.XtVmmIdt= (hva_t)xmhf_xcphandler_idt,
+	.XtVmmIdtFunctionPointers= (hva_t)xmhf_xcphandler_exceptionstubs,
 	.XtVmmIdtEntries= 32,
 	.XtVmmRuntimePhysBase= 0,
 	.XtVmmRuntimeVirtBase= 0,
 	.XtVmmRuntimeSize= 0,
 #ifdef __SKIP_RUNTIME_BSS__
-    .XtVmmRuntimeBssBegin= (uintptr_t)_begin_rt_bss + 0x200000,
-    .XtVmmRuntimeBssEnd= (uintptr_t)_end_rt_bss + 0x200000,
+    .XtVmmRuntimeBssBegin= (uintptr_t)_begin_rt_bss,
+    .XtVmmRuntimeBssEnd= (uintptr_t)_end_rt_bss,
 #endif /* __SKIP_RUNTIME_BSS__ */
 #ifdef __XMHF_PIE_RUNTIME__
-    .XtVmmRuntimeRelaDynBegin = (hva_t)_begin_rela_dyn + 0x200000,
-    .XtVmmRuntimeRelaDynEnd = (hva_t)_end_rela_dyn + 0x200000,
+    .XtVmmRuntimeRelaDynBegin = (hva_t)_begin_rela_dyn,
+    .XtVmmRuntimeRelaDynEnd = (hva_t)_end_rela_dyn,
 #endif /* __XMHF_PIE_RUNTIME__ */
-    .XtVmmRuntimeDataEnd = (uintptr_t)_end_rt_data + 0x200000,
-	.XtVmmE820Buffer= (hva_t)g_e820map + 0x200000,
+    .XtVmmRuntimeDataEnd = (uintptr_t)_end_rt_data,
+	.XtVmmE820Buffer= (hva_t)g_e820map,
 	.XtVmmE820NumEntries= 0,
-	.XtVmmMPCpuinfoBuffer= (hva_t)g_cpumap + 0x200000,
+	.XtVmmMPCpuinfoBuffer= (hva_t)g_cpumap,
 	.XtVmmMPCpuinfoNumEntries= 0,
-	.XtVmmTSSBase= (hva_t)g_runtime_TSS + 0x200000,
+	.XtVmmTSSBase= (hva_t)g_runtime_TSS,
 	.RtmUartConfig = {0, 0, 0, 0},
 	.isEarlyInit=1,					//1 for an "early init" else 0 (late-init)
 };
