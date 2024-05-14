@@ -96,10 +96,24 @@ SECTIONS
     *(.comment)
     *(.eh_frame) /* exception-metadata. might be able to discard */
     . = ALIGN(4);
+    /* .xcph_table allows XMHF to handle exceptions in hypervisor mode. */
     _begin_xcph_table = .;
     KEEP(*(.xcph_table))
     *(.xcph_table)
     _end_xcph_table = .;
+    /* .rela.dyn allows XMHF runtime to be loaded as PIC / PIE. */
+    _begin_rela_dyn = .;
+    KEEP(*(.rela.*))
+    *(.rela.*)
+    _end_rela_dyn = .;
+    /* Other sections that arise when compiling as PIC / PIE. */
+    *(.interp)
+    *(.dynsym)
+    *(.dynstr)
+    *(.hash)
+    *(.gnu.hash)
+    *(.dynamic)
+
     _end_rt_data = .;
   } =0x9090
 
@@ -136,6 +150,10 @@ SECTIONS
   .rel.debug_info : { *(.rel.debug_info) } >debug
   .rel.debug_aranges : { *(.rel.debug_aranges) } >debug
   .rel.debug_line : { *(.rel.debug_line) } >debug
+  // TODO
+  .shstrtab : { *(.shstrtab) } >debug
+  .strtab : { *(.strtab) } >debug
+  .symtab : { *(.symtab) } >debug
 
   /DISCARD/ : {
     *(.note.gnu.property)
