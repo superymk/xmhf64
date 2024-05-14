@@ -150,12 +150,12 @@ CODE
       movl (%eax), %eax
       shr $24, %eax
 
-      movl g_midtable_numentries, %edx
+      //movl g_midtable_numentries, %edx//!
       /*movl g_runtime, %edx*/
 
       /*get vcpu virtual address of this CPU/core*/
       /*movl $(__midtable), %ebx*/
-      movl $(g_midtable), %ebx
+      //movl $(g_midtable), %ebx//!
       xorl %ecx, %ecx
 getvcpuloop32:
       leal 0x0(%ebx, %ecx, 8), %esp
@@ -173,7 +173,7 @@ gotvcpu32:
 
       /* setup jump to 64-bit mode */
       pushl $(__CS)                 /* 2nd entry in GDT (64-bit CODE) */
-      leal _ap_pmode_entry_with_paging, %eax
+      //leal _ap_pmode_entry_with_paging, %eax//!
       pushl %eax
 
       /* set CR0 */
@@ -198,8 +198,8 @@ gotvcpu32:
   .global _ap_pmode_entry_with_paging
   _ap_pmode_entry_with_paging:
     /*load our gdt and idt*/
-    lgdt x_gdt
-    lidt xmhf_xcphandler_idt
+    //lgdt x_gdt//!
+    //lidt xmhf_xcphandler_idt//!
 
     /*get hold of local APIC id*/
     mov $(MSR_APIC_BASE), %ecx
@@ -209,12 +209,12 @@ gotvcpu32:
     movl (%eax), %eax
     shr $24, %eax
 
-    movq g_midtable_numentries, %rdx
+    movq g_midtable_numentries(%rip), %rdx
     /*movl g_runtime, %edx*/
 
     /*get vcpu virtual address of this CPU/core*/
     /*movl $(__midtable), %ebx*/
-    movq $(g_midtable), %rbx
+    leaq g_midtable(%rip), %rbx
     xorq %rcx, %rcx
 getvcpuloop:
     leaq 0x0(%rbx, %rcx, 8), %rsp

@@ -693,7 +693,11 @@ void xmhf_smpguest_arch_x86vmx_unblock_nmi(void)
         "xorq    %%rax, %%rax   \r\n"
         "movw    %%cs, %%ax     \r\n"
         "pushq   %%rax          \r\n"
-        "pushq   $1f            \r\n"
+
+        //"pushq   $1f            \r\n"
+        "leaq    1f(%%rip), %%rax\r\n"
+        "pushq   %%rax          \r\n"
+
         "iretq                  \r\n"
         "1: nop                 \r\n"
         : // no output
