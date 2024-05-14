@@ -150,12 +150,21 @@ CODE
       movl (%eax), %eax
       shr $24, %eax
 
-      //movl g_midtable_numentries, %edx//!
+      ud2// TODO: PIE 5 variables, see _smptrampoline_access__
+
+_smptrampoline_access__g_midtable_numentries:
+      //movl g_midtable_numentries, %edx
+      movl 0x79786c31, %edx
+
       /*movl g_runtime, %edx*/
 
       /*get vcpu virtual address of this CPU/core*/
       /*movl $(__midtable), %ebx*/
-      //movl $(g_midtable), %ebx//!
+
+_smptrampoline_access__g_midtable:
+      //movl $(g_midtable), %ebx
+      movl $0x79786c32, %ebx
+
       xorl %ecx, %ecx
 getvcpuloop32:
       leal 0x0(%ebx, %ecx, 8), %esp
@@ -173,7 +182,11 @@ gotvcpu32:
 
       /* setup jump to 64-bit mode */
       pushl $(__CS)                 /* 2nd entry in GDT (64-bit CODE) */
-      //leal _ap_pmode_entry_with_paging, %eax//!
+
+_smptrampoline_access___ap_pmode_entry_with_paging:
+      //leal _ap_pmode_entry_with_paging, %eax
+      leal 0x79786c33, %eax
+
       pushl %eax
 
       /* set CR0 */
@@ -198,8 +211,14 @@ gotvcpu32:
   .global _ap_pmode_entry_with_paging
   _ap_pmode_entry_with_paging:
     /*load our gdt and idt*/
-    //lgdt x_gdt//!
-    //lidt xmhf_xcphandler_idt//!
+
+_smptrampoline_access__x_gdt:
+    //lgdt x_gdt
+    lgdt 0x79786c34
+
+_smptrampoline_access__xmhf_xcphandler_idt:
+    //lidt xmhf_xcphandler_idt
+    lidt 0x79786c35
 
     /*get hold of local APIC id*/
     mov $(MSR_APIC_BASE), %ecx
