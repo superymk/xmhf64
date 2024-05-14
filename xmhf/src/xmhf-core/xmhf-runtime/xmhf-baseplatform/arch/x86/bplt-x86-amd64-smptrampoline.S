@@ -152,18 +152,23 @@ CODE
 
       ud2// TODO: PIE 5 variables, see _smptrampoline_access__
 
+#ifndef __XMHF_PIE_RUNTIME__
+      movl g_midtable_numentries, %edx
+#else /* __XMHF_PIE_RUNTIME__ */
 _smptrampoline_access__g_midtable_numentries:
-      //movl g_midtable_numentries, %edx
       movl 0x79786c31, %edx
-
+#endif /* !__XMHF_PIE_RUNTIME__ */
       /*movl g_runtime, %edx*/
 
       /*get vcpu virtual address of this CPU/core*/
       /*movl $(__midtable), %ebx*/
 
+#ifndef __XMHF_PIE_RUNTIME__
+      movl $(g_midtable), %ebx
+#else /* __XMHF_PIE_RUNTIME__ */
 _smptrampoline_access__g_midtable:
-      //movl $(g_midtable), %ebx
       movl $0x79786c32, %ebx
+#endif /* !__XMHF_PIE_RUNTIME__ */
 
       xorl %ecx, %ecx
 getvcpuloop32:
@@ -183,9 +188,12 @@ gotvcpu32:
       /* setup jump to 64-bit mode */
       pushl $(__CS)                 /* 2nd entry in GDT (64-bit CODE) */
 
+#ifndef __XMHF_PIE_RUNTIME__
+      leal _ap_pmode_entry_with_paging, %eax
+#else /* __XMHF_PIE_RUNTIME__ */
 _smptrampoline_access___ap_pmode_entry_with_paging:
-      //leal _ap_pmode_entry_with_paging, %eax
       leal 0x79786c33, %eax
+#endif /* !__XMHF_PIE_RUNTIME__ */
 
       pushl %eax
 
@@ -212,13 +220,19 @@ _smptrampoline_access___ap_pmode_entry_with_paging:
   _ap_pmode_entry_with_paging:
     /*load our gdt and idt*/
 
+#ifndef __XMHF_PIE_RUNTIME__
+    lgdt x_gdt
+#else /* __XMHF_PIE_RUNTIME__ */
 _smptrampoline_access__x_gdt:
-    //lgdt x_gdt
     lgdt 0x79786c34
+#endif /* !__XMHF_PIE_RUNTIME__ */
 
+#ifndef __XMHF_PIE_RUNTIME__
+    lidt xmhf_xcphandler_idt
+#else /* __XMHF_PIE_RUNTIME__ */
 _smptrampoline_access__xmhf_xcphandler_idt:
-    //lidt xmhf_xcphandler_idt
     lidt 0x79786c35
+#endif /* !__XMHF_PIE_RUNTIME__ */
 
     /*get hold of local APIC id*/
     mov $(MSR_APIC_BASE), %ecx
@@ -228,12 +242,20 @@ _smptrampoline_access__xmhf_xcphandler_idt:
     movl (%eax), %eax
     shr $24, %eax
 
+#ifndef __XMHF_PIE_RUNTIME__
+    movq g_midtable_numentries, %rdx
+#else /* __XMHF_PIE_RUNTIME__ */
     movq g_midtable_numentries(%rip), %rdx
+#endif /* !__XMHF_PIE_RUNTIME__ */
     /*movl g_runtime, %edx*/
 
     /*get vcpu virtual address of this CPU/core*/
     /*movl $(__midtable), %ebx*/
+#ifndef __XMHF_PIE_RUNTIME__
+    movq $(g_midtable), %rbx
+#else /* __XMHF_PIE_RUNTIME__ */
     leaq g_midtable(%rip), %rbx
+#endif /* !__XMHF_PIE_RUNTIME__ */
     xorq %rcx, %rcx
 getvcpuloop:
     leaq 0x0(%rbx, %rcx, 8), %rsp

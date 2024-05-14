@@ -227,6 +227,8 @@ CFLAGS += -mno-pclmul -mno-sse4a -mno-3dnow -mno-popcnt -mno-abm
 CFLAGS += -nostdinc -pipe
 CFLAGS += -Wno-address-of-packed-member
 CFLAGS += -mno-red-zone
+# TODO: make it configuration option, only available in 64-bit mode, maybe only available in UEFI mode.
+CFLAGS += -D__XMHF_PIE_RUNTIME__
 
 
 # Compiler optimization (-O1, -O3, ...)

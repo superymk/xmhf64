@@ -101,12 +101,12 @@ SECTIONS
     KEEP(*(.xcph_table))
     *(.xcph_table)
     _end_xcph_table = .;
-    /* .rela.dyn allows XMHF runtime to be loaded as PIC / PIE. */
+    /* .rela.dyn allows XMHF runtime to be loaded as PIE. */
     _begin_rela_dyn = .;
     KEEP(*(.rela.*))
     *(.rela.*)
     _end_rela_dyn = .;
-    /* Other sections that arise when compiling as PIC / PIE. */
+    /* Other sections that arise when compiling as PIE. */
     *(.interp)
     *(.dynsym)
     *(.dynstr)
