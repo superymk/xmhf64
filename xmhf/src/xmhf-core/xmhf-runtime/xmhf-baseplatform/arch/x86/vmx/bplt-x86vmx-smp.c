@@ -147,6 +147,21 @@ void xmhf_baseplatform_arch_x86vmx_wakeupAPs(void){
         #endif
     }
 
+#ifdef __XMHF_PIE_RUNTIME__
+	/* step-1.5: adjust values when runtime is PIE. */
+	{
+		extern u32 _smptrampoline_access__g_midtable_numentries[];
+		extern u32 _smptrampoline_access__g_midtable[];
+		extern u32 _smptrampoline_access___ap_pmode_entry_with_paging[];
+
+		printf("%p %p\n", (void *)_smptrampoline_access__g_midtable_numentries, *(u64 *)_smptrampoline_access__g_midtable_numentries);
+		printf("%p %p\n", (void *)_smptrampoline_access__g_midtable, *(u64 *)_smptrampoline_access__g_midtable);
+		printf("%p %p\n", (void *)_smptrampoline_access___ap_pmode_entry_with_paging, *(u64 *)_smptrampoline_access___ap_pmode_entry_with_paging);
+		HALT_ON_ERRORCOND(0);
+
+	}
+#endif /* __XMHF_PIE_RUNTIME__ */
+
 #if defined (__DRT__)
     //step-2: wake up the APs sending the INIT-SIPI-SIPI sequence as per the
     //MP protocol. Use the APIC for IPI purposes.

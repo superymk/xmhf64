@@ -151,7 +151,7 @@ SECTIONS
   .rel.debug_info : { *(.rel.debug_info) } >debug
   .rel.debug_aranges : { *(.rel.debug_aranges) } >debug
   .rel.debug_line : { *(.rel.debug_line) } >debug
-  // TODO
+  /* Other sections that arise when compiling as PIE. */
   .shstrtab : { *(.shstrtab) } >debug
   .strtab : { *(.strtab) } >debug
   .symtab : { *(.symtab) } >debug

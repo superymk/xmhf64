@@ -150,11 +150,12 @@ CODE
       movl (%eax), %eax
       shr $24, %eax
 
-      ud2// TODO: PIE 5 variables, see _smptrampoline_access__
+      ud2// TODO: PIE 3 variables, see _smptrampoline_access__
 
 #ifndef __XMHF_PIE_RUNTIME__
       movl g_midtable_numentries, %edx
 #else /* __XMHF_PIE_RUNTIME__ */
+.global _smptrampoline_access__g_midtable_numentries
 _smptrampoline_access__g_midtable_numentries:
       movl 0x79786c31, %edx
 #endif /* !__XMHF_PIE_RUNTIME__ */
@@ -166,6 +167,7 @@ _smptrampoline_access__g_midtable_numentries:
 #ifndef __XMHF_PIE_RUNTIME__
       movl $(g_midtable), %ebx
 #else /* __XMHF_PIE_RUNTIME__ */
+.global _smptrampoline_access__g_midtable
 _smptrampoline_access__g_midtable:
       movl $0x79786c32, %ebx
 #endif /* !__XMHF_PIE_RUNTIME__ */
@@ -191,6 +193,7 @@ gotvcpu32:
 #ifndef __XMHF_PIE_RUNTIME__
       leal _ap_pmode_entry_with_paging, %eax
 #else /* __XMHF_PIE_RUNTIME__ */
+.global _smptrampoline_access___ap_pmode_entry_with_paging
 _smptrampoline_access___ap_pmode_entry_with_paging:
       leal 0x79786c33, %eax
 #endif /* !__XMHF_PIE_RUNTIME__ */
@@ -219,20 +222,8 @@ _smptrampoline_access___ap_pmode_entry_with_paging:
   .global _ap_pmode_entry_with_paging
   _ap_pmode_entry_with_paging:
     /*load our gdt and idt*/
-
-#ifndef __XMHF_PIE_RUNTIME__
-    lgdt x_gdt
-#else /* __XMHF_PIE_RUNTIME__ */
-_smptrampoline_access__x_gdt:
-    lgdt 0x79786c34
-#endif /* !__XMHF_PIE_RUNTIME__ */
-
-#ifndef __XMHF_PIE_RUNTIME__
-    lidt xmhf_xcphandler_idt
-#else /* __XMHF_PIE_RUNTIME__ */
-_smptrampoline_access__xmhf_xcphandler_idt:
-    lidt 0x79786c35
-#endif /* !__XMHF_PIE_RUNTIME__ */
+    lgdt x_gdt(%rip)
+    lidt xmhf_xcphandler_idt(%rip)
 
     /*get hold of local APIC id*/
     mov $(MSR_APIC_BASE), %ecx
