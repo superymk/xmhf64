@@ -85,6 +85,9 @@ VCPU *_svm_and_vmx_getvcpu(void){
   HALT(); return NULL; // will never return presently
 }
 
+extern uint8_t _begin_xcph_table[];
+extern uint8_t _end_xcph_table[];
+
 //initialize EMHF core exception handlers
 void xmhf_xcphandler_arch_initialize(void){
     uintptr_t *pexceptionstubs;
@@ -111,6 +114,15 @@ void xmhf_xcphandler_arch_initialize(void){
     }
 
     printf("%s: IDT setup done.\n", __FUNCTION__);
+
+#ifdef __XMHF_PIE_RUNTIME__
+    /* Relocate xcph table for PIE. */
+    for (hva_t *i = (hva_t *)_begin_xcph_table;
+         i < (hva_t *)_end_xcph_table; i += 3) {
+        i[1] += 0x200000;
+        i[2] += 0x200000;
+    }
+#endif /* !__XMHF_PIE_RUNTIME__ */
 }
 
 
@@ -118,9 +130,6 @@ void xmhf_xcphandler_arch_initialize(void){
 u8 * xmhf_xcphandler_arch_get_idt_start(void){
     return (u8 *)&xmhf_xcphandler_idt_start;
 }
-
-extern uint8_t _begin_xcph_table[];
-extern uint8_t _end_xcph_table[];
 
 //EMHF exception handler hub
 void xmhf_xcphandler_arch_hub(uintptr_t vector, struct regs *r){
