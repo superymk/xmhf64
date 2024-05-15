@@ -148,6 +148,61 @@ void xmhf_baseplatform_arch_smpinitialize(void){
   else //CPU_VENDOR_INTEL
 	xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus(cpu_vendor);
 
+#ifdef __XMHF_PIE_RUNTIME__
+	/* adjust 32-bit addresses in smptrampoline code due to PIE. */
+	{
+		extern u32 _smptrampoline_access__g_midtable_numentries[];
+		extern u32 _smptrampoline_access__g_midtable[];
+		extern u32 _smptrampoline_access___ap_pmode_entry_with_paging[];
+		extern void _ap_pmode_entry_with_paging(void);
+
+		struct {
+			u32 dummy;
+			u32 offset;
+			u64 prefix;
+			u64 addr;
+			u64 value;
+		} rela_info[] = {
+			{
+				0x79786c31,
+				2,
+				0x158b,
+				(uintptr_t)_smptrampoline_access__g_midtable_numentries,
+				(uintptr_t)&g_midtable_numentries,
+			},
+			{
+				0x79786c32,
+				1,
+				0xbb,
+				(uintptr_t)_smptrampoline_access__g_midtable,
+				(uintptr_t)&g_midtable,
+			},
+			{
+				0x79786c33,
+				2,
+				0x058d,
+				(uintptr_t)_smptrampoline_access___ap_pmode_entry_with_paging,
+				(uintptr_t)&_ap_pmode_entry_with_paging,
+			},
+		};
+
+		for (u32 i = 0; i < sizeof(rela_info) / sizeof(rela_info[0]); i++) {
+			u32 dummy = rela_info[i].dummy;
+			u32 offset = rela_info[i].offset;
+			u64 prefix = rela_info[i].prefix;
+			u64 addr = rela_info[i].addr;
+			u64 value = rela_info[i].value;
+			u8 *p = (void *)addr;
+			u64 mask = (1 << (offset * 8)) - 1;
+
+			HALT_ON_ERRORCOND(((*(u64 *)p) & mask) == (prefix & mask));
+			HALT_ON_ERRORCOND(*(u32 *)(p + offset) == dummy);
+			HALT_ON_ERRORCOND((u64)(u32)addr == addr);
+			*(u32 *)(p + offset) = value;
+		}
+	}
+#endif /* __XMHF_PIE_RUNTIME__ */
+
   //wake up APS
   if(g_midtable_numentries > 1){
     if(cpu_vendor == CPU_VENDOR_AMD)

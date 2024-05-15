@@ -150,8 +150,6 @@ CODE
       movl (%eax), %eax
       shr $24, %eax
 
-      ud2// TODO: PIE 3 variables, see _smptrampoline_access__
-
 #ifndef __XMHF_PIE_RUNTIME__
       movl g_midtable_numentries, %edx
 #else /* __XMHF_PIE_RUNTIME__ */
