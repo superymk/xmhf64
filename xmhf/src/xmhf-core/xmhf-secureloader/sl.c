@@ -229,6 +229,7 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 		rpb->XtVmmRuntimePhysBase = runtime_physical_base;
 #ifdef __XMHF_PIE_RUNTIME__
 		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE + rpb->XtVmmRelocationOffset;
+		HALT_ON_ERRORCOND(sl_baseaddr == rpb->XtVmmRelocationOffset + __TARGET_BASE_SL);
 #else /* !__XMHF_PIE_RUNTIME__ */
 		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE;
 #endif /* __XMHF_PIE_RUNTIME__ */
