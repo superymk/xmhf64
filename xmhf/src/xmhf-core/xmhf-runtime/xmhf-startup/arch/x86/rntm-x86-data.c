@@ -130,6 +130,7 @@ RPB arch_rpb __attribute__(( section(".s_rpb") )) = {
 #ifdef __XMHF_PIE_RUNTIME__
     .XtVmmRuntimeRelaDynBegin = (hva_t)_begin_rela_dyn,
     .XtVmmRuntimeRelaDynEnd = (hva_t)_end_rela_dyn,
+    .XtVmmRelocationOffset = (hva_t)0,
 #endif /* __XMHF_PIE_RUNTIME__ */
     .XtVmmRuntimeDataEnd = (uintptr_t)_end_rt_data,
 	.XtVmmE820Buffer= (hva_t)g_e820map,

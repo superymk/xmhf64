@@ -452,7 +452,11 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb)
 
 	#ifndef __XMHF_VERIFICATION__
 	//setup paging structures for runtime
-	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE + 0x200000, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
+#ifdef __XMHF_PIE_RUNTIME__
+	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE + rpb->XtVmmRelocationOffset, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
+#else /* !__XMHF_PIE_RUNTIME__ */
+	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
+#endif /* __XMHF_PIE_RUNTIME__ */
 	#endif
 
 	printf("SL: setup runtime paging structures.\n");

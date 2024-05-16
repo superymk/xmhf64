@@ -119,8 +119,8 @@ void xmhf_xcphandler_arch_initialize(void){
     /* Relocate xcph table for PIE. */
     for (hva_t *i = (hva_t *)_begin_xcph_table;
          i < (hva_t *)_end_xcph_table; i += 3) {
-        i[1] += 0x200000;
-        i[2] += 0x200000;
+        i[1] += rpb->XtVmmRelocationOffset;
+        i[2] += rpb->XtVmmRelocationOffset;
     }
 #endif /* !__XMHF_PIE_RUNTIME__ */
 }

@@ -110,8 +110,9 @@ typedef struct {
  */
 static void xmhf_sl_handle_rt_rela_dyn(void)
 {
-	sla_t begin = (hva_t)hva2sla((void *)rpb->XtVmmRuntimeRelaDynBegin + 0x200000);
-	sla_t end = (hva_t)hva2sla((void *)rpb->XtVmmRuntimeRelaDynEnd + 0x200000);
+	hva_t offset = rpb->XtVmmRelocationOffset;
+	sla_t begin = (hva_t)hva2sla((void *)(rpb->XtVmmRuntimeRelaDynBegin + offset));
+	sla_t end = (hva_t)hva2sla((void *)(rpb->XtVmmRuntimeRelaDynEnd + offset));
 
 	HALT_ON_ERRORCOND(begin < end);
 	HALT_ON_ERRORCOND((end - begin) % 24 == 0);
@@ -119,13 +120,13 @@ static void xmhf_sl_handle_rt_rela_dyn(void)
 	for (hva_t i = begin; i < end; i += 24) {
 		rela_t *rela = (rela_t *)i;
 		/* Address to write to. */
-		u64 *p = (u64 *)((sla_t)hva2sla((void *)rela->r_offset) + 0x200000);
+		u64 *p = (u64 *)((sla_t)hva2sla((void *)rela->r_offset) + offset);
 		/* Type is always 8, probably R_AMD64_RELATIVE. */
 		HALT_ON_ERRORCOND(rela->r_info == 8ULL);
 		/* Current value should match r_addend. */
 		HALT_ON_ERRORCOND(*p == rela->r_addend);
 		/* Modify value. */
-		*p += 0x200000;
+		*p += offset;
 	}
 }
 #endif /* __XMHF_PIE_RUNTIME__ */
@@ -217,12 +218,21 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 		printf("SL: RPB, magic=0x%08x\n", rpb->magic);
 		HALT_ON_ERRORCOND(rpb->magic == RUNTIME_PARAMETER_BLOCK_MAGIC);
 
+#ifdef __XMHF_PIE_RUNTIME__
+		HALT_ON_ERRORCOND(rpb->XtVmmRelocationOffset == 0);
+		rpb->XtVmmRelocationOffset = 0x200000;
+#endif /* __XMHF_PIE_RUNTIME__ */
+
 		//populate runtime parameter block fields
 		rpb->isEarlyInit = slpb.isEarlyInit; //tell runtime if we started "early" or "late"
 
 		//store runtime physical and virtual base addresses along with size
 		rpb->XtVmmRuntimePhysBase = runtime_physical_base;
-		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE + 0x200000;
+#ifdef __XMHF_PIE_RUNTIME__
+		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE + rpb->XtVmmRelocationOffset;
+#else /* !__XMHF_PIE_RUNTIME__ */
+		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE;
+#endif /* __XMHF_PIE_RUNTIME__ */
 		rpb->XtVmmRuntimeSize = slpb.runtime_size;
 
 		// Modify XMHF runtime image to make it work as PIE.
