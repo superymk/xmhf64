@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
