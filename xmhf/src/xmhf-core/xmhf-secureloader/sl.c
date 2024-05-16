@@ -89,7 +89,11 @@ static void xmhf_sl_clear_rt_bss(void)
 #endif /* __UEFI__ */
 #endif /* __DRT__ */
 
+#ifdef __XMHF_PIE_RUNTIME__
+	rt_bss_phys_begin = rpb->XtVmmRuntimeBssBegin - rpb->XtVmmRelocationOffset - __TARGET_BASE_SL;
+#else /* !__XMHF_PIE_RUNTIME__ */
 	rt_bss_phys_begin = rpb->XtVmmRuntimeBssBegin - __TARGET_BASE_SL;
+#endif /* __XMHF_PIE_RUNTIME__ */
 	rt_bss_size = rpb->XtVmmRuntimeBssEnd - rpb->XtVmmRuntimeBssBegin;
 	//memset((void *)(uintptr_t)rt_bss_phys_begin, 0, rt_bss_size);
 	asm volatile ("cld; rep stosb;" : : "a" (0), "c" (rt_bss_size),
@@ -217,11 +221,6 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 
 		printf("SL: RPB, magic=0x%08x\n", rpb->magic);
 		HALT_ON_ERRORCOND(rpb->magic == RUNTIME_PARAMETER_BLOCK_MAGIC);
-
-#ifdef __XMHF_PIE_RUNTIME__
-		HALT_ON_ERRORCOND(rpb->XtVmmRelocationOffset == 0);
-		rpb->XtVmmRelocationOffset = 0x200000;
-#endif /* __XMHF_PIE_RUNTIME__ */
 
 		//populate runtime parameter block fields
 		rpb->isEarlyInit = slpb.isEarlyInit; //tell runtime if we started "early" or "late"
