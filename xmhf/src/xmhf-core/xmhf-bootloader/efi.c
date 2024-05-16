@@ -397,7 +397,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 		RPB rpb;
 
 		/* Read RPB */
-		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0x200000);
+		UEFI_CALL(file_handle->SetPosition, 2, file_handle, PA_PAGE_SIZE_2M);
 		UEFI_CALL(file_handle->Read, 3, file_handle, &read_rpb_size, &rpb);
 		HALT_ON_ERRORCOND(read_rpb_size == sizeof(RPB));
 		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0);
@@ -460,7 +460,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 #ifdef __XMHF_PIE_RUNTIME__
 	/* Pass relocation offset to SL and runtime */
 	{
-		RPB *rpb = (RPB *)(start + 0x200000);
+		RPB *rpb = (RPB *)(start + PA_PAGE_SIZE_2M);
 		HALT_ON_ERRORCOND(rpb->XtVmmRelocationOffset == 0);
 		rpb->XtVmmRelocationOffset = relocation_offset;
 	}
