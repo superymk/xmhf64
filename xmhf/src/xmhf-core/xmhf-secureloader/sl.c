@@ -103,6 +103,10 @@ static void xmhf_sl_clear_rt_bss(void)
 #endif /* __SKIP_RUNTIME_BSS__ */
 
 #ifdef __XMHF_PIE_RUNTIME__
+#if !defined(__UEFI__) || !defined(__AMD64__)
+#error Currently runtime PIE only supported in 64-bit UEFI.
+#endif
+
 /* https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html */
 typedef struct {
 	u64 r_offset;
