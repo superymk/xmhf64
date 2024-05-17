@@ -325,6 +325,16 @@ AC_ARG_WITH([sl_base],
                 , [with_sl_base=0x10000000])
 SL_BASE=$[]with_sl_base
 
+# make runtime PIE (allow SL and runtime to be loaded anywhere under 4G)
+AC_SUBST([RUNTIME_PIE])
+AC_ARG_ENABLE([runtime_pie],
+        AS_HELP_STRING([--enable-runtime-pie@<:@=yes|no@:>@],
+                [enable runtime PIE]),
+                , [enable_runtime_pie=no])
+AS_IF([test "x${enable_runtime_pie}" != "xno"],
+      [RUNTIME_PIE=y],
+      [RUNTIME_PIE=n])
+
 # select optimization level
 AC_SUBST([OPT_FLAGS])
 AC_ARG_WITH([opt],

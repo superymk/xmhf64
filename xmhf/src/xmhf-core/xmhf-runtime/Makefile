@@ -180,8 +180,10 @@ all: runtimecomponents runtime.bin
 $(OBJECTS_PRECOMPILED): %: runtimecomponents
 $(OBJECTS_PRECOMPILED_LIBBACKENDS): %: runtimecomponents
 
+ifeq ($(RUNTIME_PIE), y)
 # XMHF runtime needs to be compiled in PIE mode.
 LDFLAGS += -pie
+endif
 
 runtime.bin: runtimecomponents $(APP_ARCHIVE) runtime.lds
 	$(LD) $(LDFLAGS) -T runtime.lds -o runtime.exe $(OBJECTS_PRECOMPILED) $(APP_ARCHIVE) $(ADDL_LIBS) $(OBJECTS_PRECOMPILED_LIBBACKENDS) -L$(CCLIB) -lgcc

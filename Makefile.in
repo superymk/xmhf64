@@ -226,9 +226,13 @@ CFLAGS += -mno-pclmul -mno-sse4a -mno-3dnow -mno-popcnt -mno-abm
 # CFLAGS += -mno-sse5
 CFLAGS += -nostdinc -pipe
 CFLAGS += -Wno-address-of-packed-member
-CFLAGS += -mno-red-zone
-# TODO: make it configuration option, only available in 64-bit mode, maybe only available in UEFI mode.
+# TODO: only available in 64-bit mode, maybe only available in UEFI mode.
+ifeq ($(RUNTIME_PIE), y)
 CFLAGS += -D__XMHF_PIE_RUNTIME__
+else
+CFLAGS += -fno-pie -fno-pic
+endif
+CFLAGS += -mno-red-zone
 
 
 # Compiler optimization (-O1, -O3, ...)
@@ -404,7 +408,9 @@ ifeq ($(TARGET_SUBARCH), amd64)
 	CFLAGS += -DAMD64_MAX_PHYS_ADDR=$(AMD64_MAX_PHYS_ADDR)
 	BCFLAGS += -DAMD64_MAX_PHYS_ADDR=$(AMD64_MAX_PHYS_ADDR)
 	VFLAGS += -DAMD64_MAX_PHYS_ADDR=$(AMD64_MAX_PHYS_ADDR)
+ifeq ($(RUNTIME_PIE), y)
 	BCFLAGS += -fno-pie -fno-pic
+endif
 	CFLAGS += -m64
 	BCFLAGS += -m32
 endif
@@ -412,8 +418,10 @@ ifeq ($(TARGET_SUBARCH), i386)
 	CFLAGS += -D__I386__ -D__XMHF_I386__
 	BCFLAGS += -D__I386__ -D__XMHF_I386__
 	VFLAGS += -D__I386__ -D__XMHF_I386__
+ifeq ($(RUNTIME_PIE), y)
 	CFLAGS += -fno-pie -fno-pic
 	BCFLAGS += -fno-pie -fno-pic
+endif
 	CFLAGS += -m32
 	BCFLAGS += -m32
 endif
