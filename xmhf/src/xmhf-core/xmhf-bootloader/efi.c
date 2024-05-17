@@ -431,7 +431,6 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 		addr = 0xFFFFF000ULL;
 		UEFI_CALL(BS->AllocatePages, 4, AllocateMaxAddress,
 				  EfiRuntimeServicesData, pages, &addr);
-		HALT_ON_ERRORCOND(addr >= start);	// TODO
 
 		/* Adjust for relocation due to PIE. */
 		relocation_offset = PA_PAGE_ALIGN_UP_2M(addr - start);
