@@ -227,7 +227,6 @@ CFLAGS += -mno-pclmul -mno-sse4a -mno-3dnow -mno-popcnt -mno-abm
 # CFLAGS += -mno-sse5
 CFLAGS += -nostdinc -pipe
 CFLAGS += -Wno-address-of-packed-member
-# TODO: only available in 64-bit mode, maybe only available in UEFI mode.
 ifeq ($(RUNTIME_PIE), y)
 CFLAGS += -D__XMHF_PIE_RUNTIME__
 else
