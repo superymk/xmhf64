@@ -102,12 +102,15 @@ SECTIONS
     KEEP(*(.xcph_table))
     *(.xcph_table)
     _end_xcph_table = .;
+
+#ifdef __XMHF_PIE_RUNTIME__
     /* .rela.dyn allows XMHF runtime to be loaded as PIE. */
     . = ALIGN(16);
     _begin_rela_dyn = .;
     KEEP(*(.rela.*))
     *(.rela.*)
     _end_rela_dyn = .;
+
     /* Other sections that arise when compiling as PIE. */
     *(.interp)
     *(.dynsym)
@@ -115,6 +118,7 @@ SECTIONS
     *(.hash)
     *(.gnu.hash)
     *(.dynamic)
+#endif /* __XMHF_PIE_RUNTIME__ */
 
     _end_rt_data = .;
   } =0x9090
@@ -152,10 +156,13 @@ SECTIONS
   .rel.debug_info : { *(.rel.debug_info) } >debug
   .rel.debug_aranges : { *(.rel.debug_aranges) } >debug
   .rel.debug_line : { *(.rel.debug_line) } >debug
+
+#ifdef __XMHF_PIE_RUNTIME__
   /* Other sections that arise when compiling as PIE. */
   .shstrtab : { *(.shstrtab) } >debug
   .strtab : { *(.strtab) } >debug
   .symtab : { *(.symtab) } >debug
+#endif /* __XMHF_PIE_RUNTIME__ */
 
   /DISCARD/ : {
     *(.note.gnu.property)

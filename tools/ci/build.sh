@@ -59,6 +59,7 @@
 #   --no-init-smp: disable SMP in bootloader (--enable-skip-init-smp)
 #   --iss NUM: set number of extra INIT-SIPI-SIPI (--with-extra-ap-init-count)
 #   --sl-base BASE: set SL+RT base to BASE instead of 256M (--with-sl-base)
+#   --pie: make XMHF runtime PIE (--enable-runtime-pie)
 #   fast: equivalent to --no-rt-bss --no-bl-hash (For running XMHF quickly)
 #   nv: enable nested virtualization (--enable-nested-virtualization)
 #   no_nv: disable nested virtualization (--disable-nested-virtualization)
@@ -95,6 +96,7 @@ NO_BL_HASH="n"
 NO_INIT_SMP="n"
 EXTRA_AP_INIT_COUNT="0"
 SL_BASE="0x10000000"
+PIE="n"
 NV="y"
 EPT_NUM="8"
 EPT_POOL="512"
@@ -192,6 +194,9 @@ while [ "$#" -gt 0 ]; do
 		--sl-base)
 			SL_BASE="$2"
 			shift
+			;;
+		--pie)
+			PIE="y"
 			;;
 		fast)
 			NO_RT_BSS="y"
@@ -320,6 +325,10 @@ fi
 CONF+=("--with-extra-ap-init-count=$EXTRA_AP_INIT_COUNT")
 
 CONF+=("--with-sl-base=$SL_BASE")
+
+if [ "$PIE" == "y" ]; then
+	CONF+=("--enable-runtime-pie")
+fi
 
 if [ "$CIRCLE_CI" == "y" ]; then
 	CONF+=("--enable-optimize-nested-virt")
