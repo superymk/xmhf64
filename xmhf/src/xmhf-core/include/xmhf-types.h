@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
@@ -119,6 +120,12 @@ typedef struct {
     #error "Unsupported Arch"
 #endif /* !defined(__XMHF_I386__) && !defined(__XMHF_AMD64__) */
 #endif /* __SKIP_RUNTIME_BSS__ */
+#ifdef __XMHF_PIE_RUNTIME__
+    hva_t   XtVmmRuntimeRelaDynBegin;
+    hva_t   XtVmmRuntimeRelaDynEnd;
+    /* Set by bootloader, equal to (actual address - compile address). */
+    hva_t   XtVmmRelocationOffset;
+#endif /* __XMHF_PIE_RUNTIME__ */
     hva_t   XtVmmEntryPoint;
 #ifdef __XMHF_AMD64__
     hva_t   XtVmmPml4Base;
@@ -169,6 +176,9 @@ typedef struct _sl_parameter_block {
     u32     runtime_osbootmodule_size;  // guest OS bootmodule size
     u32     runtime_appmodule_base;     // XMHF hypapp optional module base
     u32     runtime_appmodule_size;     // XMHF hypapp optional module size
+#ifdef __XMHF_PIE_RUNTIME__
+    u64     runtime_relocation_offset;  // runtime actual address - compile address
+#endif /* __XMHF_PIE_RUNTIME__ */
     u64     uefi_acpi_rsdp;             // APIC RSDP when boot with UEFI, or 0
     u64     uefi_info;                  // Pointer to xmhf_efi_info_t data structure
     u64     rdtsc_before_drtm;          // Performance measurements related to DRTM

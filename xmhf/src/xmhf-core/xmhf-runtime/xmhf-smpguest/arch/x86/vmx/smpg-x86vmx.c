@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
@@ -693,7 +694,12 @@ void xmhf_smpguest_arch_x86vmx_unblock_nmi(void)
         "xorq    %%rax, %%rax   \r\n"
         "movw    %%cs, %%ax     \r\n"
         "pushq   %%rax          \r\n"
+#ifndef __XMHF_PIE_RUNTIME__
         "pushq   $1f            \r\n"
+#else /* __XMHF_PIE_RUNTIME__ */
+        "leaq    1f(%%rip), %%rax\r\n"
+        "pushq   %%rax          \r\n"
+#endif /* !__XMHF_PIE_RUNTIME__ */
         "iretq                  \r\n"
         "1: nop                 \r\n"
         : // no output

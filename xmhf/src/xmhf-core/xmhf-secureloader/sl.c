@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
@@ -89,13 +90,55 @@ static void xmhf_sl_clear_rt_bss(void)
 #endif /* __UEFI__ */
 #endif /* __DRT__ */
 
+#ifdef __XMHF_PIE_RUNTIME__
+	rt_bss_phys_begin = rpb->XtVmmRuntimeBssBegin - rpb->XtVmmRelocationOffset - __TARGET_BASE_SL;
+#else /* !__XMHF_PIE_RUNTIME__ */
 	rt_bss_phys_begin = rpb->XtVmmRuntimeBssBegin - __TARGET_BASE_SL;
+#endif /* __XMHF_PIE_RUNTIME__ */
 	rt_bss_size = rpb->XtVmmRuntimeBssEnd - rpb->XtVmmRuntimeBssBegin;
 	//memset((void *)(uintptr_t)rt_bss_phys_begin, 0, rt_bss_size);
 	asm volatile ("cld; rep stosb;" : : "a" (0), "c" (rt_bss_size),
 				  "D" (rt_bss_phys_begin) : "memory", "cc");
 }
 #endif /* __SKIP_RUNTIME_BSS__ */
+
+#ifdef __XMHF_PIE_RUNTIME__
+#if !defined(__UEFI__) || !defined(__AMD64__)
+#error Currently runtime PIE only supported in 64-bit UEFI.
+#endif
+
+/* https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html */
+typedef struct {
+	u64 r_offset;
+	u64 r_info;
+	u64 r_addend;
+} rela_t;
+
+/*
+ * Handle runtime's .rela.dyn section.
+ */
+static void xmhf_sl_handle_rt_rela_dyn(void)
+{
+	hva_t offset = rpb->XtVmmRelocationOffset;
+	sla_t begin = (hva_t)hva2sla((void *)(rpb->XtVmmRuntimeRelaDynBegin + offset));
+	sla_t end = (hva_t)hva2sla((void *)(rpb->XtVmmRuntimeRelaDynEnd + offset));
+
+	HALT_ON_ERRORCOND(begin < end);
+	HALT_ON_ERRORCOND((end - begin) % 24 == 0);
+
+	for (hva_t i = begin; i < end; i += 24) {
+		rela_t *rela = (rela_t *)i;
+		/* Address to write to. */
+		u64 *p = (u64 *)((sla_t)hva2sla((void *)rela->r_offset) + offset);
+		/* Type is always 8, probably R_AMD64_RELATIVE. */
+		HALT_ON_ERRORCOND(rela->r_info == 8ULL);
+		/* Current value should match r_addend. */
+		HALT_ON_ERRORCOND(*p == rela->r_addend);
+		/* Modify value. */
+		*p += offset;
+	}
+}
+#endif /* __XMHF_PIE_RUNTIME__ */
 
 //we get here from slheader.S
 // rdtsc_* are valid only if PERF_CRIT is not defined.  slheader.S
@@ -189,8 +232,19 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 
 		//store runtime physical and virtual base addresses along with size
 		rpb->XtVmmRuntimePhysBase = runtime_physical_base;
+#ifdef __XMHF_PIE_RUNTIME__
+		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE + rpb->XtVmmRelocationOffset;
+		HALT_ON_ERRORCOND(sl_baseaddr == rpb->XtVmmRelocationOffset + __TARGET_BASE_SL);
+#else /* !__XMHF_PIE_RUNTIME__ */
 		rpb->XtVmmRuntimeVirtBase = __TARGET_BASE;
+#endif /* __XMHF_PIE_RUNTIME__ */
 		rpb->XtVmmRuntimeSize = slpb.runtime_size;
+
+		// Modify XMHF runtime image to make it work as PIE.
+		// This step should be done as early as possible.
+#ifdef __XMHF_PIE_RUNTIME__
+		xmhf_sl_handle_rt_rela_dyn();
+#endif /* __XMHF_PIE_RUNTIME__ */
 
 		//store revised E820 map and number of entries
 		#ifndef __XMHF_VERIFICATION__

@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
@@ -141,6 +142,11 @@ extern uint32_t _end_rt_data[];
 extern u32 _begin_rt_bss[];
 extern u32 _end_rt_bss[];
 #endif /* __SKIP_RUNTIME_BSS__ */
+
+#ifdef __XMHF_PIE_RUNTIME__
+extern u32 _begin_rela_dyn[];
+extern u32 _end_rela_dyn[];
+#endif /* __XMHF_PIE_RUNTIME__ */
 
 //----------------------------------------------------------------------
 //exported FUNCTIONS

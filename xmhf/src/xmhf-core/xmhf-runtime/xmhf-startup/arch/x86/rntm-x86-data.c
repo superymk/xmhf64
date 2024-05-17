@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
@@ -127,6 +128,11 @@ RPB arch_rpb __attribute__(( section(".s_rpb") )) = {
     .XtVmmRuntimeBssBegin= (uintptr_t)_begin_rt_bss,
     .XtVmmRuntimeBssEnd= (uintptr_t)_end_rt_bss,
 #endif /* __SKIP_RUNTIME_BSS__ */
+#ifdef __XMHF_PIE_RUNTIME__
+    .XtVmmRuntimeRelaDynBegin = (hva_t)_begin_rela_dyn,
+    .XtVmmRuntimeRelaDynEnd = (hva_t)_end_rela_dyn,
+    .XtVmmRelocationOffset = (hva_t)0,
+#endif /* __XMHF_PIE_RUNTIME__ */
     .XtVmmRuntimeDataEnd = (uintptr_t)_end_rt_data,
 	.XtVmmE820Buffer= (hva_t)g_e820map,
 	.XtVmmE820NumEntries= 0,
