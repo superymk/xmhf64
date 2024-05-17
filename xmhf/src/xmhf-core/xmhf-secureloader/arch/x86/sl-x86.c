@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
@@ -452,7 +453,11 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb)
 
 	#ifndef __XMHF_VERIFICATION__
 	//setup paging structures for runtime
+#ifdef __XMHF_PIE_RUNTIME__
+	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE + rpb->XtVmmRelocationOffset, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
+#else /* !__XMHF_PIE_RUNTIME__ */
 	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
+#endif /* __XMHF_PIE_RUNTIME__ */
 	#endif
 
 	printf("SL: setup runtime paging structures.\n");

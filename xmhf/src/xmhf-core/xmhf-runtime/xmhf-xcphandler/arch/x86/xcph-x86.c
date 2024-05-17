@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
@@ -85,6 +86,9 @@ VCPU *_svm_and_vmx_getvcpu(void){
   HALT(); return NULL; // will never return presently
 }
 
+extern uint8_t _begin_xcph_table[];
+extern uint8_t _end_xcph_table[];
+
 //initialize EMHF core exception handlers
 void xmhf_xcphandler_arch_initialize(void){
     uintptr_t *pexceptionstubs;
@@ -111,6 +115,15 @@ void xmhf_xcphandler_arch_initialize(void){
     }
 
     printf("%s: IDT setup done.\n", __FUNCTION__);
+
+#ifdef __XMHF_PIE_RUNTIME__
+    /* Relocate xcph table for PIE. */
+    for (hva_t *i = (hva_t *)_begin_xcph_table;
+         i < (hva_t *)_end_xcph_table; i += 3) {
+        i[1] += rpb->XtVmmRelocationOffset;
+        i[2] += rpb->XtVmmRelocationOffset;
+    }
+#endif /* !__XMHF_PIE_RUNTIME__ */
 }
 
 
@@ -118,9 +131,6 @@ void xmhf_xcphandler_arch_initialize(void){
 u8 * xmhf_xcphandler_arch_get_idt_start(void){
     return (u8 *)&xmhf_xcphandler_idt_start;
 }
-
-extern uint8_t _begin_xcph_table[];
-extern uint8_t _end_xcph_table[];
 
 //EMHF exception handler hub
 void xmhf_xcphandler_arch_hub(uintptr_t vector, struct regs *r){

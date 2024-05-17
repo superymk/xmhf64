@@ -4,6 +4,7 @@
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2009-2012 Carnegie Mellon University
  * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2024 Eric Li
  * All Rights Reserved.
  *
  * Developed by: XMHF Team
@@ -368,6 +369,9 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	UINT64 start;
 	UINT64 end;
 	UINT64 nonzero_end;
+#ifdef __XMHF_PIE_RUNTIME__
+	UINT64 relocation_offset;
+#endif /* __XMHF_PIE_RUNTIME__ */
 
 	/* Convert pathname to wchar_t */
 	wpathname = xmhf_efi_bs2wcs(pathname);
@@ -394,7 +398,7 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 		RPB rpb;
 
 		/* Read RPB */
-		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0x200000);
+		UEFI_CALL(file_handle->SetPosition, 2, file_handle, PA_PAGE_SIZE_2M);
 		UEFI_CALL(file_handle->Read, 3, file_handle, &read_rpb_size, &rpb);
 		HALT_ON_ERRORCOND(read_rpb_size == sizeof(RPB));
 		UEFI_CALL(file_handle->SetPosition, 2, file_handle, 0);
@@ -410,18 +414,41 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	/* Compute buffer size (larger than file size, 4K aligned) */
 	buf_size = PA_PAGE_ALIGN_UP_4K((end - start) + 1);
 	HALT_ON_ERRORCOND(buf_size > (end - start));
+#ifdef __XMHF_PIE_RUNTIME__
+	/* Allocate 2M more to make sure SL is 2M aligned. */
+	buf_size += PA_PAGE_SIZE_2M;
+#endif /* __XMHF_PIE_RUNTIME__ */
 
 	/* Allocate memory */
 	{
 		UINTN pages;
-		EFI_PHYSICAL_ADDRESS addr = start;
+		EFI_PHYSICAL_ADDRESS addr;
 
 		pages = buf_size >> PAGE_SHIFT_4K;
 		HALT_ON_ERRORCOND((pages << PAGE_SHIFT_4K) == buf_size);
         Print(L"[<xmhf_efi_load_slrt> XMHF SL+RT memory size:0x%llX\n", buf_size);
+#ifdef __XMHF_PIE_RUNTIME__
+		addr = 0xFFFFF000ULL;
+		UEFI_CALL(BS->AllocatePages, 4, AllocateMaxAddress,
+				  EfiRuntimeServicesData, pages, &addr);
+
+		/* Adjust for relocation due to PIE. */
+		relocation_offset = PA_PAGE_ALIGN_UP_2M(addr - start);
+		printf("relocation_offset: 0x%016llx\n", relocation_offset);
+		start += relocation_offset;
+		end += relocation_offset;
+
+		/* Sanity check: [start, end) still in allocated memory. */
+		HALT_ON_ERRORCOND(addr < addr + buf_size);
+		HALT_ON_ERRORCOND(addr <= start);
+		HALT_ON_ERRORCOND(start < end);
+		HALT_ON_ERRORCOND(end <= addr + buf_size);
+#else /* !__XMHF_PIE_RUNTIME__ */
+		addr = start;
 		UEFI_CALL(BS->AllocatePages, 4, AllocateAddress, EfiRuntimeServicesData,
 				  pages, &addr);
-		// HALT_ON_ERRORCOND(addr == start);
+		HALT_ON_ERRORCOND(addr == start);
+#endif /* __XMHF_PIE_RUNTIME__ */
 	}
 
 	/* Copy file */
@@ -429,6 +456,15 @@ static void xmhf_efi_load_slrt(EFI_FILE_HANDLE volume, char *pathname,
 	read_size = buf_size;
 	UEFI_CALL(file_handle->Read, 3, file_handle, &read_size, start);
 	HALT_ON_ERRORCOND(read_size == file_size);
+
+#ifdef __XMHF_PIE_RUNTIME__
+	/* Pass relocation offset to SL and runtime */
+	{
+		RPB *rpb = (RPB *)(start + PA_PAGE_SIZE_2M);
+		HALT_ON_ERRORCOND(rpb->XtVmmRelocationOffset == 0);
+		rpb->XtVmmRelocationOffset = relocation_offset;
+	}
+#endif /* __XMHF_PIE_RUNTIME__ */
 
 	/* Close file */
 	UEFI_CALL(file_handle->Close, 1, file_handle);
