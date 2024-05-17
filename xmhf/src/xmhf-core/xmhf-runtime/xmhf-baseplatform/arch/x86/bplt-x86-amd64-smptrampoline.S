@@ -221,8 +221,13 @@ _smptrampoline_access___ap_pmode_entry_with_paging:
   .global _ap_pmode_entry_with_paging
   _ap_pmode_entry_with_paging:
     /*load our gdt and idt*/
+#ifndef __XMHF_PIE_RUNTIME__
+    lgdt x_gdt
+    lidt xmhf_xcphandler_idt
+#else /* __XMHF_PIE_RUNTIME__ */
     lgdt x_gdt(%rip)
     lidt xmhf_xcphandler_idt(%rip)
+#endif /* !__XMHF_PIE_RUNTIME__ */
 
     /*get hold of local APIC id*/
     mov $(MSR_APIC_BASE), %ecx
