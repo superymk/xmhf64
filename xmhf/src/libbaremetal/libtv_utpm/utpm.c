@@ -139,7 +139,6 @@ TPM_RESULT utpm_init_master_entropy(uint8_t *aeskey,
     memcpy(&g_rsa_key, rsa, sizeof(g_rsa_key));
 
     /* register libtomcrypt algorithms */
-    // [TODO][Issue 131] Replace sha1 in uTPM to be sha256
     if (register_hash( &sha256_desc) < 0) {
       abort();
     }
@@ -443,10 +442,10 @@ TPM_RESULT utpm_seal(utpm_master_state_t *utpm,
     }
 
     dprintf(LOG_TRACE, "[TV:utpm_seal] inlen %u, outlen (junk expected) %u, tpmPcrInfo %p\n", inlen, *outlen, tpmPcrInfo);
-    print_hex("  [TV:utpm_seal] tpmPcrInfo: ", (uint8_t*)tpmPcrInfo, sizeof(TPM_PCR_INFO));
-    print_hex("  [TV:utpm_seal] input:      ", input, inlen);
-    print_hex("  [TV:utpm_seal] g_hmackey:    ", g_hmackey, TPM_HASH_SIZE); /* XXX SECURITY */
-    print_hex("  [TV:utpm_seal] g_aeskey:     ", g_aeskey, TPM_AES_KEY_LEN_BYTES); /* XXX SECURITY */
+    // print_hex("  [TV:utpm_seal] tpmPcrInfo: ", (uint8_t*)tpmPcrInfo, sizeof(TPM_PCR_INFO));
+    // print_hex("  [TV:utpm_seal] input:      ", input, inlen);
+    // print_hex("  [TV:utpm_seal] g_hmackey:    ", g_hmackey, TPM_HASH_SIZE); /* XXX SECURITY */
+    // print_hex("  [TV:utpm_seal] g_aeskey:     ", g_aeskey, TPM_AES_KEY_LEN_BYTES); /* XXX SECURITY */
 
     /**
      * Part 1: Populate digestAtCreation (only for tpmPcrInfo that selects 1+ PCRs).
