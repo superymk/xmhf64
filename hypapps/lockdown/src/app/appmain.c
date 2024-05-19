@@ -362,6 +362,12 @@ void xmhf_app_handleshutdown(VCPU *vcpu, struct regs *r){
 	#endif //__LDN_TV_INTEGRATION__
 }
 
+void xmhf_app_handle_mhv_halt(VCPU *vcpu, struct regs *r)
+{
+    (void)vcpu;
+    (void)r;
+}
+
 //handles CPUID invokation
 //for now allow default behavior
 u32 xmhf_app_handlecpuid(VCPU *vcpu, struct regs *r)

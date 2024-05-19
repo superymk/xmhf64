@@ -1366,6 +1366,12 @@ u32 xmhf_parteventhub_arch_x86vmx_print_guest(VCPU *vcpu, struct regs *r)
 	HALT();
 }
 
+static void _INTERCEPT_DO_HALT(VCPU *vcpu, struct regs *r)
+{
+    xmhf_app_handle_mhv_halt(vcpu, r);
+    HALT();
+}
+
 //---hvm_intercept_handler------------------------------------------------------
 u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 #ifdef __NESTED_VIRTUALIZATION__
@@ -1396,7 +1402,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 			vcpu->id, (u32)vcpu->vmcs.info_vmexit_reason,
 			(u64)vcpu->vmcs.info_exit_qualification);
 		xmhf_baseplatform_arch_x86vmx_dump_vcpu(vcpu);
-		HALT();
+		_INTERCEPT_DO_HALT(vcpu, r);
 	}
 
 	/*
@@ -1450,7 +1456,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 				xmhf_smpguest_arch_x86vmx_quiesce(vcpu);
 				if( xmhf_app_handlehypercall(vcpu, r) != APP_SUCCESS){
 					printf("CPU(0x%02x): error(halt), unhandled hypercall 0x%08x!\n", vcpu->id, r->eax);
-					HALT();
+                    _INTERCEPT_DO_HALT(vcpu, r);
 				}
 				xmhf_smpguest_arch_x86vmx_endquiesce(vcpu);
 				vcpu->vmcs.guest_RIP += vcpu->vmcs.info_vmexit_instruction_length;
@@ -1545,7 +1551,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 			printf("***** VMEXIT_INIT xmhf_runtime_shutdown\n\n");
 			xmhf_runtime_shutdown(vcpu, r);
 			printf("CPU(0x%02x): Fatal, xmhf_runtime_shutdown returned. Halting!\n", vcpu->id);
-			HALT();
+            _INTERCEPT_DO_HALT(vcpu, r);
 		}
 		break;
 
@@ -1555,10 +1561,10 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 		case VMX_VMEXIT_HLT:
 			if(!vcpu->vmx_guest_unrestricted){
 				printf("CPU(0x%02x): V86 monitor based real-mode exec. unsupported!\n", vcpu->id);
-				HALT();
+                _INTERCEPT_DO_HALT(vcpu, r);
 			}else{
 				printf("CPU(0x%02x): Unexpected HLT intercept in UG, Halting!\n", vcpu->id);
-				HALT();
+                _INTERCEPT_DO_HALT(vcpu, r);
 			}
 		break;
 
@@ -1592,7 +1598,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 						vcpu->vmcs.info_vmexit_interrupt_error_code);
 
 					xmhf_parteventhub_arch_x86vmx_print_guest(vcpu, r);
-					HALT();
+                    _INTERCEPT_DO_HALT(vcpu, r);
 			}
 		}
 		break;
@@ -1666,7 +1672,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 			case 0x4: //CR4 access
 				if(!vcpu->vmx_guest_unrestricted){
 					printf("HALT: v86 monitor based real-mode exec. unsupported!\n");
-					HALT();
+                    _INTERCEPT_DO_HALT(vcpu, r);
 				}else{
 					vmx_handle_intercept_cr4access_ug(vcpu, r, gpr, tofrom);
 				}
@@ -1674,7 +1680,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 
 			default:
 				printf("unhandled crx, halting!\n");
-				HALT();
+                _INTERCEPT_DO_HALT(vcpu, r);
 			}
 		}
 		break;
@@ -1702,13 +1708,13 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 					xmhf_runtime_shutdown(vcpu, r);
 				printf("CPU(0x%02x): warning, xmhf_runtime_shutdown returned!\n", vcpu->id);
 				printf("CPU(0x%02x): HALTING!\n", vcpu->id);
-				HALT();
+                _INTERCEPT_DO_HALT(vcpu, r);
 			}else{
 				printf("CPU(0x%02x): Unhandled Task Switch. Halt!\n", vcpu->id);
 				printf("	idt_v=0x%08x, type=0x%08x, reason=0x%08x, tsssel=0x%04x\n",
 					idt_v, type, reason, tss_selector);
 			}
-			HALT();
+            _INTERCEPT_DO_HALT(vcpu, r);
 		}
 		break;
 
@@ -1723,7 +1729,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 					vcpu->id, vcpu->vmcs.info_vmexit_reason,
 					vcpu->vmcs.info_vmexit_reason);
 			xmhf_parteventhub_arch_x86vmx_print_guest(vcpu, r);
-			HALT();
+            _INTERCEPT_DO_HALT(vcpu, r);
 		}
 	} //end switch((u32)vcpu->vmcs.info_vmexit_reason)
 
@@ -1731,7 +1737,7 @@ u32 xmhf_parteventhub_arch_x86vmx_intercept_handler(VCPU *vcpu, struct regs *r){
 	if(vcpu->vmcs.info_IDT_vectoring_information & 0x80000000){
 		printf("CPU(0x%02x): HALT; Nested events unhandled with hwp:0x%08x\n",
 			vcpu->id, vcpu->vmcs.info_IDT_vectoring_information);
-		HALT();
+        _INTERCEPT_DO_HALT(vcpu, r);
 	}
 
 	//write updated VMCS back to CPU

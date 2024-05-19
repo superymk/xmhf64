@@ -53,6 +53,12 @@
 
 #include <xmhf.h>
 
+static void _INTERCEPT_DO_HALT(VCPU *vcpu, struct regs *r)
+{
+    xmhf_app_handle_mhv_halt(vcpu, r);
+    HALT();
+}
+
 //---function to obtain the vcpu of the currently executing core----------------
 // XXX: TODO, move this into baseplatform as backend
 // note: this always returns a valid VCPU pointer
@@ -83,7 +89,8 @@ VCPU *_svm_and_vmx_getvcpu(void){
   }
 
   printf("%s: fatal, unable to retrieve vcpu for id=0x%02x\n", __FUNCTION__, lapic_id);
-  HALT(); return NULL; // will never return presently
+  _INTERCEPT_DO_HALT(NULL, NULL); 
+  return NULL; // will never return presently
 }
 
 extern uint8_t _begin_xcph_table[];
@@ -284,7 +291,7 @@ void xmhf_xcphandler_arch_hub(uintptr_t vector, struct regs *r){
 #endif /* !defined(__I386__) && !defined(__AMD64__) */
                 printf("[%02x]-----end------------\n", vcpu->id);
             }
-            HALT();
+            _INTERCEPT_DO_HALT(vcpu, r);
         }
     }
 }
