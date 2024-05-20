@@ -361,9 +361,13 @@ static void _svm_int15_handleintercept(VCPU *vcpu, struct regs *r){
 	vmcb->cs.selector = cs;
 }
 
-
-
 //---SVM intercept handler hub--------------------------------------------------
+static void _INTERCEPT_DO_HALT(VCPU *vcpu, struct regs *r)
+{
+    xmhf_app_handle_mhv_halt(vcpu, r);
+    HALT();
+}
+
 u32 xmhf_parteventhub_arch_x86svm_intercept_handler(VCPU *vcpu, struct regs *r){
   struct _svm_vmcbfields *vmcb = (struct _svm_vmcbfields *)vcpu->vmcb_vaddr_ptr;
 
@@ -389,13 +393,13 @@ u32 xmhf_parteventhub_arch_x86svm_intercept_handler(VCPU *vcpu, struct regs *r){
 				}else{
 						printf("CPU(0x%02x): unhandled INT 15h request from protected mode\n", vcpu->id);
 						printf("Halting!\n");
-						HALT();
+						_INTERCEPT_DO_HALT(vcpu, r);
 				}
 			}else{	//if not E820 hook, give app a chance to handle the hypercall
 				xmhf_smpguest_arch_x86svm_quiesce(vcpu);
 				if( xmhf_app_handlehypercall(vcpu, r) != APP_SUCCESS){
 					printf("CPU(0x%02x): error(halt), unhandled hypercall 0x%08x!\n", vcpu->id, r->eax);
-					HALT();
+					_INTERCEPT_DO_HALT(vcpu, r);
 				}
 				xmhf_smpguest_arch_x86svm_endquiesce(vcpu);
 				vmcb->rip += 3;
@@ -419,7 +423,7 @@ u32 xmhf_parteventhub_arch_x86svm_intercept_handler(VCPU *vcpu, struct regs *r){
 			printf("\n***** INIT xmhf_runtime_shutdown\n");
 			xmhf_runtime_shutdown(vcpu, r);
 			printf("CPU(0x%02x): Fatal, xmhf_runtime_shutdown returned. Halting!\n", vcpu->id);
-			HALT();
+			_INTERCEPT_DO_HALT(vcpu, r);
 		}
 		break;
 
@@ -439,7 +443,7 @@ u32 xmhf_parteventhub_arch_x86svm_intercept_handler(VCPU *vcpu, struct regs *r){
 			}else{															//TODO: reflect back to guest
 				printf("Unexpected DB exception on non-BSP core (0x%02x)\n", vcpu->id);
 				printf("Halting!\n");
-				HALT();
+				_INTERCEPT_DO_HALT(vcpu, r);
 			}
 		}
 		break;
@@ -458,7 +462,7 @@ u32 xmhf_parteventhub_arch_x86svm_intercept_handler(VCPU *vcpu, struct regs *r){
 				r->ebx, r->edx, r->ecx, vmcb->rax);
 			printf("\tExitInfo1: %llx\n", vmcb->exitinfo1);
 			printf("\tExitInfo2: %llx\n", vmcb->exitinfo2);
-			HALT();
+			_INTERCEPT_DO_HALT(vcpu, r);
 		}
 	}	//end switch(vmcb->exitcode)
 

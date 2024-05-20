@@ -46,6 +46,7 @@
 
 // EMHF app. callback declarations
 // author: amit vasudevan (amitvasudevan@acm.org)
+// author: Miao Yu (superymk@cmu.edu)
 
 #ifndef __EMHF_APP_H__
 #define __EMHF_APP_H__
@@ -148,6 +149,12 @@ extern u32 xmhf_app_handleintercept_hwpgtblviolation(VCPU *vcpu, struct regs *r,
  * are in hypervisor mode).
  */
 extern void xmhf_app_handleshutdown(VCPU *vcpu, struct regs *r);
+
+/// @brief Called right before the micro-hypervisor (mHV) halts in its interrupt/hypercall handlers. 
+/// This function gives hypapp a chance to clear its secret before the micro-hypervisor halts.
+/// @param vcpu [Optional]
+/// @param r [Optional]
+extern void xmhf_app_handle_mhv_halt(VCPU *vcpu, struct regs *r);
 
 /*
  * Called when the guest tries to perform VMCALL / VMMCALL.
