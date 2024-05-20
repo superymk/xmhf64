@@ -404,6 +404,14 @@ static void _invoke_runtime_entrypoint(RPB *rpb, u32 ptba)
 #endif /* !defined(__I386__) && !defined(__AMD64__) */
 }
 
+static hva_t xmhf_runtime_get_base_hvaddr(RPB *rpb)
+{
+#ifdef __XMHF_PIE_RUNTIME__
+    return (hva_t)(__TARGET_BASE + rpb->XtVmmRelocationOffset);
+#else /* !__XMHF_PIE_RUNTIME__ */
+    return (hva_t)__TARGET_BASE;
+#endif /* __XMHF_PIE_RUNTIME__ */
+}
 
 void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb)
 {
@@ -479,13 +487,14 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb)
     {
         union sha_digest digest = {0};
         int result = 0;
-        size_t xmhf_rt_code_data_size = rpb->XtVmmRuntimeDataEnd - __TARGET_BASE;
+        hva_t xmhf_rt_base = xmhf_runtime_get_base_hvaddr(rpb);
+        size_t xmhf_rt_code_data_size = rpb->XtVmmRuntimeDataEnd - xmhf_rt_base;
 
         // Measure xmhf-runtime
         printf("SL: Measure xmhf-runtime start. XMHF-runtime code and data size:0x%lX\n", xmhf_rt_code_data_size);
         if(tpm->major == TPM12_VER_MAJOR)
         {
-            result = sha2_256_mem_to_20bytes((void*)__TARGET_BASE, xmhf_rt_code_data_size, digest.sha1_digest);
+            result = sha2_256_mem_to_20bytes((void*)xmhf_rt_base, xmhf_rt_code_data_size, digest.sha1_digest);
             if(result)
             {
                 printf("SL: Measure xmhf-runtime with SHA1 error!\n");
@@ -494,7 +503,7 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb)
         }
         else if(tpm->major == TPM20_VER_MAJOR)
         {
-            result = sha2_256_mem((void*)__TARGET_BASE, xmhf_rt_code_data_size, digest.sha2_256_digest);
+            result = sha2_256_mem((void*)xmhf_rt_base, xmhf_rt_code_data_size, digest.sha2_256_digest);
             if(result)
             {
                 printf("SL: Measure xmhf-runtime with SHA256 error!\n");
