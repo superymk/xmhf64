@@ -409,6 +409,7 @@ static hva_t xmhf_runtime_get_base_hvaddr(RPB *rpb)
 #ifdef __XMHF_PIE_RUNTIME__
     return (hva_t)(__TARGET_BASE + rpb->XtVmmRelocationOffset);
 #else /* !__XMHF_PIE_RUNTIME__ */
+    (void)rpb;
     return (hva_t)__TARGET_BASE;
 #endif /* __XMHF_PIE_RUNTIME__ */
 }
