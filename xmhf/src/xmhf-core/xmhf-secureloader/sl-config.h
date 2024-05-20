@@ -40,17 +40,14 @@
 
 // Author: 
 
-#ifndef _HASH_FUNCS_H
-#define _HASH_FUNCS_H
+#ifndef _SL_HEADER_H
+#define _SL_HEADER_H
 
-// // XMHF-SL only: The TPM functions used by XMHF-SL need a small input and output buffer only.
-// #define XMHF_SL_TPM_MAX_COMMAND_SIZE   (96)
-// #define XMHF_SL_TPM_MAX_RESPONSE_SIZE  (96)
+// For sl.lds.S due to different syntax. It must be the same with <SL_LOW_CODE_DATA_SECTION_SIZE> in xmhf-config.h (but
+// with different syntax)
+#define SL_LOW_CODE_DATA_SECTION_SIZE_LDS   (128K)
 
 #ifndef __ASSEMBLY__
 
-// extern u8 cmd_buf[XMHF_SL_TPM_MAX_COMMAND_SIZE];
-// extern u8 rsp_buf[XMHF_SL_TPM_MAX_RESPONSE_SIZE];
-
 #endif // __ASSEMBLY__
-#endif // _HASH_FUNCS_H
+#endif // _SL_HEADER_H

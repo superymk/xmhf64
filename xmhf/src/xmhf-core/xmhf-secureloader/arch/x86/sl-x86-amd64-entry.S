@@ -373,7 +373,7 @@ sl_cpu_common:
 ----------------------------------------------------------------------*/
 
 /* sl stack, this is just a placeholder and ensures that the linker
- actually "allocates" the stack up until 0x10000*/
+ actually "allocates" the stack up until <SL_LOW_CODE_DATA_SECTION_SIZE>*/
 .section .sl_stack
     .fill 2048, 1, 0
 

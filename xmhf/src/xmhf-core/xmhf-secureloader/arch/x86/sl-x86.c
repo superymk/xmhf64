@@ -68,8 +68,8 @@ __attribute__((section(".sl_untrusted_params"), aligned(PAGE_SIZE_4K)));
 //we only have confidence in the runtime's expected value here in the SL
 //static INTEGRITY_MEASUREMENT_VALUES g_sl_gold /* __attribute__(( section("") )) */ = {
 //    .sha_runtime = ___RUNTIME_INTEGRITY_HASH___,
-//    .sha_slabove64K = BAD_INTEGRITY_HASH,
-//    .sha_slbelow64K = BAD_INTEGRITY_HASH
+//    .sha_sl_high = BAD_INTEGRITY_HASH,
+//    .sha_sl_low = BAD_INTEGRITY_HASH
 //};
 
 #ifdef __AMD64__

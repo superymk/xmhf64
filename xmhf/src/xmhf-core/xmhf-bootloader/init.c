@@ -110,8 +110,8 @@ extern void init_core_lowlevel_setup(void);
 // that here in 'init' these values are UNTRUSTED
 INTEGRITY_MEASUREMENT_VALUES g_init_gold /* __attribute__(( section("") )) */ = {
     .sha_runtime = ___RUNTIME_INTEGRITY_HASH___,
-    .sha_slabove64K = ___SLABOVE64K_INTEGRITY_HASH___,
-    .sha_slbelow64K = ___SLBELOW64K_INTEGRITY_HASH___
+    .sha_sl_high = ___SLABOVE64K_INTEGRITY_HASH___,
+    .sha_sl_low = ___SLBELOW64K_INTEGRITY_HASH___
 };
 
 //size of SL + runtime in bytes
@@ -1349,15 +1349,15 @@ void cstartup(multiboot_info_t *mbi)
     hashandprint("    INIT(early): *UNTRUSTED* comp runtime: ",
                  (u8*)hypervisor_image_baseaddress+0x200000, sl_rt_size-0x200000);
     /* SL low 64K */
-    print_hex("    INIT(early): *UNTRUSTED* gold SL low 64K: ",
-              g_init_gold.sha_slbelow64K, SHA_DIGEST_LENGTH);
-    hashandprint("    INIT(early): *UNTRUSTED* comp SL low 64K: ",
-                 (u8*)hypervisor_image_baseaddress, 0x10000);
+    print_hex("    INIT(early): *UNTRUSTED* gold SL low: ",
+              g_init_gold.sha_sl_low, SHA_DIGEST_LENGTH);
+    hashandprint("    INIT(early): *UNTRUSTED* comp SL low: ",
+                 (u8*)hypervisor_image_baseaddress, SL_LOW_CODE_DATA_SECTION_SIZE);
     /* SL above 64K */
-    print_hex("    INIT(early): *UNTRUSTED* gold SL above 64K: ",
-              g_init_gold.sha_slabove64K, SHA_DIGEST_LENGTH);
-    hashandprint("    INIT(early): *UNTRUSTED* comp SL above 64K): ",
-                 (u8*)hypervisor_image_baseaddress+0x10000, 0x200000-0x10000);
+    print_hex("    INIT(early): *UNTRUSTED* gold SL high: ",
+              g_init_gold.sha_sl_high, SHA_DIGEST_LENGTH);
+    hashandprint("    INIT(early): *UNTRUSTED* comp SL high): ",
+                 (u8*)hypervisor_image_baseaddress + SL_LOW_CODE_DATA_SECTION_SIZE, 0x200000-SL_LOW_CODE_DATA_SECTION_SIZE);
 #endif /* !__SKIP_BOOTLOADER_HASH__ */
 
 #ifndef __UEFI__
@@ -1369,8 +1369,8 @@ void cstartup(multiboot_info_t *mbi)
 
     //fill in "sl" parameter block
     {
-        //"sl" parameter block is at hypervisor_image_baseaddress + 0x10000
-        slpb = (SL_PARAMETER_BLOCK *)(hypervisor_image_baseaddress + 0x10000);
+        //"sl" parameter block is at hypervisor_image_baseaddress + SL_LOW_CODE_DATA_SECTION_SIZE
+        slpb = (SL_PARAMETER_BLOCK *)(hypervisor_image_baseaddress + SL_LOW_CODE_DATA_SECTION_SIZE);
         HALT_ON_ERRORCOND(slpb->magic == SL_PARAMETER_BLOCK_MAGIC);
         slpb->errorHandler = 0;
         slpb->isEarlyInit = 1;    //this is an "early" init

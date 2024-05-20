@@ -47,9 +47,12 @@
 
 //sl.c
 //secure loader implementation
+// [Load PIE-enabled runtime] Use relocation sections, see https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html
 //author: amit vasudevan (amitvasudevan@acm.org)
+//author: Eric Li (xiaoyili@andrew.cmu.edu) for loading runtime compiled with Position Independent Executable (PIE)
 
 #include <xmhf.h>
+#include "sl-config.h"
 #include "./hash/hash.h"
 
 RPB * rpb;
@@ -140,12 +143,11 @@ static void xmhf_sl_handle_rt_rela_dyn(void)
 }
 #endif /* __XMHF_PIE_RUNTIME__ */
 
-//we get here from slheader.S
+//we get here from sl-*-entry.S
 // rdtsc_* are valid only if PERF_CRIT is not defined.  slheader.S
 // sets them to 0 otherwise.
-void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
-
-
+void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
+{
 	u32 runtime_physical_base;
 	u32 runtime_size_2Maligned;
 
@@ -156,8 +158,8 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 #endif /* !defined(__I386__) */
 
 	//linker relocates sl image starting from 0, so
-    //parameter block must be at offset 0x10000
-	HALT_ON_ERRORCOND( (sla_t)&slpb == 0x10000 );
+    //parameter block must be at offset <SL_LOW_CODE_DATA_SECTION_SIZE>
+	HALT_ON_ERRORCOND( (sla_t)&slpb == SL_LOW_CODE_DATA_SECTION_SIZE );
 
 	//do we have the required MAGIC?
 	HALT_ON_ERRORCOND( slpb.magic == SL_PARAMETER_BLOCK_MAGIC);
