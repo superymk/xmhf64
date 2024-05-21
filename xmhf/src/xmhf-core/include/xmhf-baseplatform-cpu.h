@@ -70,7 +70,7 @@ static inline void xmhf_cpu_relax(void)
 extern void xmhf_cpu_flush_cache_range(void *vaddr, unsigned int size);
 
 //! @brief Sleep the current core for <us> micro-second.
-extern void xmhf_cpu_delay_us(uint64_t us);
+extern void xmhf_cpu_delay_us_rdtsc(uint64_t us);
 
 #endif	//__ASSEMBLY__
 #endif //__XMHF_BASEPLATFORM_CPU_H__
