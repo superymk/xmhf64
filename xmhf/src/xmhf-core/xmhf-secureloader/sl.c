@@ -240,9 +240,16 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx){
 #endif /* __XMHF_PIE_RUNTIME__ */
 		rpb->XtVmmRuntimeSize = slpb.runtime_size;
 
+#ifdef __XMHF_PIE_RUNTIME__
+		// Make sure XtVmmRelocationOffset does not overflow.
+		{
+			hva_t begin = rpb->XtVmmRuntimeVirtBase;
+			hva_t end = rpb->XtVmmRuntimeVirtBase + rpb->XtVmmRuntimeSize;
+			HALT_ON_ERRORCOND(begin < end);
+		}
+
 		// Modify XMHF runtime image to make it work as PIE.
 		// This step should be done as early as possible.
-#ifdef __XMHF_PIE_RUNTIME__
 		xmhf_sl_handle_rt_rela_dyn();
 #endif /* __XMHF_PIE_RUNTIME__ */
 
