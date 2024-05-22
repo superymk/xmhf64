@@ -2,14 +2,9 @@
  * @XMHF_LICENSE_HEADER_START@
  *
  * eXtensible, Modular Hypervisor Framework (XMHF)
- * Copyright (c) 2009-2012 Carnegie Mellon University
- * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2023 - 2024 Miao Yu
+ * Copyright (c) 2023 - 2024 Virgil Gligor
  * All Rights Reserved.
- *
- * Developed by: XMHF Team
- *               Carnegie Mellon University / CyLab
- *               VDG Inc.
- *               http://xmhf.org
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,7 +18,7 @@
  * the documentation and/or other materials provided with the
  * distribution.
  *
- * Neither the names of Carnegie Mellon or VDG Inc, nor the names of
+ * Neither the name of the copyright holder nor the names of
  * its contributors may be used to endorse or promote products derived
  * from this software without specific prior written permission.
  *
@@ -44,42 +39,24 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-// EMHF x86 arch. specific configurable definitions
-// author: amit vasudevan (amitvasudevan@acm.org)
-// author: Eric Li
-// author: Miao Yu
+#ifndef _SL_TPM_MEASURE_H
+#define _SL_TPM_MEASURE_H
 
-// This file must be modified first to support hardware configuration
+#include <xmhf.h>
 
-#ifndef __XMHF_CONFIG_H__
-#define __XMHF_CONFIG_H__
-
-// maximum supported physical address, currently 16GB
-// Note: This value must be larger than 4GB
-#ifdef __I386__
-    // Note: 32-bit XMHF (non-PAE) always assumes the maximum physical memory size == 4GB.
-	#define MAX_PHYS_ADDR					ADDR_4GB
-#elif defined(__AMD64__)
-	#define MAX_PHYS_ADDR                   (AMD64_MAX_PHYS_ADDR)
-#else
-    #error "Unsupported Arch"
-#endif // __I386__
-
-
-/********* Configs of entire XMHF *********/
-// max. cores/vcpus we support currently
-#define MAX_MIDTAB_ENTRIES  			(8)
-#define MAX_PCPU_ENTRIES  				(MAX_MIDTAB_ENTRIES)
-#define MAX_VCPU_ENTRIES    			(MAX_PCPU_ENTRIES)
-
-
-
-/********* Configs of xmhf-secureloader *********/
-/// @brief Size of xmhf-sl code, rodata, and data sections that need to be measured. When DRTM is enabled, DRTM should
-/// measure these sections and execute the code.
-#define SL_LOW_CODE_DATA_SECTION_SIZE   (KB(128))
+#define TPM_PCR_BOOT_STATE   (7)
+#define TPM_PCR_DRTM_IMAGE  (17)
 
 #ifndef __ASSEMBLY__
 
+/// @brief Measure the xmhf-runtime.
+/// [NOTE] This function must be called before <xmhf_sl_handle_rt_rela_dyn>, which modifies xmhf-runtime image for
+/// relocation. 
+/// [NOTE] xmhf-sl assumes that xmhf-runtime's code and rodata sections must be placed before its data section.
+/// @param rpb 
+/// @param xmhf_rt_data_end The end of the xmhf-runtime data section. 
+/// @return 
+extern int xmhf_sl_tpm_measure_runtime(RPB *rpb, hva_t xmhf_rt_data_end);
+
 #endif // __ASSEMBLY__
-#endif // __XMHF_CONFIG_H__
+#endif // _SL_TPM_MEASURE_H

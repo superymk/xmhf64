@@ -54,6 +54,7 @@
 #include <xmhf.h>
 #include "sl-config.h"
 #include "./hash/hash.h"
+#include "tpm_measure.h"
 
 RPB * rpb;
 u32 sl_baseaddr=0;
@@ -249,6 +250,23 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
 			hva_t end = rpb->XtVmmRuntimeVirtBase + rpb->XtVmmRuntimeSize;
 			HALT_ON_ERRORCOND(begin < end);
 		}
+
+        printf("[XMHF-Secureloader] XMHF-runtime relocation offset: 0x%lX\n", rpb->XtVmmRelocationOffset);
+
+        // Measure XMHF runtime. The measurement must be done before <xmhf_sl_handle_rt_rela_dyn>, which modifies 
+        // XMHF runtime image. 
+        {
+            int ret = 0;
+            // [NOTE] We must not adjust <rpb->XtVmmRuntimeDataEnd> with <rpb->XtVmmRelocationOffset> before 
+            // <xmhf_sl_handle_rt_rela_dyn>, because that function halts if <rpb->XtVmmRuntimeDataEnd> is changed. 
+            hva_t xmhf_rt_data_end = rpb->XtVmmRuntimeDataEnd + rpb->XtVmmRelocationOffset;
+            
+            ret = xmhf_sl_tpm_measure_runtime(rpb, xmhf_rt_data_end);
+            if(ret)
+            {
+                printf("SL: Measure xmhf-runtime error! status:%d\n", ret);
+            }
+        }
 
 		// Modify XMHF runtime image to make it work as PIE.
 		// This step should be done as early as possible.

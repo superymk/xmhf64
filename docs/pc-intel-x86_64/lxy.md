@@ -269,7 +269,7 @@ load \EFI\BOOT\init-x86-amd64.efi
 stall 1000000
 # Load Debian
 FS2:
-for %i in \EFI\debian\grubx64.efi \EFI\BOOT\BOOTX64.EFI
+for %i in \EFI\ubuntu\grubx64.efi \EFI\debian\grubx64.efi \EFI\BOOT\BOOTX64.EFI
 	if exists %i then
 		%i
 		exit

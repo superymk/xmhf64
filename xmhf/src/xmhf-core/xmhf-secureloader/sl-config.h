@@ -3,6 +3,7 @@
  *
  * eXtensible, Modular Hypervisor Framework (XMHF)
  * Copyright (c) 2023 - 2024 Miao Yu
+ * Copyright (c) 2023 - 2024 Virgil Gligor
  * All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,8 +38,6 @@
  *
  * @XMHF_LICENSE_HEADER_END@
  */
-
-// Author: 
 
 #ifndef _SL_HEADER_H
 #define _SL_HEADER_H

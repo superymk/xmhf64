@@ -16,7 +16,7 @@ AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-entry.S
 endif
 AS_SOURCES += ./arch/x86/sl-x86-$(TARGET_SUBARCH)-sup.S
 
-C_SOURCES = sl.c
+C_SOURCES = sl.c tpm_measure.c
 C_SOURCES += ./arch/x86/sl-x86.c
 C_SOURCES += ./hash/sha2.c ./hash/hash.c
 
