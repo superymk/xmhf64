@@ -251,7 +251,7 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
 			HALT_ON_ERRORCOND(begin < end);
 		}
 
-        printf("[XMHF-Secureloader] XMHF-runtime relocation offset: 0x%lX\n", rpb->XtVmmRelocationOffset);
+        printf("SL: XMHF-runtime relocation offset: 0x%lX\n", rpb->XtVmmRelocationOffset);
 
         // Measure XMHF runtime. The measurement must be done before <xmhf_sl_handle_rt_rela_dyn>, which modifies 
         // XMHF runtime image. 
