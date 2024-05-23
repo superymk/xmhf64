@@ -129,30 +129,25 @@ void xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus(u32 cpu_vendor){
     {
         // Use another for-loop, because <_svm_and_vmx_getvcpu> needs the <g_midtable> array partially initialized above.
         VCPU* bsp_vcpu = _svm_and_vmx_getvcpu();
-        printf("[Superymk] <xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus> bsp_vcpu:0x%lX\n", (hva_t)bsp_vcpu);
         for(i=0; i < g_midtable_numentries; i++)
         {
             vcpu = (VCPU*)g_midtable[i].vcpu_vaddr_ptr;
-            {
-                printf("[Superymk] <xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus> CPU:0x%08X\n", (uint32_t)g_midtable[i].cpu_lapic_id);
-                printf("[Superymk] <xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus> is_bsp:%u\n", (uint32_t)xmhf_baseplatform_arch_x86_isbsp());
-            }
 
             if(vcpu == bsp_vcpu)
             {
                 // Initialize EPT for the BSP core. The BSP core uses the EPT[0].
-                vcpu->vmx_vaddr_ept_pml4_table = ((hva_t)g_vmx_ept_pml4_table_buffers + (0 * P4L_NPLM4T * PAGE_SIZE_4K));
-                vcpu->vmx_vaddr_ept_pdp_table = ((hva_t)g_vmx_ept_pdp_table_buffers + (0 * P4L_NPDPT * PAGE_SIZE_4K));
-                vcpu->vmx_vaddr_ept_pd_tables = ((hva_t)g_vmx_ept_pd_table_buffers + (0 * P4L_NPDT * PAGE_SIZE_4K));
-                vcpu->vmx_vaddr_ept_p_tables = ((hva_t)g_vmx_ept_p_table_buffers + (0 * P4L_NPT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pml4_table = ((hva_t)g_vmx_ept_pml4_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * P4L_NPLM4T * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pdp_table = ((hva_t)g_vmx_ept_pdp_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * P4L_NPDPT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pd_tables = ((hva_t)g_vmx_ept_pd_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * P4L_NPDT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_p_tables = ((hva_t)g_vmx_ept_p_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * P4L_NPT * PAGE_SIZE_4K));
             }
             else
             {
                 // Initialize EPT for an AP core. All AP cores use the same EPT[1].
-                vcpu->vmx_vaddr_ept_pml4_table = ((hva_t)g_vmx_ept_pml4_table_buffers + (1 * P4L_NPLM4T * PAGE_SIZE_4K));
-                vcpu->vmx_vaddr_ept_pdp_table = ((hva_t)g_vmx_ept_pdp_table_buffers + (1 * P4L_NPDPT * PAGE_SIZE_4K));
-                vcpu->vmx_vaddr_ept_pd_tables = ((hva_t)g_vmx_ept_pd_table_buffers + (1 * P4L_NPDT * PAGE_SIZE_4K));
-                vcpu->vmx_vaddr_ept_p_tables = ((hva_t)g_vmx_ept_p_table_buffers + (1 * P4L_NPT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pml4_table = ((hva_t)g_vmx_ept_pml4_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * P4L_NPLM4T * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pdp_table = ((hva_t)g_vmx_ept_pdp_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * P4L_NPDPT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pd_tables = ((hva_t)g_vmx_ept_pd_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * P4L_NPDT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_p_tables = ((hva_t)g_vmx_ept_p_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * P4L_NPT * PAGE_SIZE_4K));
             }
         }
     }

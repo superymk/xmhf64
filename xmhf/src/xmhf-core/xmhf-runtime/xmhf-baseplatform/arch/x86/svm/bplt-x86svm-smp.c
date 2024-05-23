@@ -142,16 +142,16 @@ void xmhf_baseplatform_arch_x86svm_allocandsetupvcpus(u32 cpu_vendor){
             if(vcpu == bsp_vcpu)
             {
                 // Initialize NPT for the BSP core. The BSP core uses the NPT[0].
-                npt_pdpt_base = ((hva_t)g_svm_npt_pdpt_buffers + (0 * 4096));
-                npt_pdts_base = ((hva_t)g_svm_npt_pdts_buffers + (0 * 16384));
-                npt_pts_base = ((hva_t)g_svm_npt_pts_buffers + (0 * (2048*4096)));
+                npt_pdpt_base = ((hva_t)g_svm_npt_pdpt_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * 4096));
+                npt_pdts_base = ((hva_t)g_svm_npt_pdts_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * 16384));
+                npt_pts_base = ((hva_t)g_svm_npt_pts_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * (2048*4096)));
             }
             else
             {
                 // Initialize NPT for an AP core. All AP cores use the same NPT[1].
-                npt_pdpt_base = ((hva_t)g_svm_npt_pdpt_buffers + (1 * 4096));
-                npt_pdts_base = ((hva_t)g_svm_npt_pdts_buffers + (1 * 16384));
-                npt_pts_base = ((hva_t)g_svm_npt_pts_buffers + (1 * (2048*4096)));
+                npt_pdpt_base = ((hva_t)g_svm_npt_pdpt_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * 4096));
+                npt_pdts_base = ((hva_t)g_svm_npt_pdts_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * 16384));
+                npt_pts_base = ((hva_t)g_svm_npt_pts_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * (2048*4096)));
             }
 
             vcpu->npt_vaddr_ptr = npt_pdpt_base;
