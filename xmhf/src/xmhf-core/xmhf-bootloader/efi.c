@@ -545,6 +545,28 @@ static void xmhf_efi_load_sinit(EFI_FILE_HANDLE volume, char *pathname,
 }
 #endif /* __DRT__ */
 
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+uintptr_t xmhhf_efi_allocate_large_bss_data(void)
+{
+    EFI_STATUS status;
+    UINTN pages;
+    EFI_PHYSICAL_ADDRESS addr = 0;
+
+    pages = XMHF_RUNTIME_LARGE_BSS_DATA_SIZE >> PAGE_SHIFT_4K;
+    status = uefi_call_wrapper(BS->AllocatePages, 4, AllocateAnyPages,
+                EfiRuntimeServicesData, pages, &addr);
+    if(status != EFI_SUCCESS)
+    {
+        Print(L"Allocate memory for xmhf-runtime's large BSS data error!\n");
+        printf("Allocate memory for xmhf-runtime's large BSS data error!\n");
+        return 0;
+    }
+    
+    // On success
+    return (uintptr_t)addr;
+}
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+
 /*
  * Find RSDP from SystemTable.
  *

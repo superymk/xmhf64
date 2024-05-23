@@ -104,35 +104,46 @@ void xmhf_runtime_entry(void){
 
 #if defined (__DMAP__)
 		{
-			#define ADDR_512GB  (PAGE_SIZE_512G)
-				u64 protectedbuffer_paddr;
-				hva_t protectedbuffer_vaddr;
-				u32 protectedbuffer_size;
+		#define ADDR_512GB  (PAGE_SIZE_512G)
+            u64 protectedbuffer_paddr;
+            hva_t protectedbuffer_vaddr;
+            u32 protectedbuffer_size;
 
-        protectedbuffer_paddr = hva2spa(g_rntm_dmaprot_buffer);
-				protectedbuffer_vaddr = (hva_t)g_rntm_dmaprot_buffer;
-				protectedbuffer_size = xmhf_dmaprot_getbuffersize(DMAPROT_PHY_ADDR_SPACE_SIZE); // ADDR_512GB
-				HALT_ON_ERRORCOND(protectedbuffer_size <= SIZE_G_RNTM_DMAPROT_BUFFER);
+        // #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+        //     g_rntm_dmaprot_buffer = ((XT_LARGE_BSS_DATA_VMX*)rpb->XtLargeBSSData)->g_rntm_dmaprot_buffer;
+        //     printf("[Superymk] <xmhf_runtime_entry> g_rntm_dmaprot_buffer:0x%lX\n", (hva_t)g_rntm_dmaprot_buffer);
+        //     printf("[Superymk] <xmhf_runtime_entry> g_vmx_ept_pml4_table_buffers:0x%lX\n", (hva_t)((XT_LARGE_BSS_DATA_VMX*)rpb->XtLargeBSSData)->g_vmx_ept_pml4_table_buffers);
+        // #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
 
-        xmhf_iommu_init();
+            protectedbuffer_paddr = hva2spa(g_rntm_dmaprot_buffer);
+            protectedbuffer_vaddr = (hva_t)g_rntm_dmaprot_buffer;
+            protectedbuffer_size = xmhf_dmaprot_getbuffersize(DMAPROT_PHY_ADDR_SPACE_SIZE); // ADDR_512GB
+            HALT_ON_ERRORCOND(protectedbuffer_size <= SIZE_G_RNTM_DMAPROT_BUFFER);
 
-				printf("Runtime: Re-initializing DMA protection (physical address space size:0x%llX)...\n", DMAPROT_PHY_ADDR_SPACE_SIZE);
-				if(!xmhf_dmaprot_initialize(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size)){
-					printf("Runtime: Unable to re-initialize DMA protection. HALT!\n");
-					HALT();
-				}
+            xmhf_iommu_init();
 
-				// Protect SL and runtime memory regions
-				xmhf_dmaprot_protect(rpb->XtVmmRuntimePhysBase - PAGE_SIZE_2M, rpb->XtVmmRuntimeSize+PAGE_SIZE_2M);
-				printf("Runtime: Protected SL+Runtime (%08lx-%08x) from DMA.\n", rpb->XtVmmRuntimePhysBase - PAGE_SIZE_2M, rpb->XtVmmRuntimePhysBase+rpb->XtVmmRuntimeSize);
+            printf("Runtime: Re-initializing DMA protection (physical address space size:0x%llX)...\n", DMAPROT_PHY_ADDR_SPACE_SIZE);
+            if(!xmhf_dmaprot_initialize(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size)){
+                printf("Runtime: Unable to re-initialize DMA protection. HALT!\n");
+                HALT();
+            }
 
-        // Enable DMA protection
-        if(!xmhf_dmaprot_enable(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size)){
+        // #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+        //     // Protect xmhf-runtime large bss data, which are outside of xmhf-runtime memory.
+        //     xmhf_dmaprot_protect(rpb->XtLargeBSSData, sizeof(XT_LARGE_BSS_DATA_VMX));
+        // #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+
+            // Protect SL and runtime memory regions
+            xmhf_dmaprot_protect(rpb->XtVmmRuntimePhysBase - PAGE_SIZE_2M, rpb->XtVmmRuntimeSize+PAGE_SIZE_2M);
+            printf("Runtime: Protected SL+Runtime (%08lx-%08x) from DMA.\n", rpb->XtVmmRuntimePhysBase - PAGE_SIZE_2M, rpb->XtVmmRuntimePhysBase+rpb->XtVmmRuntimeSize);
+
+            // Enable DMA protection
+            if(!xmhf_dmaprot_enable(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size)){
 					printf("Runtime: Unable to enable DMA protection. HALT!\n");
 					HALT();
 				}
 
-        xmhf_dmaprot_invalidate_cache();
+            xmhf_dmaprot_invalidate_cache();
 		}
 
 #else //!__DMAP__

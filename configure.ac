@@ -311,10 +311,20 @@ AC_SUBST([FORCE_TPM_1_2])
 AC_ARG_ENABLE([force-tpm12],
         AS_HELP_STRING([--enable-force-tpm12@<:@=yes|no@:>@],
                 [enable TPM 1.2 not TPM 2]),
-                , [enable_force_tpm_1_2=yes])
+                , [enable_force_tpm_1_2=no])
 AS_IF([test "x${enable_force_tpm_1_2}" != "xno"],
       [FORCE_TPM_1_2=y],
       [FORCE_TPM_1_2=n])
+
+# UEFI: Allocate large xmhf-runtime BSS data with AllocatePages to reduce xmhf-runtime size
+AC_SUBST([UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS])
+AC_ARG_ENABLE([uefi_allocate_runtime_large_bss],
+        AS_HELP_STRING([--enable-uefi-allocate-runtime-large-bss@<:@=yes|no@:>@],
+                [UEFI: Allocate large xmhf-runtime BSS data with AllocatePages to reduce xmhf-runtime size]),
+                , [enable_uefi_allocate_runtime_large_bss=yes])
+AS_IF([test "x${enable_uefi_allocate_runtime_large_bss}" != "xno"],
+      [UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS=y],
+      [UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS=n])
 
 
 # select address of SL and runtime

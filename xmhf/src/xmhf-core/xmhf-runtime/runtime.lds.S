@@ -66,7 +66,11 @@ ENTRY(xmhf_runtime_entry)
 
 MEMORY
 {
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+  all (rwxai) : ORIGIN = __TARGET_BASE, LENGTH = 512M /* length is arbitrary */
+#else
   all (rwxai) : ORIGIN = __TARGET_BASE, LENGTH = 1024M /* length is arbitrary */
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
   debug (rwxai) : ORIGIN = 0, LENGTH = 1024M
   unaccounted (rwxai) : ORIGIN = 0, LENGTH = 0 /* see section .unaccounted at end */
 }

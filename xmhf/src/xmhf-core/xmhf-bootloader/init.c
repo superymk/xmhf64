@@ -57,6 +57,10 @@
 #define TPM_PCR_BOOT_STATE   (7)
 
 //---forward prototypes---------------------------------------------------------
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+extern uintptr_t xmhhf_efi_allocate_large_bss_data(void);
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+
 u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp);
 MPFP * MP_GetFPStructure(void);
 u32 _MPFPComputeChecksum(u32 spaddr, u32 size);
@@ -1296,6 +1300,14 @@ void cstartup(multiboot_info_t *mbi)
 		HALT_ON_ERRORCOND((u64)sl_rt_size == size64);
 	}
 
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+    {
+        RPB *rpb = (RPB *) (hypervisor_image_baseaddress + PA_PAGE_SIZE_2M);
+        rpb->XtLargeBSSData = xmhhf_efi_allocate_large_bss_data();
+        printf("[Superymk] <cstartup> rpb->XtLargeBSSData:0x%lX\n", (uintptr_t)rpb->XtLargeBSSData);
+    }
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+
 #else /* !__UEFI__ */
 
     // In BIOS boot, xmhf-SL and xmhf-runtime are loaded into the fixed spaddr __TARGET_BASE_SL.
@@ -1311,7 +1323,7 @@ void cstartup(multiboot_info_t *mbi)
 
 #ifdef __SKIP_RUNTIME_BSS__
     {
-        RPB *rpb = (RPB *) (mod_array[0].mod_start + 0x200000);
+        RPB *rpb = (RPB *) (mod_array[0].mod_start + PA_PAGE_SIZE_2M);
         sl_rt_size = PAGE_ALIGN_UP_2M((u32)rpb->XtVmmRuntimeBssEnd - __TARGET_BASE_SL);
     }
 #endif /* __SKIP_RUNTIME_BSS__ */
