@@ -53,18 +53,6 @@
 // the LAPIC register that is being accessed during emulation
 static u32 g_vmx_lapic_reg __attribute__((section(".data"))) = 0;
 
-// the LAPIC operation that is being performed during emulation
-static u32 g_vmx_lapic_op __attribute__((section(".data"))) = LAPIC_OP_RSVD;
-
-// guest TF and IF bit values during LAPIC emulation
-static u32 g_vmx_lapic_guest_eflags_tfifmask __attribute__((section(".data"))) = 0;
-
-// guest "Blocking by NMI" bit in Interruptibility State, for LAPIC interception
-static u32 g_vmx_lapic_guest_intr_nmimask __attribute__((section(".data"))) = 0;
-
-// guest exception bitmap during LAPIC emulation
-static u32 g_vmx_lapic_exception_bitmap __attribute__((section(".data"))) = 0;
-
 /*
  * xmhf_smpguest_arch_x86vmx_quiesce() needs to access printf locks defined
  * in xmhfc-putchar.c
@@ -91,6 +79,7 @@ static inline void atomic_dec(volatile u32 *v)
 
 #define VMX_LAPIC_MAP ((u64)EPT_PROT_READ | (u64)EPT_PROT_WRITE)
 #define VMX_LAPIC_UNMAP 0
+// #define VMX_LAPIC_UNMAP ((u64)EPT_PROT_READ)
 
 static void vmx_lapic_changemapping(VCPU *vcpu, u32 lapic_paddr, u32 new_lapic_paddr, u64 mapflag)
 {
@@ -365,9 +354,183 @@ static void xmhf_smpguest_arch_x86vmx_delink_lapic(VCPU *vcpu)
 bool g_vmx_lapic_npf_verification_guesttrapping = false;
 bool g_vmx_lapic_npf_verification_pre = false;
 #endif
+
+
+#if 0
+static uint32_t bsp_lapic_icr_high_value = 0;
+
+static uint32_t _lapic_read(uint32_t lapic_reg)
+{
+    hva_t lapic_dst_registeraddress = (hva_t)g_vmx_lapic_base + lapic_reg;
+
+    return *(uint32_t*)lapic_dst_registeraddress;
+}
+
+static void _lapic_write(uint32_t lapic_reg, uint32_t new_val)
+{
+    hva_t lapic_dst_registeraddress = (hva_t)g_vmx_lapic_base + lapic_reg;
+    memcpy((void*)lapic_dst_registeraddress, &new_val, sizeof(uint32_t));
+}
+
 //----------------------------------------------------------------------
 // xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation
 // handle LAPIC accesses by the guest, used for SMP guest boot
+u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, struct regs *r, gpa_t paddr, u32 errorcode)
+{
+    int ret = 0;
+    uint32_t lapic_reg = (paddr - g_vmx_lapic_base);
+    uint32_t delink_lapic_interception = 0;
+
+#ifdef __XMHF_VERIFICATION_DRIVEASSERTS__
+    g_vmx_lapic_npf_verification_pre = (errorcode & EPT_ERRORCODE_WRITE) &&
+                                       ((g_vmx_lapic_reg == LAPIC_ICR_LOW) || (g_vmx_lapic_reg == LAPIC_ICR_HIGH));
+#endif
+
+    printf("[Superymk] <xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation> g_vmx_lapic_base:0x%08X, paddr:0x%llX, ICR=0x%08x, errorcode:0x%08X\n",
+                        g_vmx_lapic_base, paddr, lapic_reg, errorcode);
+
+    if (errorcode & EPT_ERRORCODE_WRITE)
+    {
+        // LAPIC write
+        uint8_t emu_write_value[OPERAND_VAL_LENGTH] = {0};
+        size_t write_size = 0;
+        uint32_t value_tobe_written = 0;
+
+        ret = xmhf_memprot_emulate_guest_ring0_write(vcpu, r, &emu_write_value, &write_size);
+        if(ret)
+        {
+            printf("%s: Failed to handle LAPIC write by the guest!\n", __FUNCTION__);
+            return 1;
+        }
+        value_tobe_written = *(uint32_t*)emu_write_value;
+
+
+
+        {
+            printf("[Superymk] 0x%04x:0x%08x -> (ICR=0x%08x write) value=0x%08x\n",
+                        (u16)vcpu->vmcs.guest_CS_selector, (u32)vcpu->vmcs.guest_RIP, lapic_reg, value_tobe_written);
+            printf("[%02x] RAX=0x%016lx RBX=0x%016lx\n", vcpu->id, r->rax, r->rbx);
+            printf("[%02x] RCX=0x%016lx RDX=0x%016lx\n", vcpu->id, r->rcx, r->rdx);
+            printf("[%02x] RSI=0x%016lx RDI=0x%016lx\n", vcpu->id, r->rsi, r->rdi);
+            printf("[%02x] RBP=0x%016lx RSP=0x%016lx\n", vcpu->id, r->rbp, r->rsp);
+            printf("[%02x] R8 =0x%016lx R9 =0x%016lx\n", vcpu->id, r->r8 , r->r9 );
+            printf("[%02x] R10=0x%016lx R11=0x%016lx\n", vcpu->id, r->r10, r->r11);
+            printf("[%02x] R12=0x%016lx R13=0x%016lx\n", vcpu->id, r->r12, r->r13);
+            printf("[%02x] R14=0x%016lx R15=0x%016lx\n", vcpu->id, r->r14, r->r15);
+            
+        }
+
+        
+
+
+        if (lapic_reg == LAPIC_ICR_HIGH)
+        {
+            bsp_lapic_icr_high_value = value_tobe_written;
+            _lapic_write(lapic_reg, value_tobe_written);
+        }
+        else if (lapic_reg == LAPIC_ICR_LOW)
+        {
+            if ((value_tobe_written & 0x00000F00) == 0x500)
+            {
+                // this is an INIT IPI
+                printf("0x%04x:0x%08x -> (ICR=0x%08x write) INIT IPI detected, value=0x%08x\n",
+                       (u16)vcpu->vmcs.guest_CS_selector, (uint32_t)vcpu->vmcs.guest_RIP, g_vmx_lapic_reg, value_tobe_written);
+                processINIT(vcpu, value_tobe_written, bsp_lapic_icr_high_value >> 24);
+#ifdef __XMHF_VERIFICATION_DRIVEASSERTS__
+                g_vmx_lapic_db_verification_coreprotected = true;
+#endif
+            }
+            else if ((value_tobe_written & 0x00000F00) == 0x600)
+            {
+                // this is a STARTUP IPI
+                printf("0x%04x:0x%08x -> (ICR=0x%08x write) STARTUP IPI detected, value=0x%08x\n",
+                       (u16)vcpu->vmcs.guest_CS_selector, (uint32_t)vcpu->vmcs.guest_RIP, g_vmx_lapic_reg, value_tobe_written);
+
+#ifdef __XMHF_VERIFICATION__
+#ifdef __XMHF_VERIFICATION_DRIVEASSERTS__
+                g_vmx_lapic_db_verification_coreprotected = true;
+#endif
+#else
+                // we assume that destination is always physical and
+                // specified via top 8 bits of icr_high_value
+                delink_lapic_interception = processSIPI(vcpu, value_tobe_written, bsp_lapic_icr_high_value >> 24);
+#endif
+            }
+            else
+            {
+#ifndef __XMHF_VERIFICATION__
+                // neither an INIT or SIPI, just propagate this IPI to physical LAPIC
+                _lapic_write(lapic_reg, value_tobe_written);
+#endif // TODO: hardware modeling
+            }
+        }
+        else
+        {
+#ifndef __XMHF_VERIFICATION__
+            _lapic_write(lapic_reg, value_tobe_written);
+#endif // TODO: hardware modeling
+        }
+    }
+    else if (errorcode & EPT_ERRORCODE_READ)
+    {
+        // LAPIC read
+        uint8_t emu_read_value[OPERAND_VAL_LENGTH] = {0};
+        
+        *(uint32_t*)emu_read_value = _lapic_read(lapic_reg);
+
+        ret = xmhf_memprot_emulate_guest_ring0_read(vcpu, r, emu_read_value);
+        if(ret)
+        {
+            printf("%s: Failed to handle LAPIC read by the guest!\n", __FUNCTION__);
+            return 1;
+        }
+    }
+
+    // remove LAPIC interception if all cores have booted up
+    if (delink_lapic_interception)
+    {
+        xmhf_smpguest_arch_x86vmx_delink_lapic(vcpu);
+    }
+    else
+    {
+        vmx_lapic_changemapping(vcpu, g_vmx_lapic_base, g_vmx_lapic_base, VMX_LAPIC_UNMAP);
+    }
+
+    // Move forward the EIP/RIP of the guest
+    {
+        gva_t rip = (gva_t)VCPU_grip(vcpu);
+        gva_t new_rip = 0;
+
+        new_rip = rip + vcpu->vmcs.info_vmexit_instruction_length;
+        VCPU_grip_set(vcpu, new_rip);
+    }
+
+    // On success
+    return 0;
+}
+
+void xmhf_smpguest_arch_x86vmx_eventhandler_dbexception(VCPU *vcpu, struct regs *r)
+{
+    (void)vcpu;(void)r;
+}
+
+#else
+
+// the LAPIC operation that is being performed during emulation
+static u32 g_vmx_lapic_op __attribute__((section(".data"))) = LAPIC_OP_RSVD;
+
+// guest TF and IF bit values during LAPIC emulation
+static u32 g_vmx_lapic_guest_eflags_tfifmask __attribute__((section(".data"))) = 0;
+
+// guest "Blocking by NMI" bit in Interruptibility State, for LAPIC interception
+static u32 g_vmx_lapic_guest_intr_nmimask __attribute__((section(".data"))) = 0;
+
+// guest exception bitmap during LAPIC emulation
+static u32 g_vmx_lapic_exception_bitmap __attribute__((section(".data"))) = 0;
+
+// static bool _on_lapic_write = false;
+// static bool _write_vlapic = false;
+
 u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, struct regs *r, gpa_t paddr, u32 errorcode)
 {
     (void)r;
@@ -381,20 +544,23 @@ u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, struct r
 
     if (errorcode & EPT_ERRORCODE_WRITE)
     { // LAPIC write
-
+        // _on_lapic_write = true;
         if (g_vmx_lapic_reg == LAPIC_ICR_LOW || g_vmx_lapic_reg == LAPIC_ICR_HIGH)
         {
             g_vmx_lapic_op = LAPIC_OP_WRITE;
             vmx_lapic_changemapping(vcpu, g_vmx_lapic_base, hva2spa(g_vmx_virtual_LAPIC_base), VMX_LAPIC_MAP);
+            // _write_vlapic = true;
         }
         else
         {
             g_vmx_lapic_op = LAPIC_OP_RSVD;
             vmx_lapic_changemapping(vcpu, g_vmx_lapic_base, g_vmx_lapic_base, VMX_LAPIC_MAP);
+            // _write_vlapic = false;
         }
     }
     else
     { // LAPIC read
+        // _on_lapic_write = false;
         if (g_vmx_lapic_reg == LAPIC_ICR_LOW || g_vmx_lapic_reg == LAPIC_ICR_HIGH)
         {
             g_vmx_lapic_op = LAPIC_OP_READ;
@@ -446,7 +612,7 @@ u32 xmhf_smpguest_arch_x86vmx_eventhandler_hwpgtblviolation(VCPU *vcpu, struct r
 
     return 0; // TODO: currently meaningless
 }
-//----------------------------------------------------------------------
+// ----------------------------------------------------------------------
 
 #ifdef __XMHF_VERIFICATION_DRIVEASSERTS__
 bool g_vmx_lapic_db_verification_coreprotected = false;
@@ -468,6 +634,37 @@ void xmhf_smpguest_arch_x86vmx_eventhandler_dbexception(VCPU *vcpu, struct regs 
     g_vmx_lapic_op = (nondet_u32() % 3) + 1;
     g_vmx_lapic_reg = (nondet_u32() % PAGE_SIZE_4K);
 #endif
+
+    // if(_on_lapic_write)
+    // {
+    //     {
+    //         hva_t src_registeraddress;
+    //         u32 value_tobe_written;
+
+    //         if(_write_vlapic)
+    //         {
+    //             src_registeraddress = (hva_t)g_vmx_virtual_LAPIC_base + g_vmx_lapic_reg;
+    //         }
+    //         else
+    //         {
+    //             src_registeraddress = (hva_t)g_vmx_lapic_base + g_vmx_lapic_reg;
+    //         }
+    //         value_tobe_written = *((u32 *)src_registeraddress);
+            
+            
+    //         printf("[Superymk] 0x%04x:0x%08x -> (ICR=0x%08x write) value=0x%08x\n",
+    //                     (u16)vcpu->vmcs.guest_CS_selector, (u32)vcpu->vmcs.guest_RIP, g_vmx_lapic_reg, value_tobe_written);
+    //         printf("[%02x] RAX=0x%016lx RBX=0x%016lx\n", vcpu->id, r->rax, r->rbx);
+    //         printf("[%02x] RCX=0x%016lx RDX=0x%016lx\n", vcpu->id, r->rcx, r->rdx);
+    //         printf("[%02x] RSI=0x%016lx RDI=0x%016lx\n", vcpu->id, r->rsi, r->rdi);
+    //         printf("[%02x] RBP=0x%016lx RSP=0x%016lx\n", vcpu->id, r->rbp, r->rsp);
+    //         printf("[%02x] R8 =0x%016lx R9 =0x%016lx\n", vcpu->id, r->r8 , r->r9 );
+    //         printf("[%02x] R10=0x%016lx R11=0x%016lx\n", vcpu->id, r->r10, r->r11);
+    //         printf("[%02x] R12=0x%016lx R13=0x%016lx\n", vcpu->id, r->r12, r->r13);
+    //         printf("[%02x] R14=0x%016lx R15=0x%016lx\n", vcpu->id, r->r14, r->r15);
+            
+    //     }
+    // }
 
     if (g_vmx_lapic_op == LAPIC_OP_WRITE)
     { // LAPIC write
@@ -580,6 +777,10 @@ void xmhf_smpguest_arch_x86vmx_eventhandler_dbexception(VCPU *vcpu, struct regs 
     assert(!g_vmx_lapic_db_verification_pre || g_vmx_lapic_db_verification_coreprotected);
 #endif
 }
+
+
+
+#endif // 0
 
 /*
  * This function is called by WRMSR interception where ECX=0x830. value is

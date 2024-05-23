@@ -209,11 +209,6 @@ int xmhf_memprot_emulate_guest_ring0_read(VCPU *vcpu, struct regs *r, void *forc
     // Perform the read operation for the current guest
     if (ctxt.dst.type == OPERAND_REG)
     {
-#ifdef __AMD64__
-        printf("CPU(0x%02x): <xmhf_memprot_emulate_guest_ring0_read> ctxt.dst.reg_hvaddr:0x%lX, &r->rax:0x%lX\n", vcpu->id, (ulong_t)ctxt.dst.reg_hvaddr, (ulong_t)&r->rax);
-#elif defined(__I386__)
-        printf("CPU(0x%02x): <xmhf_memprot_emulate_guest_ring0_read> ctxt.dst.reg_hvaddr:0x%lX, &r->eax:0x%lX\n", vcpu->id, (ulong_t)ctxt.dst.reg_hvaddr, (ulong_t)&r->eax);
-#endif
         memcpy((void *)ctxt.dst.reg_hvaddr, force_read_value, ctxt.dst.operand_size);
     }
     else if (ctxt.dst.type == OPERAND_MEM)
