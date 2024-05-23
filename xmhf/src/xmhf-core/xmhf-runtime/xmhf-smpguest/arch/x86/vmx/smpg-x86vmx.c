@@ -357,6 +357,7 @@ bool g_vmx_lapic_npf_verification_pre = false;
 
 
 #if 0
+// [TODO][Issue XXX] Improve LAPIC virtualization using memory access instruction emulation.
 static uint32_t bsp_lapic_icr_high_value = 0;
 
 static uint32_t _lapic_read(uint32_t lapic_reg)

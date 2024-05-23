@@ -71,16 +71,17 @@ void xmhf_baseplatform_arch_x86svm_allocandsetupvcpus(u32 cpu_vendor){
     __FUNCTION__, (hva_t)g_svm_vmcb_buffers, (hva_t)g_svm_vmcb_buffers + (8192 * MAX_VCPU_ENTRIES),
         8192);
   printf("%s: g_svm_npt_pdpt_buffers range 0x%08x-0x%08x in 0x%08x chunks\n",
-    __FUNCTION__, (hva_t)g_svm_npt_pdpt_buffers, (hva_t)g_svm_npt_pdpt_buffers + (4096 * MAX_VCPU_ENTRIES),
+    __FUNCTION__, (hva_t)g_svm_npt_pdpt_buffers, (hva_t)g_svm_npt_pdpt_buffers + (4096 * XMHF_RICH_GUEST_NPT_NUM),
         4096);
   printf("%s: g_svm_npt_pdts_buffers range 0x%08x-0x%08x in 0x%08x chunks\n",
-    __FUNCTION__, (hva_t)g_svm_npt_pdts_buffers, (hva_t)g_svm_npt_pdts_buffers + (16384 * MAX_VCPU_ENTRIES),
+    __FUNCTION__, (hva_t)g_svm_npt_pdts_buffers, (hva_t)g_svm_npt_pdts_buffers + (16384 * XMHF_RICH_GUEST_NPT_NUM),
         16384);
   printf("%s: g_svm_npt_pts_buffers range 0x%08x-0x%08x in 0x%08x chunks\n",
-    __FUNCTION__, (hva_t)g_svm_npt_pts_buffers, (hva_t)g_svm_npt_pts_buffers + ((2048*4096) * MAX_VCPU_ENTRIES),
+    __FUNCTION__, (hva_t)g_svm_npt_pts_buffers, (hva_t)g_svm_npt_pts_buffers + ((2048*4096) * XMHF_RICH_GUEST_NPT_NUM),
         (2048*4096));
 
-  for(i=0; i < g_midtable_numentries; i++){
+  for(i=0; i < g_midtable_numentries; i++)
+  {
     vcpu = (VCPU *)((hva_t)g_vcpubuffers + (hva_t)(i * SIZE_STRUCT_VCPU));
     #ifndef __XMHF_VERIFICATION__
     memset((void *)vcpu, 0, sizeof(VCPU));
@@ -105,13 +106,6 @@ void xmhf_baseplatform_arch_x86svm_allocandsetupvcpus(u32 cpu_vendor){
 	#endif
 
     {
-      u32 npt_pdpt_base, npt_pdts_base, npt_pts_base;
-      npt_pdpt_base = ((hva_t)g_svm_npt_pdpt_buffers + (i * 4096));
-      npt_pdts_base = ((hva_t)g_svm_npt_pdts_buffers + (i * 16384));
-      npt_pts_base = ((hva_t)g_svm_npt_pts_buffers + (i * (2048*4096)));
-      vcpu->npt_vaddr_ptr = npt_pdpt_base;
-      vcpu->npt_vaddr_pdts = npt_pdts_base;
-      vcpu->npt_vaddr_pts = npt_pts_base;
       vcpu->npt_asid = npt_current_asid;
       npt_current_asid++;
     }
@@ -134,6 +128,38 @@ void xmhf_baseplatform_arch_x86svm_allocandsetupvcpus(u32 cpu_vendor){
     printf("  hsave_vaddr_ptr=0x%08x, vmcb_vaddr_ptr=0x%08x\n", vcpu->hsave_vaddr_ptr,
           vcpu->vmcb_vaddr_ptr);
   }
+
+    // Allocate NPT paging structures
+    #ifdef __NESTED_PAGING__
+    {
+        VCPU* bsp_vcpu = _svm_and_vmx_getvcpu();
+        for(i=0; i < g_midtable_numentries; i++)
+        {
+            u32 npt_pdpt_base, npt_pdts_base, npt_pts_base;
+
+            vcpu = (VCPU*)g_midtable[i].vcpu_vaddr_ptr;
+
+            if(vcpu == bsp_vcpu)
+            {
+                // Initialize NPT for the BSP core. The BSP core uses the NPT[0].
+                npt_pdpt_base = ((hva_t)g_svm_npt_pdpt_buffers + (0 * 4096));
+                npt_pdts_base = ((hva_t)g_svm_npt_pdts_buffers + (0 * 16384));
+                npt_pts_base = ((hva_t)g_svm_npt_pts_buffers + (0 * (2048*4096)));
+            }
+            else
+            {
+                // Initialize NPT for an AP core. All AP cores use the same NPT[1].
+                npt_pdpt_base = ((hva_t)g_svm_npt_pdpt_buffers + (1 * 4096));
+                npt_pdts_base = ((hva_t)g_svm_npt_pdts_buffers + (1 * 16384));
+                npt_pts_base = ((hva_t)g_svm_npt_pts_buffers + (1 * (2048*4096)));
+            }
+
+            vcpu->npt_vaddr_ptr = npt_pdpt_base;
+            vcpu->npt_vaddr_pdts = npt_pdts_base;
+            vcpu->npt_vaddr_pts = npt_pts_base;
+        }
+    }
+    #endif // __NESTED_PAGING__
 }
 
 //wake up application processors (cores) in the system

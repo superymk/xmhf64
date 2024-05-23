@@ -68,7 +68,7 @@
 
 /********* Configs of entire XMHF *********/
 // max. cores/vcpus we support currently
-#define MAX_MIDTAB_ENTRIES  			(8)
+#define MAX_MIDTAB_ENTRIES  			(256)
 #define MAX_PCPU_ENTRIES  				(MAX_MIDTAB_ENTRIES)
 #define MAX_VCPU_ENTRIES    			(MAX_PCPU_ENTRIES)
 

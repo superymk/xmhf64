@@ -51,6 +51,8 @@
 #ifndef __EMHF_MEMPROT_H__
 #define __EMHF_MEMPROT_H__
 
+/// @brief The XMHF rich guest domain uses two nested page tables, one for the BSP core, one for all AP cores.
+#define XMHF_RICH_GUEST_NPT_NUM    (2)
 
 #ifndef __ASSEMBLY__
 
