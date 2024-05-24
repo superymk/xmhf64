@@ -57,9 +57,9 @@
 #define TPM_PCR_BOOT_STATE   (7)
 
 //---forward prototypes---------------------------------------------------------
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 extern uintptr_t xmhhf_efi_allocate_large_bss_data(void);
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp);
 MPFP * MP_GetFPStructure(void);
@@ -89,6 +89,10 @@ VCPU vcpubuffers[MAX_VCPU_ENTRIES] __attribute__(( section(".data") ));
 u8 cpustacks[RUNTIME_STACK_SIZE * MAX_PCPU_ENTRIES] __attribute__(( section(".stack") ));
 
 SL_PARAMETER_BLOCK *slpb = NULL;
+
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+uintptr_t xmhf_runtime_bss_high = 0;
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 #ifdef __DRT__
 /* TODO: refactor to eliminate a lot of these globals, or at least use
@@ -1300,13 +1304,23 @@ void cstartup(multiboot_info_t *mbi)
 		HALT_ON_ERRORCOND((u64)sl_rt_size == size64);
 	}
 
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     {
-        RPB *rpb = (RPB *) (hypervisor_image_baseaddress + PA_PAGE_SIZE_2M);
-        rpb->XtLargeBSSData = xmhhf_efi_allocate_large_bss_data();
-        printf("[Superymk] <cstartup> rpb->XtLargeBSSData:0x%lX\n", (uintptr_t)rpb->XtLargeBSSData);
+        RPB *rpb = NULL;
+
+        if(!xmhf_runtime_bss_high)
+        {
+            Print(L"INIT(early): Allocate memory for xmhf-runtime's high BSS data error!\n");
+            printf("INIT(early): Allocate memory for xmhf-runtime's high BSS data error!\n");
+            HALT();
+        }
+
+        rpb = (RPB *) (hypervisor_image_baseaddress + PA_PAGE_SIZE_2M);
+        rpb->XtVmmRuntimeBSSHighBegin = xmhf_runtime_bss_high;
+        printf("INIT(early): xmhf-runtime's high BSS data:[0x%lX, 0x%lX)\n", 
+            (uintptr_t)rpb->XtVmmRuntimeBSSHighBegin, (uintptr_t)rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE);
     }
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 #else /* !__UEFI__ */
 

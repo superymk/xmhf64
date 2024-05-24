@@ -317,14 +317,14 @@ AS_IF([test "x${enable_force_tpm_1_2}" != "xno"],
       [FORCE_TPM_1_2=n])
 
 # UEFI: Allocate large xmhf-runtime BSS data with AllocatePages to reduce xmhf-runtime size
-AC_SUBST([UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS])
-AC_ARG_ENABLE([uefi_allocate_runtime_large_bss],
-        AS_HELP_STRING([--enable-uefi-allocate-runtime-large-bss@<:@=yes|no@:>@],
+AC_SUBST([UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH])
+AC_ARG_ENABLE([uefi_allocate_runtime_bss_high],
+        AS_HELP_STRING([--enable-uefi-allocate-runtime-bss-high@<:@=yes|no@:>@],
                 [UEFI: Allocate large xmhf-runtime BSS data with AllocatePages to reduce xmhf-runtime size]),
-                , [enable_uefi_allocate_runtime_large_bss=yes])
-AS_IF([test "x${enable_uefi_allocate_runtime_large_bss}" != "xno"],
-      [UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS=y],
-      [UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS=n])
+                , [enable_uefi_allocate_runtime_bss_high=yes])
+AS_IF([test "x${enable_uefi_allocate_runtime_bss_high}" != "xno"],
+      [UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH=y],
+      [UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH=n])
 
 
 # select address of SL and runtime

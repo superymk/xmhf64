@@ -133,11 +133,11 @@ void xmhf_baseplatform_arch_x86svm_allocandsetupvcpus(u32 cpu_vendor){
 
     // Allocate NPT paging structures
     #ifdef __NESTED_PAGING__
-        #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
-        g_svm_npt_pdpt_buffers = ((XT_LARGE_BSS_DATA_SVM*)rpb->XtLargeBSSData)->g_svm_npt_pdpt_buffers;
-        g_svm_npt_pdts_buffers = ((XT_LARGE_BSS_DATA_SVM*)rpb->XtLargeBSSData)->g_svm_npt_pdts_buffers;
-        g_svm_npt_pts_buffers = ((XT_LARGE_BSS_DATA_SVM*)rpb->XtLargeBSSData)->g_svm_npt_pts_buffers;
-        #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+        #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+        g_svm_npt_pdpt_buffers = ((XT_LARGE_BSS_DATA_SVM*)rpb->XtVmmRuntimeBSSHighBegin)->g_svm_npt_pdpt_buffers;
+        g_svm_npt_pdts_buffers = ((XT_LARGE_BSS_DATA_SVM*)rpb->XtVmmRuntimeBSSHighBegin)->g_svm_npt_pdts_buffers;
+        g_svm_npt_pts_buffers = ((XT_LARGE_BSS_DATA_SVM*)rpb->XtVmmRuntimeBSSHighBegin)->g_svm_npt_pts_buffers;
+        #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     {
         VCPU* bsp_vcpu = _svm_and_vmx_getvcpu();
         for(i=0; i < g_midtable_numentries; i++)

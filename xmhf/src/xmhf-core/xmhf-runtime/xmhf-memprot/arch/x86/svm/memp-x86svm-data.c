@@ -52,7 +52,7 @@
 
 #include <xmhf.h>
 
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     u8* g_svm_npt_pdpt_buffers = NULL;
     u8* g_svm_npt_pdts_buffers = NULL;
     u8* g_svm_npt_pts_buffers = NULL;
@@ -70,7 +70,7 @@
     //SVM NPT PT buffers
     //memprot
     u8 g_svm_npt_pts_buffers[PAE_PTRS_PER_PDPT * PAE_PTRS_PER_PDT * PAGE_SIZE_4K * XMHF_RICH_GUEST_NPT_NUM] __attribute__((aligned(PAGE_SIZE_4K)));
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 
 

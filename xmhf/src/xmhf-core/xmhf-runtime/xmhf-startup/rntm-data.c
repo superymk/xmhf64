@@ -56,12 +56,11 @@
 RPB *rpb __attribute__(( section(".data") ));
 
 //runtime DMA protection buffer
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
-    // u8* g_rntm_dmaprot_buffer = NULL;
-    u8 g_rntm_dmaprot_buffer[SIZE_G_RNTM_DMAPROT_BUFFER] __attribute__((aligned(PAGE_SIZE_4K)));
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    u8* g_rntm_dmaprot_buffer = NULL;
 #else
     u8 g_rntm_dmaprot_buffer[SIZE_G_RNTM_DMAPROT_BUFFER] __attribute__((aligned(PAGE_SIZE_4K)));
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 //variable that is incremented by 1 by all cores that cycle through appmain
 //successfully, this should be finally equal to g_midtable_numentries at

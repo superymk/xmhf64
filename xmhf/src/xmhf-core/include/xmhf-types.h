@@ -155,9 +155,9 @@ typedef struct {
     hva_t   XtVmmMPCpuinfoBuffer;
     u32     XtVmmMPCpuinfoNumEntries;
     hva_t   XtVmmTSSBase;
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
-    hva_t   XtLargeBSSData;
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    hva_t   XtVmmRuntimeBSSHighBegin;
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     uart_config_t RtmUartConfig;        /* runtime options parsed in init and passed forward */
     char cmdline[1024];                 /* runtime options parsed in init and passed forward */
     u32 isEarlyInit;                    //1 for an "early init" else 0 (late-init)

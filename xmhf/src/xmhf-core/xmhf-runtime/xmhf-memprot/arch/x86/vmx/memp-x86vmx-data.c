@@ -52,7 +52,7 @@
 
 #include <xmhf.h>
 
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     u8* g_vmx_ept_pml4_table_buffers = NULL;
     u8* g_vmx_ept_pdp_table_buffers = NULL;
     u8* g_vmx_ept_pd_table_buffers = NULL;
@@ -75,4 +75,4 @@
     //VMX EPT P table buffers
     //memprot
     u8 g_vmx_ept_p_table_buffers[PAGE_SIZE_4K * P4L_NPT * XMHF_RICH_GUEST_NPT_NUM] __attribute__((aligned(PAGE_SIZE_4K)));
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__

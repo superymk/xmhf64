@@ -128,14 +128,12 @@ void xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus(u32 cpu_vendor){
 
     // Allocate EPT paging structures
     #ifdef __NESTED_PAGING__
-        #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
-        g_vmx_ept_pml4_table_buffers = ((XT_LARGE_BSS_DATA_VMX*)rpb->XtLargeBSSData)->g_vmx_ept_pml4_table_buffers;
-        g_vmx_ept_pdp_table_buffers = ((XT_LARGE_BSS_DATA_VMX*)rpb->XtLargeBSSData)->g_vmx_ept_pdp_table_buffers;
-        g_vmx_ept_pd_table_buffers = ((XT_LARGE_BSS_DATA_VMX*)rpb->XtLargeBSSData)->g_vmx_ept_pd_table_buffers;
-        g_vmx_ept_p_table_buffers = ((XT_LARGE_BSS_DATA_VMX*)rpb->XtLargeBSSData)->g_vmx_ept_p_table_buffers;
-        printf("[Superymk] <xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus> rpb->XtLargeBSSData:0x%lX\n", (hva_t)rpb->XtLargeBSSData);
-        printf("[Superymk] <xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus> g_vmx_ept_pml4_table_buffers:0x%lX\n", (hva_t)g_vmx_ept_pml4_table_buffers);
-        #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+        #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+        g_vmx_ept_pml4_table_buffers = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_vmx_ept_pml4_table_buffers;
+        g_vmx_ept_pdp_table_buffers = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_vmx_ept_pdp_table_buffers;
+        g_vmx_ept_pd_table_buffers = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_vmx_ept_pd_table_buffers;
+        g_vmx_ept_p_table_buffers = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_vmx_ept_p_table_buffers;
+        #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     {
         // Use another for-loop, because <_svm_and_vmx_getvcpu> needs the <g_midtable> array partially initialized above.
         VCPU* bsp_vcpu = _svm_and_vmx_getvcpu();

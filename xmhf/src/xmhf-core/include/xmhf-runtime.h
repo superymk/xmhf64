@@ -73,12 +73,11 @@ extern RPB arch_rpb;
 extern RPB *rpb __attribute__(( section(".data") ));
 
 //runtime DMA protection buffer
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
-    // extern u8* g_rntm_dmaprot_buffer;
-    extern u8 g_rntm_dmaprot_buffer[] __attribute__((aligned(PAGE_SIZE_4K)));
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    extern u8* g_rntm_dmaprot_buffer;
 #else
     extern u8 g_rntm_dmaprot_buffer[] __attribute__((aligned(PAGE_SIZE_4K)));
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 //variable that is incremented by 1 by all cores that cycle through appmain
 //successfully, this should be finally equal to g_midtable_numentries at
@@ -125,7 +124,7 @@ void vmx_eap_zap(void);
 //x86vmx SUBARCH. INTERFACES
 //----------------------------------------------------------------------
 
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     typedef struct 
     {
         u8 g_rntm_dmaprot_buffer[SIZE_G_RNTM_DMAPROT_BUFFER]; // runtime DMA protection buffer
@@ -133,7 +132,7 @@ void vmx_eap_zap(void);
         u8 g_vmx_ept_pdp_table_buffers[PAGE_SIZE_4K * P4L_NPDPT * XMHF_RICH_GUEST_NPT_NUM]; //VMX EPT PDP table buffers
         u8 g_vmx_ept_pd_table_buffers[PAGE_SIZE_4K * P4L_NPDT * XMHF_RICH_GUEST_NPT_NUM]; //VMX EPT PD table buffers
         u8 g_vmx_ept_p_table_buffers[PAGE_SIZE_4K * P4L_NPT * XMHF_RICH_GUEST_NPT_NUM]; //VMX EPT P table buffers
-    } XT_LARGE_BSS_DATA_VMX;
+    } rt_bss_high_t;
 
     //VMX EPT PML4 table buffers
     extern u8* g_vmx_ept_pml4_table_buffers;
@@ -160,14 +159,14 @@ void vmx_eap_zap(void);
 
     //VMX EPT P table buffers
     extern u8 g_vmx_ept_p_table_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 
 //----------------------------------------------------------------------
 //x86svm SUBARCH. INTERFACES
 //----------------------------------------------------------------------
 
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     typedef struct 
     {
         u8 g_rntm_dmaprot_buffer[SIZE_G_RNTM_DMAPROT_BUFFER]; // runtime DMA protection buffer
@@ -191,12 +190,12 @@ void vmx_eap_zap(void);
     //SVM NPT PT buffers
     extern u8 g_svm_npt_pts_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
 
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     /// @brief Allocate 640MB memory for XMHF-runtime large BSS data (e.g., EPTs)
-    #define XMHF_RUNTIME_LARGE_BSS_DATA_SIZE  (sizeof(XT_LARGE_BSS_DATA_VMX))
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+    #define XMHF_RUNTIME_LARGE_BSS_DATA_SIZE  (sizeof(rt_bss_high_t))
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 
 #endif //__ASSEMBLY__

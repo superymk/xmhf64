@@ -109,11 +109,9 @@ void xmhf_runtime_entry(void){
             hva_t protectedbuffer_vaddr;
             u32 protectedbuffer_size;
 
-        // #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
-        //     g_rntm_dmaprot_buffer = ((XT_LARGE_BSS_DATA_VMX*)rpb->XtLargeBSSData)->g_rntm_dmaprot_buffer;
-        //     printf("[Superymk] <xmhf_runtime_entry> g_rntm_dmaprot_buffer:0x%lX\n", (hva_t)g_rntm_dmaprot_buffer);
-        //     printf("[Superymk] <xmhf_runtime_entry> g_vmx_ept_pml4_table_buffers:0x%lX\n", (hva_t)((XT_LARGE_BSS_DATA_VMX*)rpb->XtLargeBSSData)->g_vmx_ept_pml4_table_buffers);
-        // #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+        #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+            g_rntm_dmaprot_buffer = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_rntm_dmaprot_buffer;
+        #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
             protectedbuffer_paddr = hva2spa(g_rntm_dmaprot_buffer);
             protectedbuffer_vaddr = (hva_t)g_rntm_dmaprot_buffer;
@@ -128,10 +126,10 @@ void xmhf_runtime_entry(void){
                 HALT();
             }
 
-        // #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
-        //     // Protect xmhf-runtime large bss data, which are outside of xmhf-runtime memory.
-        //     xmhf_dmaprot_protect(rpb->XtLargeBSSData, sizeof(XT_LARGE_BSS_DATA_VMX));
-        // #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_LARGE_BSS__
+        #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+            // Protect xmhf-runtime large bss data, which are outside of xmhf-runtime memory.
+            xmhf_dmaprot_protect(rpb->XtVmmRuntimeBSSHighBegin, sizeof(rt_bss_high_t));
+        #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
             // Protect SL and runtime memory regions
             xmhf_dmaprot_protect(rpb->XtVmmRuntimePhysBase - PAGE_SIZE_2M, rpb->XtVmmRuntimeSize+PAGE_SIZE_2M);
