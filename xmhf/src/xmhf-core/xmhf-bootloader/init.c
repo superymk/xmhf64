@@ -1310,7 +1310,6 @@ void cstartup(multiboot_info_t *mbi)
 
         if(!xmhf_runtime_bss_high)
         {
-            Print(L"INIT(early): Allocate memory for xmhf-runtime's high BSS data error!\n");
             printf("INIT(early): Allocate memory for xmhf-runtime's high BSS data error!\n");
             HALT();
         }
@@ -1435,6 +1434,12 @@ void cstartup(multiboot_info_t *mbi)
 			HALT_ON_ERRORCOND(is_sinit_acmod((void *)start, bytes, false));
 		}
 #endif /* __DRT__ */
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    {
+        slpb->runtime_bss_high_base = xmhf_runtime_bss_high;
+        slpb->runtime_bss_high_size = XMHF_RUNTIME_LARGE_BSS_DATA_SIZE;
+    }
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 #else /* !__UEFI__ */
 

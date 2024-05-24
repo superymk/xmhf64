@@ -181,6 +181,10 @@ typedef struct _sl_parameter_block {
 #ifdef __XMHF_PIE_RUNTIME__
     u64     runtime_relocation_offset;  // runtime actual address - compile address
 #endif /* __XMHF_PIE_RUNTIME__ */
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    u64     runtime_bss_high_base;
+    u64     runtime_bss_high_size;
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     u64     uefi_acpi_rsdp;             // APIC RSDP when boot with UEFI, or 0
     u64     uefi_info;                  // Pointer to xmhf_efi_info_t data structure
     u64     rdtsc_before_drtm;          // Performance measurements related to DRTM

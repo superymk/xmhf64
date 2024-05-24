@@ -289,47 +289,62 @@ void xmhf_sl_arch_sanitize_post_launch(void){
 #endif /* __DRT__ */
 
 #ifdef __DMAP__
+extern struct _sl_parameter_block slpb;
 void xmhf_sl_arch_early_dmaprot_init(u32 runtime_size)
 {
+    spa_t protectedbuffer_paddr;
+    sla_t protectedbuffer_vaddr;
+    u32 protectedbuffer_size;
+    spa_t memregionbase_paddr;
+    u32 memregion_size;
+    u32 cpu_vendor = get_cpu_vendor_or_die();
 
-		{
-			spa_t protectedbuffer_paddr;
-			sla_t protectedbuffer_vaddr;
-			u32 protectedbuffer_size;
-			spa_t memregionbase_paddr;
-			u32 memregion_size;
-			u32 cpu_vendor = get_cpu_vendor_or_die();
-
-			HALT_ON_ERRORCOND(cpu_vendor == CPU_VENDOR_AMD || cpu_vendor == CPU_VENDOR_INTEL);
+    HALT_ON_ERRORCOND(cpu_vendor == CPU_VENDOR_AMD || cpu_vendor == CPU_VENDOR_INTEL);
 
 
-			if(cpu_vendor == CPU_VENDOR_AMD){
-				protectedbuffer_paddr = sl_baseaddr + (sla_t)&g_sl_protected_dmabuffer;
-				protectedbuffer_vaddr = (sla_t)&g_sl_protected_dmabuffer;
-				protectedbuffer_size = (2 * PAGE_SIZE_4K);
-			}else{	//CPU_VENDOR_INTEL
-				protectedbuffer_paddr = sl_baseaddr + (sla_t)&g_sl_intel_dmap_buffer;
-				protectedbuffer_vaddr = (sla_t)&g_sl_intel_dmap_buffer;
-				protectedbuffer_size = sizeof(g_sl_intel_dmap_buffer);
-			}
+    if(cpu_vendor == CPU_VENDOR_AMD){
+        protectedbuffer_paddr = sl_baseaddr + (sla_t)&g_sl_protected_dmabuffer;
+        protectedbuffer_vaddr = (sla_t)&g_sl_protected_dmabuffer;
+        protectedbuffer_size = (2 * PAGE_SIZE_4K);
+    }else{	//CPU_VENDOR_INTEL
+        protectedbuffer_paddr = sl_baseaddr + (sla_t)&g_sl_intel_dmap_buffer;
+        protectedbuffer_vaddr = (sla_t)&g_sl_intel_dmap_buffer;
+        protectedbuffer_size = sizeof(g_sl_intel_dmap_buffer);
+    }
 
-			memregionbase_paddr = sl_baseaddr;
-			memregion_size = (runtime_size + PAGE_SIZE_2M);
+    printf("SL: Initializing DMA protections...\n");
 
-			printf("SL: Initializing DMA protections...\n");
+    // Protect xmhf-sl + xmhf-runtime
+    {
+        memregionbase_paddr = sl_baseaddr;
+        memregion_size = (runtime_size + PAGE_SIZE_2M);
 
+        if(!xmhf_dmaprot_earlyinitialize(protectedbuffer_paddr,
+            protectedbuffer_vaddr, protectedbuffer_size,
+            memregionbase_paddr, memregion_size)){
+            printf("SL: Fatal, could not protect SL + runtime (paddr:[0x%lX, 0x%lX)). Halting!\n",
+                memregionbase_paddr, memregionbase_paddr + memregion_size);
+            HALT();
+        }
+    }
 
-			if(!xmhf_dmaprot_earlyinitialize(protectedbuffer_paddr,
-				protectedbuffer_vaddr, protectedbuffer_size,
-				memregionbase_paddr, memregion_size)){
-				printf("SL: Fatal, could not initialize DMA protections. Halting!\n");
-				HALT();
-			}
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    // Protect xmhf-runtime's BSS high memory
+    {
+        memregionbase_paddr = slpb.runtime_bss_high_base;
+        memregion_size = slpb.runtime_bss_high_size;
 
-			printf("SL: Initialized DMA protections successfully\n");
+        if(!xmhf_dmaprot_earlyinitialize(protectedbuffer_paddr,
+            protectedbuffer_vaddr, protectedbuffer_size,
+            memregionbase_paddr, memregion_size)){
+            printf("SL: Fatal, could not protect xmhf-runtime's BSS high memory (paddr:[0x%lX, 0x%lX)). Halting!\n",
+                memregionbase_paddr, memregionbase_paddr + memregion_size);
+            HALT();
+        }
+    }
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
-		}
-
+    printf("SL: Initialized DMA protections successfully\n");
 }
 #endif /* __DMAP__ */
 
