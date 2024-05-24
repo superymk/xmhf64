@@ -53,7 +53,7 @@
 #define ACPI_MCFG_SIGNATURE (0x4746434D) // "MCFG"
 #define ACPI_MCFG_SIZE  (60)
 #define VTD_DMAR_SIGNATURE (0x52414D44) //"DMAR"
-#define VTD_MAX_DRHD 8					// maximum number of DMAR h/w units
+#define VTD_MAX_DRHD 32					// maximum number of DMAR h/w units
 
 // VT-d register offsets (sec. 10.4, Intel_VT_for_Direct_IO)
 #define VTD_VER_REG_OFF 0x000	 // arch. version (32-bit)
