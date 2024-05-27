@@ -79,12 +79,18 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB * rpb);
 //x86 ARCH. INTERFACES
 //----------------------------------------------------------------------
 #ifdef __AMD64__
-u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb, spa_t runtime_spa, hva_t runtime_sva, hva_t totalsize);
+/// @brief Build a page table that identity maps the entire physical address space [0, MAX_PHYS_ADDR).
+/// @param rpb 
+/// @return 64-bit address of PML4 Table (can be loaded into CR3)
+u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb);
 void xmhf_setup_sl_paging(u32 baseaddr);
 void xmhf_sl_arch_x86_invoke_runtime_entrypoint(u64 gdtbase, u64 idtbase,
 	u64 entrypoint, u64 stacktop, u64 cr3, u64 sla_off);
 #elif defined(__I386__)
-u32 xmhf_sl_arch_x86_setup_runtime_paging(RPB * rpb, u32 runtime_spa, u32 runtime_sva, u32 totalsize);
+/// @brief Build a page table that identity maps the entire physical address space [0, ADDR_4GB).
+/// @param rpb 
+/// @return 32-bit address of PDT Table (can be loaded into CR3)
+u32 xmhf_sl_arch_x86_setup_runtime_paging(RPB * rpb);
 void xmhf_sl_arch_x86_invoke_runtime_entrypoint(u32 gdtbase, u32 idtbase,
 	u32 entrypoint, u32 stacktop, u32 cr3)__attribute__((cdecl));
 #else /* !defined(__I386__) && !defined(__AMD64__) */

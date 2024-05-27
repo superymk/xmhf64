@@ -166,7 +166,7 @@ our C main*/
     orl $0x3, %eax
     movl %eax, %ds:sl_pdpt+8*3(%ebp)    /* store PDPT[3] */
 
-    /* set PDT (512*4 = 2048 entries, 2 MiB per entry) */
+    /* set PDT (512*4 = 2048 entries for 4 GiB physical address space, each entry for 2 MiB space) */
     movl $0, %eax
     movl $2048, %ecx
 4:  movl %eax, %ebx

@@ -20,6 +20,6 @@ qemu-system-x86_64 \
 	-serial stdio \
 	-chardev socket,id=chrtpm,path=/tmp/emulated_tpm/swtpm-sock \
 	-drive media=cdrom,file=/usr/share/OVMF/UefiShell.iso,index=0 \
-	-drive media=cdrom,file=../uefi_flushdrive_img/grub/fat.img,index=1 \
+	-drive media=cdrom,file=../uefi_flashdrive_img/grub/fat.img,index=1 \
 	-drive media=disk,file=debian11efi.qcow2,index=2
 	

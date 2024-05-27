@@ -40,8 +40,8 @@ qemu-system-x86_64 \
 	-device pci-serial,chardev=char0 \
 	-chardev socket,id=chrtpm,path=/tmp/emulated_tpm/swtpm-sock \
 	-tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 \
-	-drive media=cdrom,file=../uefi_flushdrive_img/grub/fat.img,index=0 \
-	-drive media=cdrom,file=../uefi_flushdrive_img/grub/fat.img,index=1 \
+	-drive media=cdrom,file=../uefi_flashdrive_img/grub/fat.img,index=0 \
+	-drive media=cdrom,file=../uefi_flashdrive_img/grub/fat.img,index=1 \
 	-drive media=disk,file=debian11efi.qcow2,index=2
 ```
 

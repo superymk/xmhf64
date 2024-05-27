@@ -33,12 +33,12 @@ AC_ARG_WITH([target_subarch],
                 , [with_target_subarch=i386])
 TARGET_SUBARCH=$[]with_target_subarch
 
-# When 64-bit, set maximum physical address (default 0x2010000000 is 128 GiB + 256 MB)
+# When 64-bit, set maximum physical address (default 0x2100000000 is 128 GiB + 4 GiB)
 AC_SUBST([AMD64_MAX_PHYS_ADDR])
 AC_ARG_WITH([amd64_max_phys_addr],
         AS_HELP_STRING([--with-amd64-max-phys-addr=@<:@MAX_PHYS_ADDR@:>@],
                 [select max physical address when using subarch amd64]),
-                , [with_amd64_max_phys_addr=0x2010000000])
+                , [with_amd64_max_phys_addr=0x2100000000])
 AMD64_MAX_PHYS_ADDR=$[]with_amd64_max_phys_addr
 
 # UEFI?

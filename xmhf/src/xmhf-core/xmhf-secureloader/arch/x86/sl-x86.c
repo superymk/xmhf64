@@ -101,22 +101,19 @@ void xmhf_setup_sl_paging(u32 baseaddr) {
 
 #ifdef __AMD64__
 //---runtime paging setup-------------------------------------------------------
-//build a 4-level paging that identity maps the lowest 4GiB memory
-//returns 64-bit address of PML4 Table (can be loaded into CR3)
-u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb, spa_t runtime_spa, hva_t runtime_sva, hva_t totalsize)
+u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb)
 {
     pml4t_t xpml4;
     pdpt_t xpdpt;
     pdt_t xpdt;
     u64 i, default_flags;
+    u64 totalsize;
 
-    printf("SL (%s): runtime_spa=%016lx, runtime_sva=%016lx, totalsize=%016lx\n",
-         __FUNCTION__, runtime_spa, runtime_sva, totalsize);
+    // Force totalsize to be MAX_PHYS_ADDR
+    totalsize = MAX_PHYS_ADDR;
 
-    HALT_ON_ERRORCOND(runtime_spa == runtime_sva);
-    HALT_ON_ERRORCOND(runtime_spa < ADDR_4GB);
-    HALT_ON_ERRORCOND(totalsize < ADDR_4GB);
-    HALT_ON_ERRORCOND(runtime_spa + totalsize < ADDR_4GB);
+    printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space: 0x%lx\n",
+         __FUNCTION__, totalsize);
 
     xpml4= hva2sla((void *)rpb->XtVmmPml4Base);
     xpdpt= hva2sla((void *)rpb->XtVmmPdptBase);
@@ -126,21 +123,21 @@ u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb, spa_t runtime_spa, hva_t run
 
     /* PML4E -> PDPT */
     default_flags = (u64)(_PAGE_PRESENT | _PAGE_RW);
-    for (i = 0; i < (PAGE_ALIGN_UP_512G(MAX_PHYS_ADDR) >> PAGE_SHIFT_512G); i++) {
+    for (i = 0; i < (PAGE_ALIGN_UP_512G(totalsize) >> PAGE_SHIFT_512G); i++) {
         u64 pdpt_spa = sla2spa((void *)xpdpt) + (i << PAGE_SHIFT_4K);
         xpml4[i] = p4l_make_plm4e(pdpt_spa, default_flags);
     }
 
     /* PDPTE -> PDT */
     default_flags = (u64)(_PAGE_PRESENT | _PAGE_RW);
-    for (i = 0; i < (PAGE_ALIGN_UP_1G(MAX_PHYS_ADDR) >> PAGE_SHIFT_1G); i++) {
+    for (i = 0; i < (PAGE_ALIGN_UP_1G(totalsize) >> PAGE_SHIFT_1G); i++) {
         u64 pdt_spa = sla2spa((void *)xpdt) + (i << PAGE_SHIFT_4K);
         xpdpt[i] = p4l_make_pdpe(pdt_spa, default_flags);
     }
 
     /* PDE -> 2 MiB page */
     default_flags = (u64)(_PAGE_PRESENT | _PAGE_RW | _PAGE_PSE);
-    for(i = 0; i < (PAGE_ALIGN_UP_2M(MAX_PHYS_ADDR) >> PAGE_SHIFT_2M); i++) {
+    for(i = 0; i < (PAGE_ALIGN_UP_2M(totalsize) >> PAGE_SHIFT_2M); i++) {
         hva_t hva = i << PAGE_SHIFT_2M;
         spa_t spa = hva2spa((void *)hva);
         u64 flags = default_flags;
@@ -158,17 +155,19 @@ u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb, spa_t runtime_spa, hva_t run
 }
 #elif defined(__I386__)
 //---runtime paging setup-------------------------------------------------------
-//physaddr and virtaddr are assumed to be 2M aligned
-//returns 32-bit base address of page table root (can be loaded into CR3)
-u32 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb, u32 runtime_spa, u32 runtime_sva, u32 totalsize){
+u32 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb)
+{
   pdpt_t xpdpt;
   pdt_t xpdt;
   hva_t hva=0;
   u32 i;
   u64 default_flags;
+  u64 totalsize;
 
-  printf("SL (%s): runtime_spa=%08x, runtime_sva=%08x, totalsize=%08x\n",
-         __FUNCTION__, runtime_spa, runtime_sva, totalsize);
+  // Force totalsize to be ADDR_4GB
+  totalsize = ADDR_4GB;
+  printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space: %08x\n",
+         __FUNCTION__, totalsize);
 
   xpdpt= hva2sla((void *)rpb->XtVmmPdptBase);
   xpdt = hva2sla((void *)rpb->XtVmmPdtsBase);
@@ -186,7 +185,7 @@ u32 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb, u32 runtime_spa, u32 runtime
   //init pdts with unity mappings
   default_flags = (u64)(_PAGE_PRESENT | _PAGE_RW | _PAGE_PSE);
   for(i = 0, hva = 0;
-      i < (ADDR_4GB >> (PAE_PDT_SHIFT));
+      i < (totalsize >> (PAE_PDT_SHIFT));
       i ++, hva += PAGE_SIZE_2M) {
     u64 spa = hva2spa((void*)hva);
     u64 flags = default_flags;
@@ -409,11 +408,12 @@ void xmhf_sl_arch_xfer_control_to_runtime(RPB *rpb)
 
 	#ifndef __XMHF_VERIFICATION__
 	//setup paging structures for runtime
-#ifdef __XMHF_PIE_RUNTIME__
-	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE + rpb->XtVmmRelocationOffset, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
-#else /* !__XMHF_PIE_RUNTIME__ */
-	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
-#endif /* __XMHF_PIE_RUNTIME__ */
+    ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb);
+// #ifdef __XMHF_PIE_RUNTIME__
+// 	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE + rpb->XtVmmRelocationOffset, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
+// #else /* !__XMHF_PIE_RUNTIME__ */
+// 	ptba=xmhf_sl_arch_x86_setup_runtime_paging(rpb, rpb->XtVmmRuntimePhysBase, __TARGET_BASE, PAGE_ALIGN_UP_2M(rpb->XtVmmRuntimeSize));
+// #endif /* __XMHF_PIE_RUNTIME__ */
 	#endif
 
 	printf("SL: setup runtime paging structures.\n");
