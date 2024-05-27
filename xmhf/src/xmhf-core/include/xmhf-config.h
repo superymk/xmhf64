@@ -66,10 +66,18 @@
 #endif // __I386__
 
 
+/********* Configs of entire XMHF *********/
 // max. cores/vcpus we support currently
-#define MAX_MIDTAB_ENTRIES  			(8)
+#define MAX_MIDTAB_ENTRIES  			(256)
 #define MAX_PCPU_ENTRIES  				(MAX_MIDTAB_ENTRIES)
 #define MAX_VCPU_ENTRIES    			(MAX_PCPU_ENTRIES)
+
+
+
+/********* Configs of xmhf-secureloader *********/
+/// @brief Size of xmhf-sl code, rodata, and data sections that need to be measured. When DRTM is enabled, DRTM should
+/// measure these sections and execute the code.
+#define SL_LOW_CODE_DATA_SECTION_SIZE   (KB(128))
 
 #ifndef __ASSEMBLY__
 

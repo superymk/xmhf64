@@ -33,12 +33,12 @@ AC_ARG_WITH([target_subarch],
                 , [with_target_subarch=i386])
 TARGET_SUBARCH=$[]with_target_subarch
 
-# When 64-bit, set maximum physical address (default 0x400000000 is 16 GiB)
+# When 64-bit, set maximum physical address (default 0x2040000000 is 128 GiB + 1 GiB)
 AC_SUBST([AMD64_MAX_PHYS_ADDR])
 AC_ARG_WITH([amd64_max_phys_addr],
         AS_HELP_STRING([--with-amd64-max-phys-addr=@<:@MAX_PHYS_ADDR@:>@],
                 [select max physical address when using subarch amd64]),
-                , [with_amd64_max_phys_addr=0x400000000])
+                , [with_amd64_max_phys_addr=0x2040000000])
 AMD64_MAX_PHYS_ADDR=$[]with_amd64_max_phys_addr
 
 # UEFI?
@@ -311,10 +311,20 @@ AC_SUBST([FORCE_TPM_1_2])
 AC_ARG_ENABLE([force-tpm12],
         AS_HELP_STRING([--enable-force-tpm12@<:@=yes|no@:>@],
                 [enable TPM 1.2 not TPM 2]),
-                , [enable_force_tpm_1_2=yes])
+                , [enable_force_tpm_1_2=no])
 AS_IF([test "x${enable_force_tpm_1_2}" != "xno"],
       [FORCE_TPM_1_2=y],
       [FORCE_TPM_1_2=n])
+
+# UEFI: Allocate large xmhf-runtime BSS data with AllocatePages to reduce xmhf-runtime size
+AC_SUBST([UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH])
+AC_ARG_ENABLE([uefi_allocate_runtime_bss_high],
+        AS_HELP_STRING([--enable-uefi-allocate-runtime-bss-high@<:@=yes|no@:>@],
+                [UEFI: Allocate large xmhf-runtime BSS data with AllocatePages to reduce xmhf-runtime size]),
+                , [enable_uefi_allocate_runtime_bss_high=yes])
+AS_IF([test "x${enable_uefi_allocate_runtime_bss_high}" != "xno"],
+      [UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH=y],
+      [UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH=n])
 
 
 # select address of SL and runtime

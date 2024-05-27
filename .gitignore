@@ -15,12 +15,13 @@
 *.exe
 *.lds
 *.sha1
+/_build_libbaremetal/
 /_build_libbaremetal32/
 /_build_gnuefi/
 /build-aux/
 /deb/
 /grub/
-/uefi_flushdrive_img/
+/uefi_flashdrive_img/
 debug/*.qcow2
 xmhf/src/xmhf-core/xmhf-bootloader/init-x86-amd64.so
 /Makefile

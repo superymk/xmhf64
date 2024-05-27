@@ -98,11 +98,10 @@
 //"golden" digest values injected using CFLAGS during build process
 //NOTE: NO WAY TO SELF-CHECK slbelow64K; JUST A SANITY-CHECK
 typedef struct _integrity_measurement_values {
-    u8 sha_slbelow64K[20]; // TODO: play nice with SHA_DIGEST_LENGTH in sha1.h
-    u8 sha_slabove64K[20];
+    u8 sha_sl_low[20]; // TODO: play nice with SHA_DIGEST_LENGTH in sha1.h
+    u8 sha_sl_high[20];
     u8 sha_runtime[20];
 } INTEGRITY_MEASUREMENT_VALUES;
-
 
 //"runtime" parameter block structure; arch_rpb (in startup component)
 //is the default definition
@@ -156,6 +155,9 @@ typedef struct {
     hva_t   XtVmmMPCpuinfoBuffer;
     u32     XtVmmMPCpuinfoNumEntries;
     hva_t   XtVmmTSSBase;
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    hva_t   XtVmmRuntimeBSSHighBegin;
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     uart_config_t RtmUartConfig;        /* runtime options parsed in init and passed forward */
     char cmdline[1024];                 /* runtime options parsed in init and passed forward */
     u32 isEarlyInit;                    //1 for an "early init" else 0 (late-init)
@@ -179,6 +181,10 @@ typedef struct _sl_parameter_block {
 #ifdef __XMHF_PIE_RUNTIME__
     u64     runtime_relocation_offset;  // runtime actual address - compile address
 #endif /* __XMHF_PIE_RUNTIME__ */
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    u64     runtime_bss_high_base;
+    u64     runtime_bss_high_size;
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     u64     uefi_acpi_rsdp;             // APIC RSDP when boot with UEFI, or 0
     u64     uefi_info;                  // Pointer to xmhf_efi_info_t data structure
     u64     rdtsc_before_drtm;          // Performance measurements related to DRTM

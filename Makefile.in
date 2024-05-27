@@ -47,6 +47,8 @@ export DEBUG_VGA := @DEBUG_VGA@
 export DEBUG_EVENT_LOGGER := @DEBUG_EVENT_LOGGER@
 export DRT := @DRT@
 export DMAP := @DMAP@
+export FORCE_TPM_1_2 := @FORCE_TPM_1_2@
+export UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH := @UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH@
 export TARGET_HWPLATFORM := x86
 export XMHF_TARGET_PLATFORM := @TARGET_PLATFORM@
 export XMHF_TARGET_ARCH := @TARGET_ARCH@
@@ -132,7 +134,7 @@ LIBBAREMETAL_BUILD = $(CURDIR)/_build_libbaremetal
 ifeq ($(TARGET_UEFI), y)
 export GNUEFI_SRC := $(realpath @GNUEFI_SRC@)
 export GNUEFI_BUILD := $(CURDIR)/_build_gnuefi
-export UEFI_FLASHDRIVE_IMAGE := $(CURDIR)/uefi_flushdrive_img
+export UEFI_FLASHDRIVE_IMAGE := $(CURDIR)/uefi_flashdrive_img
 endif
 
 # For bootloader (always i386 regardless of runtime subarch), compile separate
@@ -439,6 +441,14 @@ ifeq ($(TARGET_UEFI), y)
 endif
 
 ifeq ($(TARGET_UEFI), y)
+ifeq ($(UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH), y)
+    CFLAGS += -D__UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    VFLAGS += -D__UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    BCFLAGS += -D__UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+endif
+endif
+
+ifeq ($(TARGET_UEFI), y)
 ifneq ($(TARGET_SUBARCH), amd64)
 $(error XMHF: UEFI only supported with amd64)
 endif
@@ -542,15 +552,30 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 	@echo XMHF core/hyperapp build SUCCESS
 	@echo ---------------------------------------------------------------
 
-ifeq ($(TARGET_UEFI), y)
-# One needs to download the <debian11efi.qcow2> from 
-# <https://drive.google.com/drive/folders/1rXDTAGcT9zeWmGbOrLvnexD9xJpoNrsl?usp=sharing> first
+
 # [NOTE] Run "build-efi-flashdrive under" "debug" not "install-efi". Otherwise, "sudo make install" would create root 
 # user's folders under uberxmhf/ and hence blocks "make clean".
+
 .PHONY: debug
-debug: build-efi-flashdrive
-	cd debug && ./qemu_uefi_ubuntu.sh
+ifeq ($(TARGET_UEFI), y)
+debug: debug_download_imgs build-efi-flashdrive
+	cd debug && ./qemu_ubuntu.sh -uefi
+else
+debug: debug_download_imgs
+	cd debug && ./qemu_ubuntu.sh
 endif
+
+ifeq ($(TARGET_UEFI), y)
+.PHONY: build-efi-flashdrive
+build-efi-flashdrive:
+	# Build UEFI flashdrive image
+	mkdir -p $(UEFI_FLASHDRIVE_IMAGE)
+	DSTDIR="$(UEFI_FLASHDRIVE_IMAGE)" ./uefi_build_flashdrive_img.sh
+endif
+
+.PHONY: debug_download_imgs
+debug_download_imgs: 
+	cd debug && ./qemu_prepare.sh
 
 .PHONY: install
 ifeq ($(TARGET_UEFI), y)
@@ -573,13 +598,6 @@ install-efi:
 			install -d $(DESTDIR)/boot/efi/EFI/xmhf && \
 			install --mode=644 $(HYPOUTDIR)/hypervisor-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin $(DESTDIR)/boot/efi/EFI/xmhf && \
 			install --mode=644 $(HYPOUTDIR)/init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).efi $(DESTDIR)/boot/efi/EFI/xmhf"
-	
-.PHONY: build-efi-flashdrive
-build-efi-flashdrive:
-	# Build UEFI flashdrive image
-	mkdir -p $(UEFI_FLASHDRIVE_IMAGE)
-	DSTDIR="$(UEFI_FLASHDRIVE_IMAGE)" ./uefi_build_flashdrive_img.sh
-
 
 .PHONY: install-dev
 install-dev:
@@ -655,7 +673,7 @@ endif
 	@echo ---------------------------------------------------------------
 	@echo auto-generated docs cleanup SUCCESS
 	@echo ---------------------------------------------------------------
-	$(RM) -rf uefi_flushdrive_img
+	$(RM) -rf uefi_flashdrive_img
 	$(RM) -rf xmhf-bootloader
 	$(RM) -rf _build_libtommath32
 

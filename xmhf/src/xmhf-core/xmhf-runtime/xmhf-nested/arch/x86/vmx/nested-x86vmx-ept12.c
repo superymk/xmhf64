@@ -65,15 +65,15 @@
  * changes. So use xmhf_nested_arch_x86vmx_block_ept02_flush() to protect it
  * when accessing.
  */
-static ept02_cache_set_t ept02_cache[MAX_VCPU_ENTRIES];
+static ept02_cache_set_t ept02_cache[XMHF_RICH_GUEST_NPT_NUM];
 
 /* Page pool for ept02_cache */
-static u8 ept02_page_pool[MAX_VCPU_ENTRIES][VMX_NESTED_MAX_ACTIVE_EPT]
+static u8 ept02_page_pool[XMHF_RICH_GUEST_NPT_NUM][VMX_NESTED_MAX_ACTIVE_EPT]
 	[EPT02_PAGE_POOL_SIZE][PAGE_SIZE_4K]
 	__attribute__((aligned(PAGE_SIZE_4K)));
 
 /* Page allocation flags for ept02_cache */
-static u8 ept02_page_alloc[MAX_VCPU_ENTRIES][VMX_NESTED_MAX_ACTIVE_EPT]
+static u8 ept02_page_alloc[XMHF_RICH_GUEST_NPT_NUM][VMX_NESTED_MAX_ACTIVE_EPT]
 	[EPT02_PAGE_POOL_SIZE];
 
 /* For each CPU, information about all VPID12 -> VPID02 it caches */
@@ -148,8 +148,19 @@ static void *ept12_pa2ptr(void *vctx, hpt_pa_t spa, size_t sz,
  */
 static void ept02_ctx_init(VCPU * vcpu, u32 index, ept02_ctx_t * ept02_ctx)
 {
-	ept02_ctx->page_pool = ept02_page_pool[vcpu->idx][index];
-	ept02_ctx->page_alloc = ept02_page_alloc[vcpu->idx][index];
+    uint32_t ept02_selector = 0;
+
+    if(vcpu->isbsp)
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_BSP;
+    }
+    else
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_APs;
+    }
+
+	ept02_ctx->page_pool = ept02_page_pool[ept02_selector][index];
+	ept02_ctx->page_alloc = ept02_page_alloc[ept02_selector][index];
 	ept02_ctx->ctx.gzp = ept02_gzp;
 	ept02_ctx->ctx.pa2ptr = ept02_pa2ptr;
 	ept02_ctx->ctx.ptr2pa = ept02_ptr2pa;
@@ -203,8 +214,19 @@ void xmhf_nested_arch_x86vmx_ept_init(VCPU * vcpu)
 {
 	ept02_cache_index_t index;
 	ept02_cache_line_t *line;
-	LRU_SET_INIT(&ept02_cache[vcpu->id]);
-	LRU_FOREACH(index, line, &ept02_cache[vcpu->id]) {
+    uint32_t ept02_selector = 0;
+
+    if(vcpu->isbsp)
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_BSP;
+    }
+    else
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_APs;
+    }
+
+	LRU_SET_INIT(&ept02_cache[ept02_selector]);
+	LRU_FOREACH(index, line, &ept02_cache[ept02_selector]) {
 		ept02_ctx_init(vcpu, index, &line->value.ept02_ctx);
 		ept12_ctx_init(vcpu, &line->value.ept12_ctx);
 	}
@@ -276,7 +298,18 @@ bool xmhf_nested_arch_x86vmx_check_ept_lower_bits(u64 eptp12, gpa_t * ept_pml4t)
 void xmhf_nested_arch_x86vmx_invept_single_context(VCPU * vcpu, gpa_t ept12)
 {
 	ept02_cache_line_t *line;
-	if (LRU_SET_INVALIDATE(&ept02_cache[vcpu->id], ept12, line)) {
+    uint32_t ept02_selector = 0;
+
+    if(vcpu->isbsp)
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_BSP;
+    }
+    else
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_APs;
+    }
+
+	if (LRU_SET_INVALIDATE(&ept02_cache[ept02_selector], ept12, line)) {
 		/*
 		 * INVEPT will be executed in ept02_ctx_reset() when this EPT02 is used
 		 * the next time.
@@ -292,7 +325,18 @@ void xmhf_nested_arch_x86vmx_invept_single_context(VCPU * vcpu, gpa_t ept12)
  */
 void xmhf_nested_arch_x86vmx_invept_global(VCPU * vcpu)
 {
-	LRU_SET_INVALIDATE_ALL(&ept02_cache[vcpu->id]);
+    uint32_t ept02_selector = 0;
+
+    if(vcpu->isbsp)
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_BSP;
+    }
+    else
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_APs;
+    }
+
+	LRU_SET_INVALIDATE_ALL(&ept02_cache[ept02_selector]);
 	/*
 	 * INVEPT will be executed in ept02_ctx_reset() when the EPT02 is used the
 	 * next time.
@@ -388,9 +432,21 @@ spa_t xmhf_nested_arch_x86vmx_get_ept02(VCPU * vcpu, gpa_t ept12,
 	bool hit;
 	spa_t addr;
 	ept02_cache_index_t index;
-	ept02_cache_line_t *line = LRU_SET_FIND_EVICT(&ept02_cache[vcpu->id],
-												  ept12, index, hit);
+	ept02_cache_line_t *line;
+    uint32_t ept02_selector = 0;
+
 	(void)index;
+    if(vcpu->isbsp)
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_BSP;
+    }
+    else
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_APs;
+    }
+
+    line = LRU_SET_FIND_EVICT(&ept02_cache[ept02_selector], ept12, index, hit);
+
 	if (!hit) {
 		ept02_ctx_reset(&line->value.ept02_ctx);
 		ept12_ctx_update(vcpu, &line->value.ept12_ctx, ept12);
@@ -708,8 +764,19 @@ void xmhf_nested_arch_x86vmx_set_ept12(VCPU * vcpu, bool enable, gpa_t ept12)
  */
 static void xmhf_nested_arch_x86vmx_flush_ept02_effect(VCPU * vcpu, u32 flags)
 {
+    uint32_t ept02_selector = 0;
+
+    if(vcpu->isbsp)
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_BSP;
+    }
+    else
+    {
+        ept02_selector = XMHF_RICH_GUEST_NPT_IDX_APs;
+    }
+
 	if ((flags & MEMP_FLUSHTLB_ENTRY) != 0) {
-		LRU_SET_INVALIDATE_ALL(&ept02_cache[vcpu->id]);
+		LRU_SET_INVALIDATE_ALL(&ept02_cache[ept02_selector]);
 		xmhf_nested_arch_x86vmx_clear_all_vmcs12_ept02(vcpu);
 	}
 

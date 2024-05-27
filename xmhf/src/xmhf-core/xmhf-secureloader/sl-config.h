@@ -2,14 +2,9 @@
  * @XMHF_LICENSE_HEADER_START@
  *
  * eXtensible, Modular Hypervisor Framework (XMHF)
- * Copyright (c) 2009-2012 Carnegie Mellon University
- * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2023 - 2024 Miao Yu
+ * Copyright (c) 2023 - 2024 Virgil Gligor
  * All Rights Reserved.
- *
- * Developed by: XMHF Team
- *               Carnegie Mellon University / CyLab
- *               VDG Inc.
- *               http://xmhf.org
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,7 +18,7 @@
  * the documentation and/or other materials provided with the
  * distribution.
  *
- * Neither the names of Carnegie Mellon or VDG Inc, nor the names of
+ * Neither the name of the copyright holder nor the names of
  * its contributors may be used to endorse or promote products derived
  * from this software without specific prior written permission.
  *
@@ -44,29 +39,14 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-/**
- * rntm-data.c
- * EMHF runtime data definitions
- * author: amit vasudevan (amitvasudevan@acm.org)
- */
+#ifndef _SL_HEADER_H
+#define _SL_HEADER_H
 
-#include <xmhf.h>
+// For sl.lds.S due to different syntax. It must be the same with <SL_LOW_CODE_DATA_SECTION_SIZE> in xmhf-config.h (but
+// with different syntax)
+#define SL_LOW_CODE_DATA_SECTION_SIZE_LDS   (128K)
 
-//runtime parameter block pointer
-RPB *rpb __attribute__(( section(".data") ));
+#ifndef __ASSEMBLY__
 
-//runtime DMA protection buffer
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
-    u8* g_rntm_dmaprot_buffer = NULL;
-#else
-    u8 g_rntm_dmaprot_buffer[SIZE_G_RNTM_DMAPROT_BUFFER] __attribute__((aligned(PAGE_SIZE_4K)));
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
-
-//variable that is incremented by 1 by all cores that cycle through appmain
-//successfully, this should be finally equal to g_midtable_numentries at
-//runtime which signifies that EMHF appmain executed successfully on all
-//cores
-u32 volatile g_appmain_success_counter __attribute__(( section(".data") )) = 0;
-
-//SMP lock for the above variable
-u32 volatile g_lock_appmain_success_counter __attribute__(( section(".data") )) = 1;
+#endif // __ASSEMBLY__
+#endif // _SL_HEADER_H

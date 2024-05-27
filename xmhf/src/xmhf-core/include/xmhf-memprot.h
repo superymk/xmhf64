@@ -51,6 +51,10 @@
 #ifndef __EMHF_MEMPROT_H__
 #define __EMHF_MEMPROT_H__
 
+/// @brief The XMHF rich guest domain uses two nested page tables, NPT[0] for the BSP core, NPT[1] for all AP cores.
+#define XMHF_RICH_GUEST_NPT_NUM    (2)
+#define XMHF_RICH_GUEST_NPT_IDX_BSP (0)
+#define XMHF_RICH_GUEST_NPT_IDX_APs (1)
 
 #ifndef __ASSEMBLY__
 
@@ -381,18 +385,6 @@ typedef struct emu_env {
 /// @return 
 extern int x86_vmx_emulate_instruction(VCPU * vcpu, struct regs *r, emu_env_t* emu_env, unsigned char* inst, uint32_t inst_len);
 
-//VMX EPT PML4 table buffers
-extern u8 g_vmx_ept_pml4_table_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
-
-//VMX EPT PDP table buffers
-extern u8 g_vmx_ept_pdp_table_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
-
-//VMX EPT PD table buffers
-extern u8 g_vmx_ept_pd_table_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
-
-//VMX EPT P table buffers
-extern u8 g_vmx_ept_p_table_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
-
 
 //----------------------------------------------------------------------
 //x86svm SUBARCH. INTERFACES
@@ -404,16 +396,6 @@ void xmhf_memprot_arch_x86svm_setprot(VCPU *vcpu, u64 gpa, u32 prottype); //set 
 u32 xmhf_memprot_arch_x86svm_getprot(VCPU *vcpu, u64 gpa); //get protection for a given physical memory address
 u64 xmhf_memprot_arch_x86svm_get_h_cr3(VCPU *vcpu); // get or set host cr3 (only valid on AMD)
 void xmhf_memprot_arch_x86svm_set_h_cr3(VCPU *vcpu, u64 hcr3);
-
-//SVM NPT PDPT buffers
-extern u8 g_svm_npt_pdpt_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
-
-//SVM NPT PDT buffers
-extern u8 g_svm_npt_pdts_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
-
-//SVM NPT PT buffers
-extern u8 g_svm_npt_pts_buffers[] __attribute__((aligned(PAGE_SIZE_4K)));
-
 
 #endif	//__ASSEMBLY__
 

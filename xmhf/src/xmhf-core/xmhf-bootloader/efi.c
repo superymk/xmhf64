@@ -50,6 +50,10 @@
 
 #include "efi/header.h"
 
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+extern uintptr_t xmhf_runtime_bss_high;
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
 /*
  * Configuration file for XMHF bootloader.
  *
@@ -545,6 +549,26 @@ static void xmhf_efi_load_sinit(EFI_FILE_HANDLE volume, char *pathname,
 }
 #endif /* __DRT__ */
 
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+uintptr_t xmhhf_efi_allocate_large_bss_data(void)
+{
+    EFI_STATUS status = EFI_SUCCESS;
+    UINTN pages = 0;
+    EFI_PHYSICAL_ADDRESS addr = 0;
+
+    pages = XMHF_RUNTIME_LARGE_BSS_DATA_SIZE >> PAGE_SHIFT_4K;
+    status = uefi_call_wrapper(BS->AllocatePages, 4, AllocateAnyPages,
+                EfiRuntimeServicesData, pages, &addr);
+    if(status != EFI_SUCCESS)
+    {
+        return 0;
+    }
+    
+    // On success
+    return (uintptr_t)addr;
+}
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
 /*
  * Find RSDP from SystemTable.
  *
@@ -786,6 +810,13 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 		efi_info.sinit_end = 0;
 #endif /* __DRT__ */
 	}
+
+    /* Allocate xmhf-runtime BSS high memory */
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    {
+        xmhf_runtime_bss_high = xmhhf_efi_allocate_large_bss_data();
+    }
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 	/* Find ACPI RSDP */
 	{

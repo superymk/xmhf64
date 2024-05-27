@@ -52,7 +52,10 @@
 
 #include <xmhf.h>
 
+extern RPB *rpb;
+
 //allocate and setup VCPU structure for all the CPUs
+// [NOTE] This function runs on BSP only.
 void xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus(u32 cpu_vendor){
   u32 i;
   VCPU *vcpu;
@@ -110,16 +113,6 @@ void xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus(u32 cpu_vendor){
 	memset( (void *)vcpu->vmx_vaddr_msrbitmaps, 0, PAGE_SIZE_4K);
 	#endif
 
-	//allocate EPT paging structures
-	#ifdef __NESTED_PAGING__
-	{
-		vcpu->vmx_vaddr_ept_pml4_table = ((hva_t)g_vmx_ept_pml4_table_buffers + (i * P4L_NPLM4T * PAGE_SIZE_4K));
-		vcpu->vmx_vaddr_ept_pdp_table = ((hva_t)g_vmx_ept_pdp_table_buffers + (i * P4L_NPDPT * PAGE_SIZE_4K));
-		vcpu->vmx_vaddr_ept_pd_tables = ((hva_t)g_vmx_ept_pd_table_buffers + (i * P4L_NPDT * PAGE_SIZE_4K));
-		vcpu->vmx_vaddr_ept_p_tables = ((hva_t)g_vmx_ept_p_table_buffers + (i * P4L_NPT * PAGE_SIZE_4K));
-	}
-	#endif
-
 	//other VCPU data such as LAPIC id, SIPI vector and receive indication
     vcpu->id = g_midtable[i].cpu_lapic_id;
     vcpu->idx = i;
@@ -132,6 +125,41 @@ void xmhf_baseplatform_arch_x86vmx_allocandsetupvcpus(u32 cpu_vendor){
 	//map LAPIC to VCPU in midtable
     g_midtable[i].vcpu_vaddr_ptr = (hva_t)vcpu;
   }
+
+    // Allocate EPT paging structures
+    #ifdef __NESTED_PAGING__
+        #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+        g_vmx_ept_pml4_table_buffers = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_vmx_ept_pml4_table_buffers;
+        g_vmx_ept_pdp_table_buffers = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_vmx_ept_pdp_table_buffers;
+        g_vmx_ept_pd_table_buffers = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_vmx_ept_pd_table_buffers;
+        g_vmx_ept_p_table_buffers = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_vmx_ept_p_table_buffers;
+        #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    {
+        // Use another for-loop, because <_svm_and_vmx_getvcpu> needs the <g_midtable> array partially initialized above.
+        VCPU* bsp_vcpu = _svm_and_vmx_getvcpu();
+        for(i=0; i < g_midtable_numentries; i++)
+        {
+            vcpu = (VCPU*)g_midtable[i].vcpu_vaddr_ptr;
+
+            if(vcpu == bsp_vcpu)
+            {
+                // Initialize EPT for the BSP core. The BSP core uses the EPT[0].
+                vcpu->vmx_vaddr_ept_pml4_table = ((hva_t)g_vmx_ept_pml4_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * P4L_NPLM4T * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pdp_table = ((hva_t)g_vmx_ept_pdp_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * P4L_NPDPT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pd_tables = ((hva_t)g_vmx_ept_pd_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * P4L_NPDT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_p_tables = ((hva_t)g_vmx_ept_p_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_BSP * P4L_NPT * PAGE_SIZE_4K));
+            }
+            else
+            {
+                // Initialize EPT for an AP core. All AP cores use the same EPT[1].
+                vcpu->vmx_vaddr_ept_pml4_table = ((hva_t)g_vmx_ept_pml4_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * P4L_NPLM4T * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pdp_table = ((hva_t)g_vmx_ept_pdp_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * P4L_NPDPT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_pd_tables = ((hva_t)g_vmx_ept_pd_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * P4L_NPDT * PAGE_SIZE_4K));
+                vcpu->vmx_vaddr_ept_p_tables = ((hva_t)g_vmx_ept_p_table_buffers + (XMHF_RICH_GUEST_NPT_IDX_APs * P4L_NPT * PAGE_SIZE_4K));
+            }
+        }
+    }
+    #endif // __NESTED_PAGING__
 }
 
 //wake up application processors (cores) in the system

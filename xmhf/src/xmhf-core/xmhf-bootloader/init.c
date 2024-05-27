@@ -57,6 +57,10 @@
 #define TPM_PCR_BOOT_STATE   (7)
 
 //---forward prototypes---------------------------------------------------------
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+extern uintptr_t xmhhf_efi_allocate_large_bss_data(void);
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
 u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp);
 MPFP * MP_GetFPStructure(void);
 u32 _MPFPComputeChecksum(u32 spaddr, u32 size);
@@ -86,6 +90,10 @@ u8 cpustacks[RUNTIME_STACK_SIZE * MAX_PCPU_ENTRIES] __attribute__(( section(".st
 
 SL_PARAMETER_BLOCK *slpb = NULL;
 
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+uintptr_t xmhf_runtime_bss_high = 0;
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
 #ifdef __DRT__
 /* TODO: refactor to eliminate a lot of these globals, or at least use
  * static where appropriate */
@@ -110,8 +118,8 @@ extern void init_core_lowlevel_setup(void);
 // that here in 'init' these values are UNTRUSTED
 INTEGRITY_MEASUREMENT_VALUES g_init_gold /* __attribute__(( section("") )) */ = {
     .sha_runtime = ___RUNTIME_INTEGRITY_HASH___,
-    .sha_slabove64K = ___SLABOVE64K_INTEGRITY_HASH___,
-    .sha_slbelow64K = ___SLBELOW64K_INTEGRITY_HASH___
+    .sha_sl_high = ___SLABOVE64K_INTEGRITY_HASH___,
+    .sha_sl_low = ___SLBELOW64K_INTEGRITY_HASH___
 };
 
 //size of SL + runtime in bytes
@@ -1296,6 +1304,23 @@ void cstartup(multiboot_info_t *mbi)
 		HALT_ON_ERRORCOND((u64)sl_rt_size == size64);
 	}
 
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    {
+        RPB *rpb = NULL;
+
+        if(!xmhf_runtime_bss_high)
+        {
+            printf("INIT(early): Allocate memory for xmhf-runtime's high BSS data error!\n");
+            HALT();
+        }
+
+        rpb = (RPB *) (hypervisor_image_baseaddress + PA_PAGE_SIZE_2M);
+        rpb->XtVmmRuntimeBSSHighBegin = xmhf_runtime_bss_high;
+        printf("INIT(early): xmhf-runtime's high BSS data:[0x%lX, 0x%lX)\n", 
+            (uintptr_t)rpb->XtVmmRuntimeBSSHighBegin, (uintptr_t)rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE);
+    }
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
 #else /* !__UEFI__ */
 
     // In BIOS boot, xmhf-SL and xmhf-runtime are loaded into the fixed spaddr __TARGET_BASE_SL.
@@ -1311,7 +1336,7 @@ void cstartup(multiboot_info_t *mbi)
 
 #ifdef __SKIP_RUNTIME_BSS__
     {
-        RPB *rpb = (RPB *) (mod_array[0].mod_start + 0x200000);
+        RPB *rpb = (RPB *) (uintptr_t)(mod_array[0].mod_start + PA_PAGE_SIZE_2M);
         sl_rt_size = PAGE_ALIGN_UP_2M((u32)rpb->XtVmmRuntimeBssEnd - __TARGET_BASE_SL);
     }
 #endif /* __SKIP_RUNTIME_BSS__ */
@@ -1349,15 +1374,15 @@ void cstartup(multiboot_info_t *mbi)
     hashandprint("    INIT(early): *UNTRUSTED* comp runtime: ",
                  (u8*)hypervisor_image_baseaddress+0x200000, sl_rt_size-0x200000);
     /* SL low 64K */
-    print_hex("    INIT(early): *UNTRUSTED* gold SL low 64K: ",
-              g_init_gold.sha_slbelow64K, SHA_DIGEST_LENGTH);
-    hashandprint("    INIT(early): *UNTRUSTED* comp SL low 64K: ",
-                 (u8*)hypervisor_image_baseaddress, 0x10000);
+    print_hex("    INIT(early): *UNTRUSTED* gold SL low: ",
+              g_init_gold.sha_sl_low, SHA_DIGEST_LENGTH);
+    hashandprint("    INIT(early): *UNTRUSTED* comp SL low: ",
+                 (u8*)hypervisor_image_baseaddress, SL_LOW_CODE_DATA_SECTION_SIZE);
     /* SL above 64K */
-    print_hex("    INIT(early): *UNTRUSTED* gold SL above 64K: ",
-              g_init_gold.sha_slabove64K, SHA_DIGEST_LENGTH);
-    hashandprint("    INIT(early): *UNTRUSTED* comp SL above 64K): ",
-                 (u8*)hypervisor_image_baseaddress+0x10000, 0x200000-0x10000);
+    print_hex("    INIT(early): *UNTRUSTED* gold SL high: ",
+              g_init_gold.sha_sl_high, SHA_DIGEST_LENGTH);
+    hashandprint("    INIT(early): *UNTRUSTED* comp SL high): ",
+                 (u8*)hypervisor_image_baseaddress + SL_LOW_CODE_DATA_SECTION_SIZE, 0x200000-SL_LOW_CODE_DATA_SECTION_SIZE);
 #endif /* !__SKIP_BOOTLOADER_HASH__ */
 
 #ifndef __UEFI__
@@ -1369,8 +1394,8 @@ void cstartup(multiboot_info_t *mbi)
 
     //fill in "sl" parameter block
     {
-        //"sl" parameter block is at hypervisor_image_baseaddress + 0x10000
-        slpb = (SL_PARAMETER_BLOCK *)(hypervisor_image_baseaddress + 0x10000);
+        //"sl" parameter block is at hypervisor_image_baseaddress + SL_LOW_CODE_DATA_SECTION_SIZE
+        slpb = (SL_PARAMETER_BLOCK *)(hypervisor_image_baseaddress + SL_LOW_CODE_DATA_SECTION_SIZE);
         HALT_ON_ERRORCOND(slpb->magic == SL_PARAMETER_BLOCK_MAGIC);
         slpb->errorHandler = 0;
         slpb->isEarlyInit = 1;    //this is an "early" init
@@ -1409,6 +1434,12 @@ void cstartup(multiboot_info_t *mbi)
 			HALT_ON_ERRORCOND(is_sinit_acmod((void *)start, bytes, false));
 		}
 #endif /* __DRT__ */
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    {
+        slpb->runtime_bss_high_base = xmhf_runtime_bss_high;
+        slpb->runtime_bss_high_size = XMHF_RUNTIME_LARGE_BSS_DATA_SIZE;
+    }
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 #else /* !__UEFI__ */
 

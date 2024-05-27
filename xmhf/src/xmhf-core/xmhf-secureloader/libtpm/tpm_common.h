@@ -2,14 +2,9 @@
  * @XMHF_LICENSE_HEADER_START@
  *
  * eXtensible, Modular Hypervisor Framework (XMHF)
- * Copyright (c) 2009-2012 Carnegie Mellon University
- * Copyright (c) 2010-2012 VDG Inc.
+ * Copyright (c) 2023 - 2024 Miao Yu
+ * Copyright (c) 2023 - 2024 Virgil Gligor
  * All Rights Reserved.
- *
- * Developed by: XMHF Team
- *               Carnegie Mellon University / CyLab
- *               VDG Inc.
- *               http://xmhf.org
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,7 +18,7 @@
  * the documentation and/or other materials provided with the
  * distribution.
  *
- * Neither the names of Carnegie Mellon or VDG Inc, nor the names of
+ * Neither the name of the copyright holder nor the names of
  * its contributors may be used to endorse or promote products derived
  * from this software without specific prior written permission.
  *
@@ -44,7 +39,7 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-// Author: Miao Yu (superymk@cmu.edu)
+// Author: 
 
 #ifndef _HASH_FUNCS_H
 #define _HASH_FUNCS_H

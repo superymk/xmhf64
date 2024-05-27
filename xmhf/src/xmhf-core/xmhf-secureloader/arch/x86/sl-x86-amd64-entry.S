@@ -166,7 +166,7 @@ our C main*/
     orl $0x3, %eax
     movl %eax, %ds:sl_pdpt+8*3(%ebp)    /* store PDPT[3] */
 
-    /* set PDT (512*4 = 2048 entries, 2 MiB per entry) */
+    /* set PDT (512*4 = 2048 entries for 4 GiB physical address space, each entry for 2 MiB space) */
     movl $0, %eax
     movl $2048, %ecx
 4:  movl %eax, %ebx
@@ -373,7 +373,7 @@ sl_cpu_common:
 ----------------------------------------------------------------------*/
 
 /* sl stack, this is just a placeholder and ensures that the linker
- actually "allocates" the stack up until 0x10000*/
+ actually "allocates" the stack up until <SL_LOW_CODE_DATA_SECTION_SIZE>*/
 .section .sl_stack
     .fill 2048, 1, 0
 

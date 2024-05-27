@@ -53,6 +53,10 @@
 // local (static) variables and function definitions
 //==============================================================================
 
+/// @brief Early initialize Intel VT-d always disable all DMA accesses. This variable is used to prevent double 
+/// early initialization.
+static bool _is_early_initialized = false;
+
 // DMA Remapping Hardware Unit Definitions
 static VTD_DRHD vtd_drhd[VTD_MAX_DRHD];
 static u32 vtd_num_drhd = 0; // total number of DMAR h/w units
@@ -180,8 +184,9 @@ static u32 vmx_eap_initialize_early(
     _vtd_drhd_initialize_earlyinit(&vtd_drhd[0], vtd_ret_paddr);
 #endif
 
-    // success
+    // On success
     printf("%s: success, leaving...\n", __FUNCTION__);
+    _is_early_initialized = true;
 
     return 1;
 }
@@ -196,8 +201,11 @@ u32 xmhf_dmaprot_arch_x86_vmx_earlyinitialize(sla_t protectedbuffer_paddr, sla_t
 {
     u32 vmx_eap_vtd_ret_paddr, vmx_eap_vtd_ret_vaddr;
 
-    //(void)memregionbase_paddr;
-    //(void)memregion_size;
+    if(_is_early_initialized)
+    {
+        // Already successfully initialized. No double initialization.
+        return 1;
+    }
 
     printf("SL: Bootstrapping VMX DMA protection...\n");
 

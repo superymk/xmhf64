@@ -289,8 +289,9 @@ sl_startnew:
 	movw %ax, %fs
 	movw %ax, %gs
 
-	//setup ESP to top of 64K
-	movl $0x10000, %esp	
+	/* Setup ESP to the top of 2MB */
+    /* [TODO][Issue 139] In AMD-SEV (DRTM only), xmhf-sl does not DMA protect the memory [SL_Base+64KB, SL_BASE+2MB) prior to access the memory region. */
+    movl $0x200000, %esp /* XXX TODO Get rid of magic number*/
               
 	pushl %ebp
 	call slmain
@@ -365,7 +366,7 @@ nomoredebug:
 
 	
 //sl stack, this is just a placeholder and ensures that the linker
-//actually "allocates" the stack up until 0x10000
+//actually "allocates" the stack up until <SL_LOW_CODE_DATA_SECTION_SIZE>
 .section .sl_stack
 	.fill 4096, 1, 0  	
 	

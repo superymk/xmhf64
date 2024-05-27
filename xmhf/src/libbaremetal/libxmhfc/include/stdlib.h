@@ -47,6 +47,13 @@
 #ifndef __STDLIB_H__
 #define __STDLIB_H__
 
+#include <sys/types.h>
+
 __attribute__((__noreturn__)) void abort(void);
+
+extern void *malloc(size_t size);
+extern void *realloc(void *ptr, size_t size);
+extern void *calloc(size_t nmemb, size_t size);
+extern void free(void *ptr);
 
 #endif

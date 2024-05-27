@@ -52,15 +52,25 @@
 
 #include <xmhf.h>
 
-//SVM NPT PDPT buffers
-//memprot
-u8 g_svm_npt_pdpt_buffers[PAGE_SIZE_4K * MAX_VCPU_ENTRIES] __attribute__((aligned(PAGE_SIZE_4K)));
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    u8* g_svm_npt_pdpt_buffers = NULL;
+    u8* g_svm_npt_pdts_buffers = NULL;
+    u8* g_svm_npt_pts_buffers = NULL;
 
-//SVM NPT PDT buffers
-//memprot
-u8 g_svm_npt_pdts_buffers[PAE_PTRS_PER_PDPT * PAGE_SIZE_4K * MAX_VCPU_ENTRIES] __attribute__((aligned(PAGE_SIZE_4K)));
+#else
+
+    //SVM NPT PDPT buffers
+    //memprot
+    u8 g_svm_npt_pdpt_buffers[PAGE_SIZE_4K * XMHF_RICH_GUEST_NPT_NUM] __attribute__((aligned(PAGE_SIZE_4K)));
+
+    //SVM NPT PDT buffers
+    //memprot
+    u8 g_svm_npt_pdts_buffers[PAE_PTRS_PER_PDPT * PAGE_SIZE_4K * XMHF_RICH_GUEST_NPT_NUM] __attribute__((aligned(PAGE_SIZE_4K)));
+
+    //SVM NPT PT buffers
+    //memprot
+    u8 g_svm_npt_pts_buffers[PAE_PTRS_PER_PDPT * PAE_PTRS_PER_PDT * PAGE_SIZE_4K * XMHF_RICH_GUEST_NPT_NUM] __attribute__((aligned(PAGE_SIZE_4K)));
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 
-//SVM NPT PT buffers
-//memprot
-u8 g_svm_npt_pts_buffers[PAE_PTRS_PER_PDPT * PAE_PTRS_PER_PDT * PAGE_SIZE_4K * MAX_VCPU_ENTRIES] __attribute__((aligned(PAGE_SIZE_4K)));
+
