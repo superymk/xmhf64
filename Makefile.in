@@ -568,10 +568,10 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 .PHONY: debug
 ifeq ($(TARGET_UEFI), y)
 debug: debug_download_imgs build-efi-flashdrive
-	cd debug && ./qemu_ubuntu.sh -uefi
+	cd debug && ./qemu_ubuntu.sh -uefi -vm_large
 else
-debug: debug_download_imgs
-	cd debug && ./qemu_ubuntu.sh
+debug: debug_download_imgs build-bios-diskimgs
+	cd debug && ./qemu_ubuntu.sh 
 endif
 
 ifeq ($(TARGET_UEFI), y)
@@ -580,6 +580,15 @@ build-efi-flashdrive:
 	# Build UEFI flashdrive image
 	mkdir -p $(UEFI_FLASHDRIVE_IMAGE)
 	DSTDIR="$(UEFI_FLASHDRIVE_IMAGE)" ./uefi_build_flashdrive_img.sh
+else
+.PHONY: build-bios-diskimgs
+build-bios-diskimgs:
+	# Build BIOS disk images
+	python3 ./tools/ci/grub.py \
+		--subarch "amd64" \
+		--xmhf-bin "." \
+		--work-dir "." \
+		--boot-dir "./tools/ci/boot/"
 endif
 
 .PHONY: debug_download_imgs

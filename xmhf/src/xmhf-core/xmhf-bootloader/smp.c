@@ -128,17 +128,18 @@ u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp){
 	n_rsdt_entries=(u32)((rsdt->length-sizeof(ACPI_RSDT))/4);
 
 	printf("ACPI RSDT at 0x%08lx\n", rsdt);
-  printf("	len=0x%08x, headerlen=0x%08x, numentries=%u\n",
+    printf("	len=0x%08x, headerlen=0x%08x, numentries=%u\n",
 			rsdt->length, sizeof(ACPI_RSDT), n_rsdt_entries);
 
-  rsdtentrylist=(u32 *) ( (uintptr_t)rsdt + sizeof(ACPI_RSDT) );
+    rsdtentrylist=(u32 *) ( (uintptr_t)rsdt + sizeof(ACPI_RSDT) );
 
-	for(i=0; i< n_rsdt_entries; i++){
-    madt=(ACPI_MADT *)( (uintptr_t)rsdtentrylist[i]);
-    if(madt->signature == ACPI_MADT_SIGNATURE){
-    	madt_found=1;
-    	break;
-    }
+	for(i=0; i< n_rsdt_entries; i++)
+    {
+        madt=(ACPI_MADT *)( (uintptr_t)rsdtentrylist[i]);
+        if(madt->signature == ACPI_MADT_SIGNATURE){
+            madt_found=1;
+            break;
+        }
 	}
 
 #endif
@@ -163,21 +164,23 @@ u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp){
 
 		do{
 			ACPI_MADT_APIC *apicrecord = (ACPI_MADT_APIC *)((uintptr_t)madt + sizeof(ACPI_MADT) + madtcurrentrecordoffset);
- 		  printf("rec type=0x%02x, length=%u bytes, flags=0x%08x, id=0x%02x\n", apicrecord->type,
-			 		apicrecord->length, apicrecord->flags, apicrecord->lapicid);
+            printf("rec type=0x%02x, length=%u bytes, flags=0x%08x, id=0x%02x\n", apicrecord->type,
+                        apicrecord->length, apicrecord->flags, apicrecord->lapicid);
 
-			if(apicrecord->type == 0x0 && (apicrecord->flags & 0x1)){ //processor record
-
-		    foundcores=1;
+			if(apicrecord->type == 0x0 && (apicrecord->flags & 0x1))
+            { 
+                //processor record
+		        foundcores=1;
 				HALT_ON_ERRORCOND( *num_pcpus < MAX_PCPU_ENTRIES);
 				i = *num_pcpus;
 				pcpus[i].lapic_id = apicrecord->lapicid;
-		    pcpus[i].lapic_ver = 0;
-		    pcpus[i].lapic_base = madt->lapicaddress;
-		    if(i == 0)
-					pcpus[i].isbsp = 1;	//ACPI spec says that first processor entry MUST be BSP
-				else
-					pcpus[i].isbsp = 0;
+                pcpus[i].lapic_ver = 0;
+                pcpus[i].lapic_base = madt->lapicaddress;
+
+                if(i == 0)
+                    pcpus[i].isbsp = 1;	//ACPI spec says that first processor entry MUST be BSP
+                else
+                    pcpus[i].isbsp = 0;
 
 				*num_pcpus = *num_pcpus + 1;
 			}

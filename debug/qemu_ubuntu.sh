@@ -1,5 +1,7 @@
 #!/bin/bash
 
+clear
+
 # Use UEFI in qemu. Default: disabled
 enable_uefi=0
 # Use sw-tpm in qemu. Default: disabled
@@ -96,5 +98,5 @@ fi
 if [ "$enable_vm_small" -eq 1 ]; then
     run_qemu "2G" "4"
 else
-    run_qemu "4G" "16"
+    run_qemu "6G" "16"
 fi

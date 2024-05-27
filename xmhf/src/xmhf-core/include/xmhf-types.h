@@ -49,6 +49,7 @@
 #ifndef __EMHF_TYPES_H_
 #define __EMHF_TYPES_H_
 
+#include <xmhf-config.h>
 
 #ifndef __ASSEMBLY__
 
@@ -163,7 +164,7 @@ typedef struct {
     u32 isEarlyInit;                    //1 for an "early init" else 0 (late-init)
 } RPB, *PRPB;
 
-
+#define STRUCT_PCPU_SIZE        (16)   // sizeof(PCPU), PCPU is defined in xmhf-baseplatform.h
 //"sl" parameter block structure
 typedef struct _sl_parameter_block {
     u32     magic;                      // magic identifier
@@ -172,7 +173,7 @@ typedef struct _sl_parameter_block {
     u32     numE820Entries;             // number of E820 entries
     u8      memmapbuffer[1280];         // max. 64 entries of 20 bytes each describing the system memory map
     u32     numCPUEntries;              // number of cores
-    u8      cpuinfobuffer[128];         // max. 8 entries of 16 bytes each describing each physical core in the system
+    u8      cpuinfobuffer[STRUCT_PCPU_SIZE * MAX_PCPU_ENTRIES];         // Describe each physical core in the system
     u32     runtime_size;               // size of the runtime image
     u32     runtime_osbootmodule_base;  // guest OS bootmodule base
     u32     runtime_osbootmodule_size;  // guest OS bootmodule size
