@@ -192,6 +192,13 @@ hypervisor-x86-$(SUBARCH).bin.gz
 ./configure --with-approot=hypapps/trustvisor --with-target-subarch=amd64 --enable-debug-symbols --enable-debug-qemu --with-amd64-max-phys-addr=0x200000000 --disable-debug-serial --enable-debug-vga
 ```
 
+## Debugging XMHF
+
+After building xmhf x64 for BIOS or UEFI, one can execute ```make debug``` to run XMHF in qemu. The command automatically prepares 
+environment to run qemu; e.g., generating VM disk images.
+
+Tested on Ubuntu 22.04 x64.
+
 ## Installing XMHF
 
 Copy these files to `/boot/` of the operating system. These files will be

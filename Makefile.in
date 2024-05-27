@@ -56,7 +56,6 @@ export TARGET_SUBARCH := @TARGET_SUBARCH@
 export TARGET_UEFI := @TARGET_UEFI@
 export AMD64_MAX_PHYS_ADDR := @AMD64_MAX_PHYS_ADDR@
 export SL_BASE := @SL_BASE@
-export RUNTIME_PIE := @RUNTIME_PIE@
 export OPT_FLAGS := @OPT_FLAGS@
 export HIDE_X2APIC := @HIDE_X2APIC@
 export OPTIMIZE_NESTED_VIRT := @OPTIMIZE_NESTED_VIRT@
@@ -188,6 +187,14 @@ LIB_SUBDIRS += $(LIBBAREMETAL_BUILD32)
 LIB_SUBDIRS += $(LIBTOMCRYPT_BUILD32)
 endif
 
+# make xmhf-runtime PIE (allow SL and runtime to be loaded anywhere under 4G)
+# [NOTE] Currently, XMHF forces PIE for UEFI and no PIE for BIOS.
+ifeq ($(TARGET_UEFI), y)
+    export RUNTIME_PIE := y
+else
+    export RUNTIME_PIE := n
+endif
+
 
 ##CFLAGS and ASFLAGS population
 # experimental support
@@ -229,6 +236,8 @@ CFLAGS += -mno-pclmul -mno-sse4a -mno-3dnow -mno-popcnt -mno-abm
 # CFLAGS += -mno-sse5
 CFLAGS += -nostdinc -pipe
 CFLAGS += -Wno-address-of-packed-member
+
+# make xmhf-runtime PIE (allow SL and runtime to be loaded anywhere under 4G)
 ifeq ($(RUNTIME_PIE), y)
 CFLAGS += -D__XMHF_PIE_RUNTIME__
 else
@@ -559,10 +568,10 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 .PHONY: debug
 ifeq ($(TARGET_UEFI), y)
 debug: debug_download_imgs build-efi-flashdrive
-	cd debug && ./qemu_ubuntu.sh -uefi
+	cd debug && ./qemu_ubuntu.sh -uefi -vm_large
 else
-debug: debug_download_imgs
-	cd debug && ./qemu_ubuntu.sh
+debug: debug_download_imgs build-bios-diskimgs
+	cd debug && ./qemu_ubuntu.sh 
 endif
 
 ifeq ($(TARGET_UEFI), y)
@@ -571,6 +580,15 @@ build-efi-flashdrive:
 	# Build UEFI flashdrive image
 	mkdir -p $(UEFI_FLASHDRIVE_IMAGE)
 	DSTDIR="$(UEFI_FLASHDRIVE_IMAGE)" ./uefi_build_flashdrive_img.sh
+else
+.PHONY: build-bios-diskimgs
+build-bios-diskimgs:
+	# Build BIOS disk images
+	python3 ./tools/ci/grub.py \
+		--subarch "amd64" \
+		--xmhf-bin "." \
+		--work-dir "." \
+		--boot-dir "./tools/ci/boot/"
 endif
 
 .PHONY: debug_download_imgs

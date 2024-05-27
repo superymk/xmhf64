@@ -82,9 +82,9 @@ def generate_xmhf_image(args):
 		ext2_size_kb = 1024 * 7
 	else:
 		if args.subarch in ['i386', 'amd64']:
-			ext2_size_kb = 1440
+			ext2_size_kb = 14400
 		elif args.subarch == 'windows':
-			ext2_size_kb = 512
+			ext2_size_kb = 5120
 		else:
 			raise Exception('Unknown subarch: %s' % repr(args.subarch))
 

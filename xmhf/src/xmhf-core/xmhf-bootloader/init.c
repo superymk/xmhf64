@@ -128,7 +128,8 @@ uint64_t sl_rt_base_spaddr;
 
 
 //---MP config table handling---------------------------------------------------
-void dealwithMP(void *uefi_rsdp){
+void dealwithMP(void *uefi_rsdp)
+{
     if(!smp_getinfo(pcpus, &pcpus_numentries, uefi_rsdp)){
         printf("Fatal error with SMP detection. Halting!\n");
         HALT();

@@ -1,11 +1,29 @@
 # Notes on lxy.md 
 
-1. Install autoconf
+1. Install tools
+```sudo apt install python3-pip```
+```python3 -m pip install gdown```
 ```sudo apt install autoconf mtools```
 
 ## QEMU/KVM debugging
 
 ### Sample commands
+
+#### amd64 BIOS
+
+1. Run "./autogen.sh"
+
+2. Compile hypapp with "--with-extra-ap-init-count=1". This is equivilant to "./tools/ci/build.sh uefi fast --iss 1". For example:
+```
+./configure --with-approot=../secbase/hypapps/whitevisor --enable-drt=no --with-target-subarch=amd64 --enable-quiesce-in-guest-mem-pio-traps=no --enable-allow-hypapp-disable-igfx-iommu=yes --enable-debug-qemu=yes --with-opt=-O2 --with-pci-serial-pio-addr=0x6060
+```
+
+3. Overwrite uberxmhf/debug/qemu_ubuntu.sh with uberxmhf/debug/qemu_uefi_fedora.sh if you will run qemu on Fedora (not Ubuntu)
+
+4. Run ```make clean;make``` to build XMHF
+
+5. Run ```make debug```
+
 
 #### amd64 UEFI
 
@@ -13,13 +31,12 @@
 
 2. Compile hypapp with "--with-extra-ap-init-count=1". This is equivilant to "./tools/ci/build.sh uefi fast --iss 1". For example:
 ```
-./configure --with-approot=hypapps/trustvisor --enable-drt=no --with-target-subarch=amd64 --enable-quiesce-in-guest-mem-pio-traps=no --enable-allow-hypapp-disable-igfx-iommu=yes --enable-target-uefi --enable-skip-runtime-bss --with-extra-ap-init-count=1
+./configure --with-approot=hypapps/trustvisor --enable-drt=no --with-target-subarch=amd64 --enable-quiesce-in-guest-mem-pio-traps=no --enable-allow-hypapp-disable-igfx-iommu=yes --enable-target-uefi --enable-debug-qemu=yes --enable-skip-runtime-bss --with-extra-ap-init-count=1 --with-pci-serial-pio-addr=0x6060
 ```
 
-3. Download the <debian11efi.qcow2> to uberxmhf/debug from the link
-# <https://drive.google.com/drive/folders/1rXDTAGcT9zeWmGbOrLvnexD9xJpoNrsl?usp=sharing>
+3. Overwrite uberxmhf/debug/qemu_ubuntu.sh with uberxmhf/debug/qemu_uefi_fedora.sh if you will run qemu on Fedora (not Ubuntu)
 
-4. Overwrite uberxmhf/debug/qemu_ubuntu.sh with uberxmhf/debug/qemu_uefi_fedora.sh if you will run qemu on Fedora (not Ubuntu)
+4. Run ```make clean;make``` to build XMHF
 
 5. Run ```make debug```
 
