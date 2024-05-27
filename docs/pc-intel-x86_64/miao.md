@@ -19,7 +19,7 @@
 3. Download the <debian11efi.qcow2> to uberxmhf/debug from the link
 # <https://drive.google.com/drive/folders/1rXDTAGcT9zeWmGbOrLvnexD9xJpoNrsl?usp=sharing>
 
-4. Overwrite uberxmhf/debug/qemu_uefi_ubuntu.sh with uberxmhf/debug/qemu_uefi_fedora.sh if you will run qemu on Fedora (not Ubuntu)
+4. Overwrite uberxmhf/debug/qemu_ubuntu.sh with uberxmhf/debug/qemu_uefi_fedora.sh if you will run qemu on Fedora (not Ubuntu)
 
 5. Run ```make debug```
 

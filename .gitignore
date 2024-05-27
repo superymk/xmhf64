@@ -15,6 +15,7 @@
 *.exe
 *.lds
 *.sha1
+/_build_libbaremetal/
 /_build_libbaremetal32/
 /_build_gnuefi/
 /build-aux/

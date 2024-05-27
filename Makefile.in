@@ -553,16 +553,16 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 	@echo ---------------------------------------------------------------
 
 
-# One needs to download the <debian11efi.qcow2> from 
-# <https://drive.google.com/drive/folders/1rXDTAGcT9zeWmGbOrLvnexD9xJpoNrsl?usp=sharing> first
 # [NOTE] Run "build-efi-flashdrive under" "debug" not "install-efi". Otherwise, "sudo make install" would create root 
 # user's folders under uberxmhf/ and hence blocks "make clean".
+
 .PHONY: debug
 ifeq ($(TARGET_UEFI), y)
 debug: debug_download_imgs build-efi-flashdrive
-	cd debug && ./qemu_uefi_ubuntu.sh
+	cd debug && ./qemu_ubuntu.sh -uefi
 else
 debug: debug_download_imgs
+	cd debug && ./qemu_ubuntu.sh
 endif
 
 ifeq ($(TARGET_UEFI), y)
