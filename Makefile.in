@@ -40,6 +40,7 @@ export ENABLE_QUIESCING_IN_GUEST_MEM_PIO_TRAPS := @ENABLE_QUIESCING_IN_GUEST_MEM
 export ENABLE_LD_GC_SECTIONS := @ENABLE_LD_GC_SECTIONS@
 export DEBUG_SYMBOLS := @DEBUG_SYMBOLS@
 export DEBUG_QEMU := @DEBUG_QEMU@
+export QEMU_USE_VM_LARGE := @QEMU_USE_VM_LARGE@
 export DEBUG_SERIAL := @DEBUG_SERIAL@
 export DEBUG_SERIAL_PORT := @DEBUG_SERIAL_PORT@
 export DEBUG_PCI_SERIAL_PIO_ADDR := @DEBUG_PCI_SERIAL_PIO_ADDR@
@@ -291,6 +292,11 @@ endif
 ifeq ($(DEBUG_QEMU), y)
 	CFLAGS += -D__DEBUG_QEMU__
 	VFLAGS += -D__DEBUG_QEMU__
+
+    ifeq ($(QEMU_USE_VM_LARGE), y)
+        CFLAGS += -D__QEMU_USE_VM_LARGE__
+	    VFLAGS += -D__QEMU_USE_VM_LARGE__
+    endif
 endif
 
 ifeq ($(HIDE_X2APIC), y)
@@ -467,6 +473,15 @@ endif
 ASFLAGS = $(CFLAGS) -D__ASSEMBLY__
 BASFLAGS = $(BCFLAGS) -D__ASSEMBLY__
 
+# QEMU Debug flags for "make debug"
+QEMU_DEBUG_FLAGS =
+ifeq ($(TARGET_UEFI), y)
+    QEMU_DEBUG_FLAGS += -uefi
+endif
+ifeq ($(QEMU_USE_VM_LARGE), y)
+	QEMU_DEBUG_FLAGS += -vm_large
+endif
+
 export CFLAGS
 export BCFLAGS
 export ASFLAGS
@@ -568,10 +583,10 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 .PHONY: debug
 ifeq ($(TARGET_UEFI), y)
 debug: debug_download_imgs build-efi-flashdrive
-	cd debug && ./qemu_ubuntu.sh -uefi
+	cd debug && ./qemu_ubuntu.sh $(QEMU_DEBUG_FLAGS)
 else
 debug: debug_download_imgs build-bios-diskimgs
-	cd debug && ./qemu_ubuntu.sh 
+	cd debug && ./qemu_ubuntu.sh $(QEMU_DEBUG_FLAGS)
 endif
 
 ifeq ($(TARGET_UEFI), y)

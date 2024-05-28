@@ -133,6 +133,15 @@ AS_IF([test "x${enable_debug_qemu}" != "xno"],
       [DEBUG_QEMU=y],
       [DEBUG_QEMU=n])
 
+AC_SUBST([QEMU_USE_VM_LARGE])
+AC_ARG_ENABLE([qemu_use_vm_large],
+        AS_HELP_STRING([--enable-qemu-use-vm-large@<:@=yes|no@:>@],
+                [enable large QEMU VM for debugging]),
+                , [enable_qemu_use_vm_large=no])
+AS_IF([test "x${enable_qemu_use_vm_large}" != "xno"],
+      [QEMU_USE_VM_LARGE=y],
+      [QEMU_USE_VM_LARGE=n])
+
 AC_SUBST([HIDE_X2APIC])
 AC_ARG_ENABLE([hide_x2apic],
         AS_HELP_STRING([--enable-hide-x2apic@<:@=yes|no@:>@],

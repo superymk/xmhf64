@@ -110,7 +110,6 @@ u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb)
     u64 totalsize;
 
     // Force totalsize to be MAX_PHYS_ADDR
-    printf("[Superymk] <xmhf_sl_arch_x86_setup_runtime_paging> rpb:0x%lX\n", (hva_t)rpb);
     totalsize = rpb->platform_mem_max_phy_space;
 
     printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space size: 0x%lx\n",

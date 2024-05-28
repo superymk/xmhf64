@@ -25,10 +25,13 @@ download () {
 while [ "$#" -gt 0 ]; do
 	case "$1" in
 		debian11x86.qcow2)
-			download "1T1Yw8cBa2zo1fWSZIkry0aOuz2pZS6Tl" "$1"
+			download "1I0Ps8uZFYskv5dg04esXok7DR1k6ox1L" "$1"
 			;;
 		debian11x64.qcow2)
-			download "1WntdHCKNmuJ5I34xqriokMlSAC3KcqL-" "$1"
+			download "1IRXzOqpDbNtkojnUN-jSjS4F9GCA3G_l" "$1"
+			;;
+        debian11efi.qcow2)
+            download "1IWZfDbkurCmRaSMkTCum40LzWgm7ym-n" "$1"
 			;;
 		*)
 			echo "Error: unknown file $1"; exit 1
