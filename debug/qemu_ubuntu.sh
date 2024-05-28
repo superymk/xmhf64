@@ -98,5 +98,5 @@ fi
 if [ "$enable_vm_small" -eq 1 ]; then
     run_qemu "2G" "4"
 else
-    run_qemu "6G" "16"
+    run_qemu "30G" "8"
 fi

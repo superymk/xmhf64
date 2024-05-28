@@ -293,9 +293,9 @@ void xmhf_sl_arch_early_dmaprot_init(u32 runtime_size)
 {
     spa_t protectedbuffer_paddr;
     sla_t protectedbuffer_vaddr;
-    u32 protectedbuffer_size;
+    size_t protectedbuffer_size;
     spa_t memregionbase_paddr;
-    u32 memregion_size;
+    size_t memregion_size;
     u32 cpu_vendor = get_cpu_vendor_or_die();
 
     HALT_ON_ERRORCOND(cpu_vendor == CPU_VENDOR_AMD || cpu_vendor == CPU_VENDOR_INTEL);

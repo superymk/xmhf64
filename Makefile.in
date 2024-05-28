@@ -568,7 +568,7 @@ core: $(APP_ARCHIVE) $(LIB_SUBDIRS)
 .PHONY: debug
 ifeq ($(TARGET_UEFI), y)
 debug: debug_download_imgs build-efi-flashdrive
-	cd debug && ./qemu_ubuntu.sh -uefi -vm_large
+	cd debug && ./qemu_ubuntu.sh -uefi
 else
 debug: debug_download_imgs build-bios-diskimgs
 	cd debug && ./qemu_ubuntu.sh 

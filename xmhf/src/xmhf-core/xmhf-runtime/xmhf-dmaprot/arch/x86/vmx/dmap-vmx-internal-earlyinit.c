@@ -61,7 +61,7 @@ extern void _vtd_drhd_issue_wbf(VTD_DRHD *drhd);
 // note that the VT-d documentation does not describe the precise sequence of
 // steps that need to be followed to initialize a DRHD unit!. we use our
 // common sense instead...:p
-void _vtd_drhd_initialize_earlyinit(VTD_DRHD *drhd, u32 vtd_ret_paddr)
+void _vtd_drhd_initialize_earlyinit(VTD_DRHD *drhd, spa_t vtd_ret_paddr)
 {
     VTD_GSTS_REG gsts;
     VTD_CCMD_REG ccmd;

@@ -105,9 +105,9 @@ void xmhf_runtime_entry(void){
 #if defined (__DMAP__)
 		{
 		#define ADDR_512GB  (PAGE_SIZE_512G)
-            u64 protectedbuffer_paddr;
+            spa_t protectedbuffer_paddr;
             hva_t protectedbuffer_vaddr;
-            u32 protectedbuffer_size;
+            size_t protectedbuffer_size;
 
         #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
             g_rntm_dmaprot_buffer = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_rntm_dmaprot_buffer;

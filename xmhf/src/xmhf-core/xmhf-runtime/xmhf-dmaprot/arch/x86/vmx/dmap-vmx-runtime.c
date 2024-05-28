@@ -80,12 +80,12 @@ static bool _vtd_setuppagetables(spa_t vtd_pml4t_paddr, hva_t vtd_pml4t_vaddr,
                                  spa_t machine_low_spa, spa_t machine_high_spa)
 {
     spa_t pml4tphysaddr, pdptphysaddr, pdtphysaddr, ptphysaddr;
-    u32 i, j, k;
+    u32 i;
     pml4t_t pml4t;
     pdpt_t pdpt;
     pdt_t pdt;
     pt_t pt;
-    uintptr_t physaddr = 0;
+    spa_t physaddr = 0;
     spa_t m_low_spa = PA_PAGE_ALIGN_1G(machine_low_spa);
     spa_t m_high_spa = PA_PAGE_ALIGN_UP_1G(machine_high_spa);
     u32 num_1G_entries = (m_high_spa - (u64)m_low_spa) >> PAGE_SHIFT_1G;
@@ -109,6 +109,8 @@ static bool _vtd_setuppagetables(spa_t vtd_pml4t_paddr, hva_t vtd_pml4t_vaddr,
     l_vtd_pts_paddr = vtd_pts_paddr;
     l_vtd_pts_vaddr = vtd_pts_vaddr;
 
+    // initially set the entire spaddr space [m_low_spa, m_high_spa) as DMA read/write capable
+
     // setup pml4t
     // The VT-d page table created here is a partial one. If 4-level PT is used, then there is only one PML4 entry instead
     // of 512 entries. This is sufficient because the lower 3-level PT covers 0 - 512GB physical memory space
@@ -116,29 +118,28 @@ static bool _vtd_setuppagetables(spa_t vtd_pml4t_paddr, hva_t vtd_pml4t_vaddr,
     pml4t[0] = (u64)(pdptphysaddr + (0 * PAGE_SIZE_4K));
     pml4t[0] |= ((u64)VTD_READ | (u64)VTD_WRITE | (u64)VTD_EXECUTE);
 
-    // setup pdpt, pdt and pt
-    // initially set the entire spaddr space [m_low_spa, m_high_spa) as DMA read/write capable
+    // Setup pdpt
     pdpt = (pdpt_t)vtd_pdpt_vaddr;
-
     for (i = 0; i < num_1G_entries; i++) // DMAPROT_VMX_P4L_NPDT
     {
         pdpt[i] = (u64)(pdtphysaddr + (i * PAGE_SIZE_4K));
         pdpt[i] |= ((u64)VTD_READ | (u64)VTD_WRITE | (u64)VTD_EXECUTE);
+    }
 
-        pdt = (pdt_t)(vtd_pdts_vaddr + (i * PAGE_SIZE_4K));
-        for (j = 0; j < PAE_PTRS_PER_PDT; j++)
-        {
-            pdt[j] = (u64)(ptphysaddr + (i * PAGE_SIZE_4K * PAE_PTRS_PER_PDT) + (j * PAGE_SIZE_4K));
-            pdt[j] |= ((u64)VTD_READ | (u64)VTD_WRITE | (u64)VTD_EXECUTE);
+    // Setup pdt
+    pdt = (pdt_t)(vtd_pdts_vaddr);
+    for (i = 0; i < num_1G_entries * PAE_PTRS_PER_PDT; i++) // DMAPROT_VMX_P4L_NPDT
+    {
+        pdt[i] = (u64)(ptphysaddr + (i * PAGE_SIZE_4K));
+        pdt[i] |= ((u64)VTD_READ | (u64)VTD_WRITE | (u64)VTD_EXECUTE);
+    }
 
-            pt = (pt_t)(vtd_pts_vaddr + (i * PAGE_SIZE_4K * PAE_PTRS_PER_PDT) + (j * PAGE_SIZE_4K));
-            for (k = 0; k < PAE_PTRS_PER_PT; k++)
-            {
-                pt[k] = (u64)physaddr;
-                pt[k] |= ((u64)VTD_READ | (u64)VTD_WRITE | (u64)VTD_EXECUTE);
-                physaddr += PAGE_SIZE_4K;
-            }
-        }
+    // Setup pt
+    pt = (pt_t)(vtd_pts_vaddr);
+    for (i = 0; i < num_1G_entries * PAE_PTRS_PER_PDT * PAE_PTRS_PER_PT; i++) // DMAPROT_VMX_P4L_NPDT
+    {
+        pt[i] = (u64)(physaddr + (i * PAGE_SIZE_4K));
+        pt[i] |= ((u64)VTD_READ | (u64)VTD_WRITE | (u64)VTD_EXECUTE);
     }
 
     return true;
@@ -334,11 +335,11 @@ static u32 vmx_eap_initialize(
                                        vtd_pdts_paddr, vtd_pdts_vaddr, vtd_pts_paddr, vtd_pts_vaddr, machine_low_spa, machine_high_spa);
         if (!status2)
         {
-            printf("%s: setup VT-d page tables (pdpt=%llx, pdts=%llx, pts=%llx) error! Halting!\n", __FUNCTION__, vtd_pdpt_paddr, vtd_pdts_paddr, vtd_pts_paddr);
+            printf("%s: setup VT-d page tables (spaddrs: pdpt=0x%llx, pdts=0x%llx, pts=0x%llx) error! Halting!\n", __FUNCTION__, vtd_pdpt_paddr, vtd_pdts_paddr, vtd_pts_paddr);
             HALT();
         }
 
-        printf("%s: setup VT-d page tables (pdpt=%llx, pdts=%llx, pts=%llx).\n", __FUNCTION__, vtd_pdpt_paddr, vtd_pdts_paddr, vtd_pts_paddr);
+        printf("%s: setup VT-d page tables (spaddrs: pdpt=0x%llx, pdts=0x%llx, pts=0x%llx).\n", __FUNCTION__, vtd_pdpt_paddr, vtd_pdts_paddr, vtd_pts_paddr);
     }
 
     // initialize VT-d RET and CET
@@ -410,11 +411,11 @@ u32 xmhf_dmaprot_arch_x86_vmx_enable(spa_t protectedbuffer_paddr,
     // Vt-d bootstrap has minimal DMA translation setup and protects entire
     // system memory. Relax this by instantiating a complete DMA translation
     // structure at a page granularity and protecting only the SL and Runtime
-    uintptr_t vmx_eap_vtd_pml4t_paddr;
-    uintptr_t vmx_eap_vtd_pdpt_paddr;
-    uintptr_t vmx_eap_vtd_pdts_paddr;
-    uintptr_t vmx_eap_vtd_pts_paddr;
-    uintptr_t vmx_eap_vtd_ret_paddr;
+    spa_t vmx_eap_vtd_pml4t_paddr;
+    spa_t vmx_eap_vtd_pdpt_paddr;
+    spa_t vmx_eap_vtd_pdts_paddr;
+    spa_t vmx_eap_vtd_pts_paddr;
+    spa_t vmx_eap_vtd_ret_paddr;
 
     (void)protectedbuffer_vaddr;
     HALT_ON_ERRORCOND(protectedbuffer_size >= SIZE_G_RNTM_DMAPROT_BUFFER);
@@ -461,12 +462,12 @@ u32 xmhf_dmaprot_arch_x86_vmx_initialize(spa_t protectedbuffer_paddr,
     // Vt-d bootstrap has minimal DMA translation setup and protects entire
     // system memory. Relax this by instantiating a complete DMA translation
     // structure at a page granularity and protecting only the SL and Runtime
-    uintptr_t vmx_eap_vtd_pml4t_paddr, vmx_eap_vtd_pml4t_vaddr;
-    uintptr_t vmx_eap_vtd_pdpt_paddr, vmx_eap_vtd_pdpt_vaddr;
-    uintptr_t vmx_eap_vtd_pdts_paddr, vmx_eap_vtd_pdts_vaddr;
-    uintptr_t vmx_eap_vtd_pts_paddr, vmx_eap_vtd_pts_vaddr;
-    uintptr_t vmx_eap_vtd_ret_paddr, vmx_eap_vtd_ret_vaddr;
-    uintptr_t vmx_eap_vtd_cet_paddr, vmx_eap_vtd_cet_vaddr;
+    spa_t vmx_eap_vtd_pml4t_paddr, vmx_eap_vtd_pml4t_vaddr;
+    spa_t vmx_eap_vtd_pdpt_paddr, vmx_eap_vtd_pdpt_vaddr;
+    spa_t vmx_eap_vtd_pdts_paddr, vmx_eap_vtd_pdts_vaddr;
+    spa_t vmx_eap_vtd_pts_paddr, vmx_eap_vtd_pts_vaddr;
+    spa_t vmx_eap_vtd_ret_paddr, vmx_eap_vtd_ret_vaddr;
+    spa_t vmx_eap_vtd_cet_paddr, vmx_eap_vtd_cet_vaddr;
 
     HALT_ON_ERRORCOND(protectedbuffer_size >= SIZE_G_RNTM_DMAPROT_BUFFER);
 

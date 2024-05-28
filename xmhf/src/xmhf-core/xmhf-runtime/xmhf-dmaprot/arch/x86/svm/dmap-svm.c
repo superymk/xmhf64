@@ -60,7 +60,7 @@ static u32 svm_eap_dev_read(u32 function, u32 index);
 // initialize SVM EAP a.k.a DEV
 // returns 1 if all went well, else 0
 // inputs: physical and virtual addresses of the DEV bitmap area
-static u32 svm_eap_initialize(u32 dev_bitmap_paddr, u32 dev_bitmap_vaddr)
+static u32 svm_eap_initialize(spa_t dev_bitmap_paddr, hva_t dev_bitmap_vaddr)
 {
 
     u32 mc_capabilities_pointer;
@@ -396,9 +396,9 @@ static void svm_eap_dev_invalidate_cache(void)
 //"early" DMA protection initialization to setup minimal
 // structures to protect a range of physical memory
 // return 1 on success 0 on failure
-u32 xmhf_dmaprot_arch_x86_svm_earlyinitialize(u64 protectedbuffer_paddr,
-                                              u32 protectedbuffer_vaddr, u32 protectedbuffer_size,
-                                              u64 memregionbase_paddr, u32 memregion_size)
+u32 xmhf_dmaprot_arch_x86_svm_earlyinitialize(spa_t protectedbuffer_paddr,
+                                      hva_t protectedbuffer_vaddr, size_t protectedbuffer_size,
+                                      spa_t memregionbase_paddr, size_t memregion_size)
 {
 
     u32 dev_bitmap_paddr;
@@ -427,8 +427,8 @@ u32 xmhf_dmaprot_arch_x86_svm_earlyinitialize(u64 protectedbuffer_paddr,
 //"normal" DMA protection initialization to setup required
 // structures for DMA protection
 // return 1 on success 0 on failure
-u32 xmhf_dmaprot_arch_x86_svm_initialize(u64 protectedbuffer_paddr,
-                                         u32 protectedbuffer_vaddr, u32 protectedbuffer_size)
+u32 xmhf_dmaprot_arch_x86_svm_initialize(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size)
 {
 
     u32 status;

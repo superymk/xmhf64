@@ -58,7 +58,7 @@ u32 xmhf_dmaprot_getbuffersize(u64 physical_memory_limit){
 //"normal" DMA protection initialization to setup required
 //structures for DMA protection
 //return 1 on success 0 on failure
-u32 xmhf_dmaprot_initialize(u64 protectedbuffer_paddr, u32 protectedbuffer_vaddr, u32 protectedbuffer_size){
+u32 xmhf_dmaprot_initialize(spa_t protectedbuffer_paddr, hva_t protectedbuffer_vaddr, size_t protectedbuffer_size){
 	return xmhf_dmaprot_arch_initialize(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size);
 }
 
@@ -73,8 +73,8 @@ void xmhf_dmaprot_protect_drhd(VCPU *vcpu){
 // chance to modify XMHF binary between the function <xmhf_dmaprot_initialize> and <xmhf_dmaprot_protect> inside 
 // <xmhf_runtime_entry>
 //return 1 on success 0 on failure
-u32 xmhf_dmaprot_enable(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size)
+u32 xmhf_dmaprot_enable(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size)
 {
     return xmhf_dmaprot_arch_enable(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size);
 }
