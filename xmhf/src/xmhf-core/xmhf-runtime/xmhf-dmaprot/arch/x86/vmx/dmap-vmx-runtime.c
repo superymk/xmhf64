@@ -462,12 +462,19 @@ u32 xmhf_dmaprot_arch_x86_vmx_initialize(spa_t protectedbuffer_paddr,
     // Vt-d bootstrap has minimal DMA translation setup and protects entire
     // system memory. Relax this by instantiating a complete DMA translation
     // structure at a page granularity and protecting only the SL and Runtime
-    spa_t vmx_eap_vtd_pml4t_paddr, vmx_eap_vtd_pml4t_vaddr;
-    spa_t vmx_eap_vtd_pdpt_paddr, vmx_eap_vtd_pdpt_vaddr;
-    spa_t vmx_eap_vtd_pdts_paddr, vmx_eap_vtd_pdts_vaddr;
-    spa_t vmx_eap_vtd_pts_paddr, vmx_eap_vtd_pts_vaddr;
-    spa_t vmx_eap_vtd_ret_paddr, vmx_eap_vtd_ret_vaddr;
-    spa_t vmx_eap_vtd_cet_paddr, vmx_eap_vtd_cet_vaddr;
+    spa_t vmx_eap_vtd_pml4t_paddr;
+    spa_t vmx_eap_vtd_pdpt_paddr;
+    spa_t vmx_eap_vtd_pdts_paddr;
+    spa_t vmx_eap_vtd_pts_paddr;
+    spa_t vmx_eap_vtd_ret_paddr;
+    spa_t vmx_eap_vtd_cet_paddr;
+
+    hva_t vmx_eap_vtd_pml4t_vaddr;
+    hva_t vmx_eap_vtd_pdpt_vaddr;
+    hva_t vmx_eap_vtd_pdts_vaddr;
+    hva_t vmx_eap_vtd_pts_vaddr;
+    hva_t vmx_eap_vtd_ret_vaddr;
+    hva_t vmx_eap_vtd_cet_vaddr;
 
     HALT_ON_ERRORCOND(protectedbuffer_size >= SIZE_G_RNTM_DMAPROT_BUFFER);
 

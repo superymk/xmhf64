@@ -137,7 +137,8 @@ void vmx_eap_zap(void);
         // Definitions for UEFI qemu debug purpose only. 
         // [NOTE] No need to put "#ifdef __UEFI__", because we are in "#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__" now.
 
-        u8 unused[GB(3)]; // (UEFI only) Force QEMU allocate <rt_bss_high_t> in >= 4GB space.
+        u8 unused[GB(3)]; // (UEFI only) Force QEMU allocate <rt_bss_high_t> in >= 4GB space to emulate the XMHF binary
+                // placement in real machines. Most real machines place XMHF in >= 4GB space.
     #endif // __DEBUG_QEMU__
 
     } rt_bss_high_t;
