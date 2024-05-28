@@ -151,7 +151,7 @@ u32 xmhf_dmaprot_earlyinitialize(spa_t protectedbuffer_paddr,
 //structures for DMA protection
 //return 1 on success 0 on failure
 u32 xmhf_dmaprot_initialize(spa_t protectedbuffer_paddr,
-	hva_t protectedbuffer_vaddr, u64 protectedbuffer_size);
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size);
 
 // Call memprot to protect DRHD pages. Should be called by each CPU after
 // xmhf_dmaprot_initialize().
