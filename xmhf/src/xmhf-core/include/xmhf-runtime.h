@@ -132,6 +132,14 @@ void vmx_eap_zap(void);
         u8 g_vmx_ept_pdp_table_buffers[PAGE_SIZE_4K * P4L_NPDPT * XMHF_RICH_GUEST_NPT_NUM]; //VMX EPT PDP table buffers
         u8 g_vmx_ept_pd_table_buffers[PAGE_SIZE_4K * P4L_NPDT * XMHF_RICH_GUEST_NPT_NUM]; //VMX EPT PD table buffers
         u8 g_vmx_ept_p_table_buffers[PAGE_SIZE_4K * P4L_NPT * XMHF_RICH_GUEST_NPT_NUM]; //VMX EPT P table buffers
+
+    #ifdef __DEBUG_QEMU__
+        // Definitions for UEFI qemu debug purpose only. 
+        // [NOTE] No need to put "#ifdef __UEFI__", because we are in "#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__" now.
+
+        u8 unused[GB(3)]; // (UEFI only) Force QEMU allocate <rt_bss_high_t> in >= 4GB space.
+    #endif // __DEBUG_QEMU__
+
     } rt_bss_high_t;
 
     //VMX EPT PML4 table buffers

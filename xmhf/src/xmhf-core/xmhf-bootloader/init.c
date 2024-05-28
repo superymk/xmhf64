@@ -54,6 +54,13 @@
 #include <xmhf.h>
 #include "./hash/hash.h"
 
+#ifdef __UEFI__
+/// @brief Return the machine's physical memory space size. 
+/// @param  
+/// @return 
+extern u64 efi_get_mem_max_phy_space(void);
+#endif // __UEFI__
+
 #define TPM_PCR_BOOT_STATE   (7)
 
 //---forward prototypes---------------------------------------------------------
@@ -93,6 +100,11 @@ SL_PARAMETER_BLOCK *slpb = NULL;
 #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 uintptr_t xmhf_runtime_bss_high = 0;
 #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
+
+#ifndef __UEFI__
+static u64 _platform_mem_max_phy_space = 0;
+#endif // !__UEFI__
 
 #ifdef __DRT__
 /* TODO: refactor to eliminate a lot of these globals, or at least use
@@ -168,7 +180,10 @@ void send_init_ipi_to_all_APs(void) {
 #ifndef __UEFI__
 //---E820 parsing and handling--------------------------------------------------
 //runtimesize is assumed to be 2M aligned
-u32 dealwithE820(multiboot_info_t *mbi, u32 runtimesize __attribute__((unused))){
+u32 dealwithE820(multiboot_info_t *mbi, size_t runtimesize __attribute__((unused)), u64* out_platform_mem_max_phy_space)
+{
+    u64 max_phys_end = 0;
+
     //check if GRUB has a valid E820 map
     if(!(mbi->flags & MBI_MEMMAP)){
         printf("%s: no E820 map provided. HALT!\n", __FUNCTION__);
@@ -200,13 +215,27 @@ u32 dealwithE820(multiboot_info_t *mbi, u32 runtimesize __attribute__((unused)))
     {
         u32 i;
         printf("\noriginal system E820 map follows:\n");
-        for(i=0; i < grube820list_numentries; i++){
+        for(i=0; i < grube820list_numentries; i++)
+        {
+            u64 baseaddr = UINT32_TO_64(grube820list[i].baseaddr_high, grube820list[i].baseaddr_low);
+            u64 length = UINT32_TO_64(grube820list[i].length_high, grube820list[i].length_low);
+            u64 phys_end = baseaddr + length;
+
             printf("0x%08x%08x, size=0x%08x%08x (%u)\n",
                    grube820list[i].baseaddr_high, grube820list[i].baseaddr_low,
                    grube820list[i].length_high, grube820list[i].length_low,
                    grube820list[i].type);
+
+            // Update <maxPhysEnd> to be the end of physical memory space of the machine (discovered so far)
+            if(phys_end >= max_phys_end)
+            {
+                max_phys_end = phys_end;
+            }
         }
 
+        // Output the physical memory space of the machine
+        if(out_platform_mem_max_phy_space)
+            *out_platform_mem_max_phy_space = max_phys_end;
     }
 
     //traverse e820 list forward to find an entry with type=0x1 (free)
@@ -248,59 +277,58 @@ u32 dealwithE820(multiboot_info_t *mbi, u32 runtimesize __attribute__((unused)))
 		printf("proceeding to revise E820...\n");
 
 		{
+            //temporary E820 table with index
+            GRUBE820 te820[MAX_E820_ENTRIES];
+            u32 j=0;
 
-				//temporary E820 table with index
-				GRUBE820 te820[MAX_E820_ENTRIES];
-				u32 j=0;
+            //copy all entries from original E820 table until index i
+            for(j=0; j < i; j++)
+                memcpy((void *)&te820[j], (void *)&grube820list[j], sizeof(GRUBE820));
 
-				//copy all entries from original E820 table until index i
-				for(j=0; j < i; j++)
-					memcpy((void *)&te820[j], (void *)&grube820list[j], sizeof(GRUBE820));
+            //we need a maximum of 2 extra entries for the final table, make a sanity check
+            HALT_ON_ERRORCOND( (grube820list_numentries+2) < MAX_E820_ENTRIES );
 
-				//we need a maximum of 2 extra entries for the final table, make a sanity check
-				HALT_ON_ERRORCOND( (grube820list_numentries+2) < MAX_E820_ENTRIES );
+            //split entry i into required number of entries depending on the memory range alignments
+            if( (slruntimephysicalbase == grube820list[i].baseaddr_low) && ((slruntimephysicalbase+runtimesize) == (grube820list[i].baseaddr_low+grube820list[i].length_low)) ){
+                    //exact match, no split
+                    te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low; te820[j].length_low=grube820list[i].length_low; te820[j].type=grube820list[i].type;
+                    j++;
+                    i++;
+            }else if ( (slruntimephysicalbase == grube820list[i].baseaddr_low) && (runtimesize < grube820list[i].length_low) ){
+                    //left aligned, split into 2
+                    te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low; te820[j].length_low=runtimesize; te820[j].type=0x2;
+                    j++;
+                    te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low+runtimesize; te820[j].length_low=grube820list[i].length_low-runtimesize; te820[j].type=1;
+                    j++;
+                    i++;
+            }else if ( ((slruntimephysicalbase+runtimesize) == (grube820list[i].baseaddr_low+grube820list[i].length_low)) && slruntimephysicalbase > grube820list[i].baseaddr_low ){
+                    //right aligned, split into 2
+                    te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low; te820[j].length_low=slruntimephysicalbase-grube820list[i].baseaddr_low; te820[j].type=0x1;
+                    j++;
+                    te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low= slruntimephysicalbase; te820[j].length_low=runtimesize; te820[j].type=0x1;
+                    j++;
+                    i++;
+            }else{
+                    //range in the middle, split into 3
+                    te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low; te820[j].length_low=slruntimephysicalbase-grube820list[i].baseaddr_low; te820[j].type=0x1;
+                    j++;
+                    te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=slruntimephysicalbase; te820[j].length_low=runtimesize; te820[j].type=0x2;
+                    j++;
+                    te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=slruntimephysicalbase+runtimesize; te820[j].length_low=grube820list[i].length_low-runtimesize-(slruntimephysicalbase-grube820list[i].baseaddr_low); te820[j].type=1;
+                    j++;
+                    i++;
+            }
 
-				//split entry i into required number of entries depending on the memory range alignments
-				if( (slruntimephysicalbase == grube820list[i].baseaddr_low) && ((slruntimephysicalbase+runtimesize) == (grube820list[i].baseaddr_low+grube820list[i].length_low)) ){
-						//exact match, no split
-						te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low; te820[j].length_low=grube820list[i].length_low; te820[j].type=grube820list[i].type;
-						j++;
-						i++;
-				}else if ( (slruntimephysicalbase == grube820list[i].baseaddr_low) && (runtimesize < grube820list[i].length_low) ){
-						//left aligned, split into 2
-						te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low; te820[j].length_low=runtimesize; te820[j].type=0x2;
-						j++;
-						te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low+runtimesize; te820[j].length_low=grube820list[i].length_low-runtimesize; te820[j].type=1;
-						j++;
-						i++;
-				}else if ( ((slruntimephysicalbase+runtimesize) == (grube820list[i].baseaddr_low+grube820list[i].length_low)) && slruntimephysicalbase > grube820list[i].baseaddr_low ){
-						//right aligned, split into 2
-						te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low; te820[j].length_low=slruntimephysicalbase-grube820list[i].baseaddr_low; te820[j].type=0x1;
-						j++;
-						te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low= slruntimephysicalbase; te820[j].length_low=runtimesize; te820[j].type=0x1;
-						j++;
-						i++;
-				}else{
-						//range in the middle, split into 3
-						te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=grube820list[i].baseaddr_low; te820[j].length_low=slruntimephysicalbase-grube820list[i].baseaddr_low; te820[j].type=0x1;
-						j++;
-						te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=slruntimephysicalbase; te820[j].length_low=runtimesize; te820[j].type=0x2;
-						j++;
-						te820[j].baseaddr_high=0; te820[j].length_high=0; te820[j].baseaddr_low=slruntimephysicalbase+runtimesize; te820[j].length_low=grube820list[i].length_low-runtimesize-(slruntimephysicalbase-grube820list[i].baseaddr_low); te820[j].type=1;
-						j++;
-						i++;
-				}
+            //copy entries i through end of original E820 list into temporary E820 list starting at index j
+            while(i < grube820list_numentries){
+                memcpy((void *)&te820[j], (void *)&grube820list[i], sizeof(GRUBE820));
+                i++;
+                j++;
+            }
 
-				//copy entries i through end of original E820 list into temporary E820 list starting at index j
-				while(i < grube820list_numentries){
-					memcpy((void *)&te820[j], (void *)&grube820list[i], sizeof(GRUBE820));
-					i++;
-					j++;
-				}
-
-				//copy temporary E820 list into global E20 list and setup final E820 entry count
-				grube820list_numentries = j;
-				memcpy((void *)&grube820list, (void *)&te820, (grube820list_numentries * sizeof(GRUBE820)) );
+            //copy temporary E820 list into global E20 list and setup final E820 entry count
+            grube820list_numentries = j;
+            memcpy((void *)&grube820list, (void *)&te820, (grube820list_numentries * sizeof(GRUBE820)) );
 		}
 
 		printf("E820 revision complete.\n");
@@ -322,6 +350,15 @@ u32 dealwithE820(multiboot_info_t *mbi, u32 runtimesize __attribute__((unused)))
     }
 
 }
+
+/// @brief Return the machine's physical memory space size. 
+/// @param  
+/// @return 
+static u64 bios_get_mem_max_phy_space(void)
+{
+    return _platform_mem_max_phy_space;
+}
+
 #endif /* !__UEFI__ */
 
 #ifdef __DRT__
@@ -1337,12 +1374,12 @@ void cstartup(multiboot_info_t *mbi)
 
 #ifdef __SKIP_RUNTIME_BSS__
     {
-        RPB *rpb = (RPB *) (uintptr_t)(mod_array[0].mod_start + PA_PAGE_SIZE_2M);
+        RPB *rpb = (RPB *)(uintptr_t)(mod_array[0].mod_start + PA_PAGE_SIZE_2M);
         sl_rt_size = PAGE_ALIGN_UP_2M((u32)rpb->XtVmmRuntimeBssEnd - __TARGET_BASE_SL);
     }
 #endif /* __SKIP_RUNTIME_BSS__ */
 
-    hypervisor_image_baseaddress = dealwithE820(mbi, PAGE_ALIGN_UP_2M((sl_rt_size)));
+    hypervisor_image_baseaddress = dealwithE820(mbi, PAGE_ALIGN_UP_2M((sl_rt_size)), &_platform_mem_max_phy_space);
 
     //check whether multiboot modules overlap with SL+RT. mod_array[0] can
     //overlap because we will use memmove() instead of memcpy(). Currently
@@ -1435,12 +1472,19 @@ void cstartup(multiboot_info_t *mbi)
 			HALT_ON_ERRORCOND(is_sinit_acmod((void *)start, bytes, false));
 		}
 #endif /* __DRT__ */
+
 #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
-    {
-        slpb->runtime_bss_high_base = xmhf_runtime_bss_high;
-        slpb->runtime_bss_high_size = XMHF_RUNTIME_LARGE_BSS_DATA_SIZE;
-    }
+        {
+            slpb->runtime_bss_high_base = xmhf_runtime_bss_high;
+            slpb->runtime_bss_high_size = XMHF_RUNTIME_LARGE_BSS_DATA_SIZE;
+        }
 #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
+        // Fill <rpb->platform_mem_max_phy_space>: platform's physical address space size.
+        {
+            slpb->platform_mem_max_phy_space = efi_get_mem_max_phy_space();
+            printf("INIT(early): Platform's physical memory space size:0x%llX\n", slpb->platform_mem_max_phy_space);
+        }
 
 #else /* !__UEFI__ */
 
@@ -1476,6 +1520,12 @@ void cstartup(multiboot_info_t *mbi)
 		}
 
 		slpb->uefi_acpi_rsdp = 0;
+
+        // Fill <rpb->platform_mem_max_phy_space>: platform's physical address space size.
+        {
+            slpb->platform_mem_max_phy_space = bios_get_mem_max_phy_space();
+            printf("INIT(early): Platform's physical memory space size:0x%llX\n", slpb->platform_mem_max_phy_space);
+        }
 
 #endif /* __UEFI__ */
 

@@ -110,9 +110,10 @@ u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb)
     u64 totalsize;
 
     // Force totalsize to be MAX_PHYS_ADDR
-    totalsize = MAX_PHYS_ADDR;
+    printf("[Superymk] <xmhf_sl_arch_x86_setup_runtime_paging> rpb:0x%lX\n", (hva_t)rpb);
+    totalsize = rpb->platform_mem_max_phy_space;
 
-    printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space: 0x%lx\n",
+    printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space size: 0x%lx\n",
          __FUNCTION__, totalsize);
 
     xpml4= hva2sla((void *)rpb->XtVmmPml4Base);
@@ -166,7 +167,7 @@ u32 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb)
 
   // Force totalsize to be ADDR_4GB
   totalsize = ADDR_4GB;
-  printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space: %08x\n",
+  printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space size: %08x\n",
          __FUNCTION__, totalsize);
 
   xpdpt= hva2sla((void *)rpb->XtVmmPdptBase);

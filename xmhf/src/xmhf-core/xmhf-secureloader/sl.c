@@ -304,6 +304,8 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
 		rpb->RtmUartConfig = slpb.uart_config;
 	#endif
 
+        rpb->platform_mem_max_phy_space = slpb.platform_mem_max_phy_space;
+
 		//pass command line configuration forward
 		COMPILE_TIME_ASSERT(sizeof(slpb.cmdline) == sizeof(rpb->cmdline));
 	#ifndef __XMHF_VERIFICATION__

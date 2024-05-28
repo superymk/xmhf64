@@ -104,10 +104,10 @@ void xmhf_runtime_entry(void){
 
 #if defined (__DMAP__)
 		{
-		#define ADDR_512GB  (PAGE_SIZE_512G)
             spa_t protectedbuffer_paddr;
             hva_t protectedbuffer_vaddr;
             size_t protectedbuffer_size;
+            u64 platform_mem_max_phy_space = rpb->platform_mem_max_phy_space;
 
         #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
             g_rntm_dmaprot_buffer = ((rt_bss_high_t*)rpb->XtVmmRuntimeBSSHighBegin)->g_rntm_dmaprot_buffer;
@@ -115,12 +115,12 @@ void xmhf_runtime_entry(void){
 
             protectedbuffer_paddr = hva2spa(g_rntm_dmaprot_buffer);
             protectedbuffer_vaddr = (hva_t)g_rntm_dmaprot_buffer;
-            protectedbuffer_size = xmhf_dmaprot_getbuffersize(DMAPROT_PHY_ADDR_SPACE_SIZE); // ADDR_512GB
+            protectedbuffer_size = xmhf_dmaprot_getbuffersize(platform_mem_max_phy_space);
             HALT_ON_ERRORCOND(protectedbuffer_size <= SIZE_G_RNTM_DMAPROT_BUFFER);
 
             xmhf_iommu_init();
 
-            printf("Runtime: Re-initializing DMA protection (physical address space size:0x%llX)...\n", DMAPROT_PHY_ADDR_SPACE_SIZE);
+            printf("Runtime: Re-initializing DMA protection (physical address space size:0x%llX)...\n", platform_mem_max_phy_space);
             if(!xmhf_dmaprot_initialize(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size)){
                 printf("Runtime: Unable to re-initialize DMA protection. HALT!\n");
                 HALT();

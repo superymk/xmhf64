@@ -106,7 +106,7 @@ typedef struct _integrity_measurement_values {
 
 //"runtime" parameter block structure; arch_rpb (in startup component)
 //is the default definition
-typedef struct {
+typedef struct __packed {
     u32     magic;
 #ifdef __SKIP_RUNTIME_BSS__
 #ifdef __XMHF_AMD64__
@@ -159,14 +159,17 @@ typedef struct {
 #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     hva_t   XtVmmRuntimeBSSHighBegin;
 #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    u64     platform_mem_max_phy_space; /// @brief Max physical memory space of the machine
+    
     uart_config_t RtmUartConfig;        /* runtime options parsed in init and passed forward */
     char cmdline[1024];                 /* runtime options parsed in init and passed forward */
     u32 isEarlyInit;                    //1 for an "early init" else 0 (late-init)
 } RPB, *PRPB;
 
 #define STRUCT_PCPU_SIZE        (16)   // sizeof(PCPU), PCPU is defined in xmhf-baseplatform.h
+
 //"sl" parameter block structure
-typedef struct _sl_parameter_block {
+typedef struct __packed _sl_parameter_block {
     u32     magic;                      // magic identifier
     u32     errorHandler;               // error handler (currently unused)
     u32     isEarlyInit;                // "early" or "late" init
@@ -186,11 +189,14 @@ typedef struct _sl_parameter_block {
     u64     runtime_bss_high_base;
     u64     runtime_bss_high_size;
 #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    
     u64     uefi_acpi_rsdp;             // APIC RSDP when boot with UEFI, or 0
     u64     uefi_info;                  // Pointer to xmhf_efi_info_t data structure
     u64     rdtsc_before_drtm;          // Performance measurements related to DRTM
     u64     rdtsc_after_drtm;
     u8      runtime_osbootdrive;        // Boot drive number (usually 0x80)
+
+    u64     platform_mem_max_phy_space; /// @brief Max physical memory space of the machine
 
     /* runtime options parsed in init and passed forward */
     uart_config_t uart_config;
