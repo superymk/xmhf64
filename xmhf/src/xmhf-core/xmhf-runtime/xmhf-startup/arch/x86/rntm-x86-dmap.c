@@ -87,10 +87,6 @@ void vmx_dmar_zap(spa_t dmaraddrphys)
 	xmhf_baseplatform_arch_flat_writeu8(dmaraddrphys + ACPI_DESC_CHECKSUM_OFF, checksum);
 }
 
-/// @brief Base address of enhanced configuration mechanism stored in ACPI's MCFG table, see 
-/// https://wiki.osdev.org/PCI_Express#Enhanced_Configuration_Mechanism
-spa_t acpi_mcfg_pcie_cfg_space_mmio_base_spaddr = INVALID_SPADDR;
-
 /*
  * Return the physical address of ACPI DMAR table. Return 0 if not found.
  * If found, the beginning of the DMAR table is written to dmar.
@@ -101,9 +97,8 @@ spa_t vmx_find_dmar_paddr(VTD_DMAR *dmar)
     ACPI_RSDT rsdt;
     u32 num_rsdtentries;
     uintptr_t status;
-    u32 i, dmarfound = 0, mcfgfound = 0;
-    spa_t dmaraddrphys;
-    spa_t mcfgaddrphys;
+    u32 i, dmarfound = 0;
+    spa_t dmaraddrphys = INVALID_SPADDR;
     spa_t rsdt_xsdt_spaddr = INVALID_SPADDR;
     hva_t rsdt_xsdt_vaddr = INVALID_VADDR;
     u32 rsdt_xsdt_entry_size = 0;
@@ -139,8 +134,7 @@ spa_t vmx_find_dmar_paddr(VTD_DMAR *dmar)
     }
 
     // grab ACPI RSDT
-    // Note: in i386, <rsdt_xsdt_spaddr> should be in lower 4GB. So the conversion to vaddr is fine.
-    rsdt_xsdt_vaddr = (hva_t)rsdt_xsdt_spaddr;
+    rsdt_xsdt_vaddr = (hva_t)spa2hva(rsdt_xsdt_spaddr);
 
     xmhf_baseplatform_arch_flat_copy((u8 *)&rsdt, (u8 *)rsdt_xsdt_vaddr, sizeof(ACPI_RSDT));
 
@@ -157,13 +151,13 @@ spa_t vmx_find_dmar_paddr(VTD_DMAR *dmar)
     //        (rsdt_xsdt_vaddr + sizeof(ACPI_RSDT)), num_rsdtentries);
 
     // find the VT-d DMAR table in the list (if any)
-    //// dmaraddrphys must be initialized to 0 because sizeof(spa_t) = 8 and
-    //// it is possible that rsdt_xsdt_entry_size = 4.
-    dmaraddrphys = 0;
     for (i = 0; i < num_rsdtentries; i++)
     {
         u32 signature;
-        spa_t temp_spa = 0;
+        //// temp_spa must be initialized to 0 because sizeof(spa_t) = 8 and
+        //// it is possible that rsdt_xsdt_entry_size = 4.
+        spa_t temp_spa = INVALID_SPADDR;
+
         // Read RSDT / XSDT entry
         xmhf_baseplatform_arch_flat_copy((u8 *)&temp_spa,
                                          (u8 *)(rsdt_xsdt_vaddr +
@@ -178,25 +172,8 @@ spa_t vmx_find_dmar_paddr(VTD_DMAR *dmar)
         {
             dmarfound = 1;
             dmaraddrphys = temp_spa;
+            break;
         }
-
-        // [TODO][Issue 145] Move MCFG parse code out of DMAP
-        if (signature == ACPI_MCFG_SIGNATURE)
-        {
-            mcfgfound = 1;
-            mcfgaddrphys = temp_spa;
-        }
-    }
-
-    // Read MCFG to get the Base address of enhanced configuration mechanism, see 
-    // https://wiki.osdev.org/PCI_Express#Enhanced_Configuration_Mechanism
-    if(mcfgfound)
-    {
-        uint8_t mcfg[ACPI_MCFG_SIZE] = {0};
-
-        xmhf_baseplatform_arch_flat_copy(mcfg, (u8 *)(uintptr_t)mcfgaddrphys, ACPI_MCFG_SIZE);
-        acpi_mcfg_pcie_cfg_space_mmio_base_spaddr = *(spa_t*)(&mcfg[44]);
-        printf("%s: Base address of PCIe enhanced configuration mechanism:0x%lX\n", __FUNCTION__, acpi_mcfg_pcie_cfg_space_mmio_base_spaddr);
     }
 
     // if no DMAR table, bail out

@@ -50,8 +50,7 @@
 #ifndef __VMX_EAP_H__
 #define __VMX_EAP_H__
 
-#define ACPI_MCFG_SIGNATURE (0x4746434D) // "MCFG"
-#define ACPI_MCFG_SIZE  (60)
+
 #define VTD_DMAR_SIGNATURE (0x52414D44) //"DMAR"
 #define VTD_MAX_DRHD 32					// maximum number of DMAR h/w units
 
@@ -364,10 +363,6 @@ typedef struct
 
 #define vtd_ecap_sc(drhd)	(drhd->iommu_flags.ecap.bits.sc)
 #define vtd_ecap_c(drhd)	(drhd->iommu_flags.ecap.bits.c)
-
-/// @brief Base address of enhanced configuration mechanism stored in ACPI's MCFG table, see 
-/// https://wiki.osdev.org/PCI_Express#Enhanced_Configuration_Mechanism
-extern spa_t acpi_mcfg_pcie_cfg_space_mmio_base_spaddr;
 
 #endif //__ASSEMBLY__
 #endif //__VMX_EAP_H__
