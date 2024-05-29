@@ -19,7 +19,7 @@ jobs:
             sudo apt-get -y -q install \
                 git crossbuild-essential-i386 \
                 pbuilder texinfo ruby build-essential autoconf libtool \
-                qemu-system-x86 sshpass
+                qemu-system-x86 sshpass ovmf
       - run:
           name: "Build"
           command: |
@@ -55,30 +55,34 @@ jobs:
             - cache/
       - run:
           name: "Test"
+          environment:
+            SUBARCH_STRING: << parameters.subarch >>
           command: |
-            source ./tools/ci/circleci_env.sh << parameters.subarch >>
-            rm -rf tmp qemu
-            mkdir tmp qemu
-            ln -s ${PWD}/cache/${qemu_image_back} qemu
-            qemu-img create -f qcow2 -b ${PWD}/qemu/${qemu_image_back} \
-                            -F qcow2 ${PWD}/qemu/${qemu_image}
-            # sha512sum ${PWD}/qemu/${qemu_image_back}
-            python3 -m pip install jinja2
-            python3 -u ./tools/ci/grub.py \
-                --subarch ${SUBARCH} \
-                --xmhf-bin ${PWD}/ \
-                --work-dir ${PWD}/tmp/ \
-                --verbose \
-                --boot-dir ${PWD}/tools/ci/boot
-            python3 -u ./tools/ci/test3.py \
-                --subarch ${SUBARCH} \
-                --xmhf-img ${PWD}/tmp/grub/c.img \
-                --debian-img ${PWD}/qemu/${qemu_image} \
-                --work-dir ${PWD}/tmp/ \
-                --no-display \
-                --sshpass jkl \
-                --verbose \
-                --watch-serial
+            if [ "$SUBARCH_STRING" = "i386" ] || [ "$SUBARCH_STRING" = "amd64" ]; then
+              source ./tools/ci/circleci_env.sh << parameters.subarch >>
+              rm -rf tmp qemu
+              mkdir tmp qemu
+              ln -s ${PWD}/cache/${qemu_image_back} qemu
+              qemu-img create -f qcow2 -b ${PWD}/qemu/${qemu_image_back} \
+                              -F qcow2 ${PWD}/qemu/${qemu_image}
+              # sha512sum ${PWD}/qemu/${qemu_image_back}
+              python3 -m pip install jinja2
+              python3 -u ./tools/ci/grub.py \
+                  --subarch ${SUBARCH} \
+                  --xmhf-bin ${PWD}/ \
+                  --work-dir ${PWD}/tmp/ \
+                  --verbose \
+                  --boot-dir ${PWD}/tools/ci/boot
+              python3 -u ./tools/ci/test3.py \
+                  --subarch ${SUBARCH} \
+                  --xmhf-img ${PWD}/tmp/grub/c.img \
+                  --debian-img ${PWD}/qemu/${qemu_image} \
+                  --work-dir ${PWD}/tmp/ \
+                  --no-display \
+                  --sshpass jkl \
+                  --verbose \
+                  --watch-serial
+            fi
 
 workflows:
   test-xmhf-workflow:
