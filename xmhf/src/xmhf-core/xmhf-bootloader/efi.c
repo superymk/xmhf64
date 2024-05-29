@@ -606,6 +606,58 @@ static void *xmhf_efi_find_acpi_rsdp(void)
 	HALT_ON_ERRORCOND(0 && "ACPI RSDP not found");
 }
 
+#define X86_GDT_ENTRY_SIZE_BYTE_SHIFT  (3)
+#define X86_GDT_ENTRY_SIZE_BYTES  (1 << (X86_GDT_ENTRY_SIZE_BYTE_SHIFT))
+static int _efi_x86_guest_reload_tr(xmhf_efi_info_t *efi_info)
+{
+    uint16_t guest_tr_sel = efi_info->guest_TR_selector;
+    spa_t guest_tr_base = efi_info->guest_TR_base;
+
+    // Check: Return success if the rich OS domain (guest) does not use TR before running XMHF.
+    if(!guest_tr_base)
+        return 0;
+
+    // The rich OS domain has used TR. Need to reload the TR.
+    //// We have to clear the Busy flag of the TSS descriptor in the GDT before reloading the TR. 
+    //// During the first time loading TR, the hardware will set TSSsegmentDescriptor(busy) := 1. The second 
+    //// time loading TR will cause #GP(selector). A possible way to do this in the future is to clear the 
+    //// TSSsegmentDescriptor(busy) bit, then reload TR.
+
+    // Modify rich OS domain's GDT
+    {
+        hva_t guest_gdt = 0;
+        uint32_t guest_gdt_size = 0;
+        uint32_t gdt_sel = 0;
+        u64* gdt_entry = NULL;
+
+        guest_gdt = (hva_t)spa2hva((spa_t)efi_info->guest_GDTR_base);
+        guest_gdt_size = efi_info->guest_GDTR_limit + 1;
+
+        // Check: <guest_tr_sel> must be valid
+        if(((uint32_t)guest_tr_sel + X86_GDT_ENTRY_SIZE_BYTES) > guest_gdt_size)
+        {
+            printf("Reload guest TR error: Invalid selector! guest TR selector:0x%08X, guest GDTR base:0x%llX, limit:0x%llX\n", (u32)guest_tr_sel, (u64)efi_info->guest_GDTR_base, (u64)efi_info->guest_GDTR_limit);
+            return 1;
+        }
+
+        gdt_sel = guest_tr_sel >> X86_GDT_ENTRY_SIZE_BYTE_SHIFT;
+        gdt_entry = &((u64*)guest_gdt)[gdt_sel];
+
+        // Clear the busy flag of the TSS descriptor.
+        *gdt_entry &= ~(0x1ULL << 41ULL);
+    }
+
+    // Reload TR for the rich OS domain.
+    {
+        printf("Reloading TR ...\n");
+        asm volatile ("ltr %0" : : "g"(guest_tr_sel));
+        printf("Reloaded TR\n");
+    }
+
+    // On success
+    return 0;
+}
+
 /*
  * Store current CPU state to efi_info.
  *
@@ -725,7 +777,7 @@ static void xmhf_efi_store_guest_state(xmhf_efi_info_t *efi_info)
  *
  * efi_info: data structure that contains state.
  */
-static void xmhf_efi_refresh_guest_state(xmhf_efi_info_t *efi_info)
+static int xmhf_efi_refresh_guest_state(xmhf_efi_info_t *efi_info)
 {
 	/* Check presence of XMHF. */
 	{
@@ -753,20 +805,25 @@ static void xmhf_efi_refresh_guest_state(xmhf_efi_info_t *efi_info)
 	 * will cause #GP(selector). A possible way to do this in the future is to
 	 * clear the TSSsegmentDescriptor(busy) bit, then reload TR.
 	 */
-	if (1) {
-		printf("Warning: not reloading TR. May cause compatibility bugs if "
-			   "UEFI firmware uses TR.\n");
-	} else {
-		uint16_t tr = efi_info->guest_TR_selector;
-		printf("Reloading TR ...\n");
-		asm volatile ("ltr %0" : : "g"(tr));
-		printf("Reloaded TR\n");
-	}
+
+    /* Reload TR */
+    {
+        int ret = 0;
+        ret = _efi_x86_guest_reload_tr(efi_info);
+        if(ret)
+        {
+            printf("Reload rich OS domain's TR error! ret:%d\n", ret);
+            return ret;
+        }
+    }
 
 	/* Enable interrupts if needed. */
 	if (efi_info->interrupt_enabled) {
 		enable_intr();
 	}
+
+    // On success
+    return 0;
 }
 
 /* Main function for UEFI service, follow https://wiki.osdev.org/GNU-EFI */
@@ -855,7 +912,13 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	/* Load guest state */
 	{
-		xmhf_efi_refresh_guest_state(&efi_info);
+        int ret = 0;
+        ret = xmhf_efi_refresh_guest_state(&efi_info);
+        if(ret)
+        {
+            printf("Reload guest state error! ret:%d\n", ret);
+            HALT();
+        }
 	}
 
     // Measure OS bootloader
