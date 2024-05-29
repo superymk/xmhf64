@@ -40,6 +40,7 @@ export ENABLE_QUIESCING_IN_GUEST_MEM_PIO_TRAPS := @ENABLE_QUIESCING_IN_GUEST_MEM
 export ENABLE_LD_GC_SECTIONS := @ENABLE_LD_GC_SECTIONS@
 export DEBUG_SYMBOLS := @DEBUG_SYMBOLS@
 export DEBUG_QEMU := @DEBUG_QEMU@
+export QEMU_DISABLE_RUNTIME_PIE := @QEMU_DISABLE_RUNTIME_PIE@
 export QEMU_USE_VM_LARGE := @QEMU_USE_VM_LARGE@
 export DEBUG_SERIAL := @DEBUG_SERIAL@
 export DEBUG_SERIAL_PORT := @DEBUG_SERIAL_PORT@
@@ -190,12 +191,17 @@ endif
 
 # make xmhf-runtime PIE (allow SL and runtime to be loaded anywhere under 4G)
 # [NOTE] Currently, XMHF forces PIE for UEFI and no PIE for BIOS.
-ifeq ($(TARGET_UEFI), y)
-    export RUNTIME_PIE := y
-else
+export RUNTIME_PIE := y
+
+ifeq ($(TARGET_UEFI), n)
     export RUNTIME_PIE := n
 endif
 
+ifeq ($(TARGET_UEFI), y)
+    ifeq ($(QEMU_DISABLE_RUNTIME_PIE), y)
+        export RUNTIME_PIE := n
+    endif
+endif
 
 ##CFLAGS and ASFLAGS population
 # experimental support
@@ -250,6 +256,7 @@ CFLAGS += -mno-red-zone
 # Compiler optimization (-O1, -O3, ...)
 CFLAGS += $(OPT_FLAGS)
 
+# CFLAGS is flags for compilation, VFLAGS is flags for verification, LDFLAGS is flags for linker
 CFLAGS += $(ADDL_INCLUDES)
 VFLAGS = $(ADDL_INCLUDES)
 LDFLAGS =
@@ -419,9 +426,9 @@ BCFLAGS := $(CFLAGS)
 # __XMHF_AMD64__: XMHF runtime will run in amd64 (64-bit)
 
 ifeq ($(TARGET_SUBARCH), amd64)
-	CFLAGS += -D__AMD64__ -D__XMHF_AMD64__
-	BCFLAGS += -D__I386__ -D__XMHF_AMD64__
-	VFLAGS += -D__AMD64__ -D__XMHF_AMD64__
+	CFLAGS += -D__X86__ -D__AMD64__ -D__XMHF_AMD64__
+	BCFLAGS += -D__X86__ -D__I386__ -D__XMHF_AMD64__
+	VFLAGS += -D__X86__ -D__AMD64__ -D__XMHF_AMD64__
 	CFLAGS += -DAMD64_MAX_PHYS_ADDR=$(AMD64_MAX_PHYS_ADDR)
 	BCFLAGS += -DAMD64_MAX_PHYS_ADDR=$(AMD64_MAX_PHYS_ADDR)
 	VFLAGS += -DAMD64_MAX_PHYS_ADDR=$(AMD64_MAX_PHYS_ADDR)
@@ -432,9 +439,9 @@ endif
 	BCFLAGS += -m32
 endif
 ifeq ($(TARGET_SUBARCH), i386)
-	CFLAGS += -D__I386__ -D__XMHF_I386__
-	BCFLAGS += -D__I386__ -D__XMHF_I386__
-	VFLAGS += -D__I386__ -D__XMHF_I386__
+	CFLAGS += -D__X86__ -D__I386__ -D__XMHF_I386__
+	BCFLAGS += -D__X86__ -D__I386__ -D__XMHF_I386__
+	VFLAGS += -D__X86__ -D__I386__ -D__XMHF_I386__
 ifeq ($(RUNTIME_PIE), y)
 	CFLAGS += -fno-pie -fno-pic
 	BCFLAGS += -fno-pie -fno-pic

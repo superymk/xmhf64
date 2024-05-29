@@ -184,6 +184,12 @@ u32 dealwithE820(multiboot_info_t *mbi, size_t runtimesize __attribute__((unused
 {
     u64 max_phys_end = 0;
 
+#ifdef __X86__
+    // On x86, physical address space must be >= 4 GiB. Memory mapping in UEFI/BIOS reports system memory and MMIO 
+    // memory regions, but not memory spaces reserved by CPUs (e.g., LAPICs, IOAPICs) in <= 4 GiB space.
+    max_phys_end = ADDR_4GB; 
+#endif // __X86__
+
     //check if GRUB has a valid E820 map
     if(!(mbi->flags & MBI_MEMMAP)){
         printf("%s: no E820 map provided. HALT!\n", __FUNCTION__);

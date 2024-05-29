@@ -125,6 +125,12 @@ static void xmhf_efi_check_max_phys_mem(u64* out_platform_mem_max_phy_space)
 	UINT32 desc_ver;
     UINT64 maxPhysEnd = 0;
 
+#ifdef __X86__
+    // On x86, physical address space must be >= 4 GiB. Memory mapping in UEFI/BIOS reports system memory and MMIO 
+    // memory regions, but not memory spaces reserved by CPUs (e.g., LAPICs, IOAPICs) in <= 4 GiB space.
+    maxPhysEnd = ADDR_4GB; 
+#endif // __X86__
+
 	/* Get buffer size */
 	{
 		EFI_STATUS status;
