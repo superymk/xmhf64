@@ -143,15 +143,15 @@ u32 xmhf_dmaprot_getbuffersize(u64 physical_memory_limit);
 //"early" DMA protection initialization to setup minimal
 //structures to protect a range of physical memory
 //return 1 on success 0 on failure
-u32 xmhf_dmaprot_earlyinitialize(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size,
-	u64 memregionbase_paddr, u32 memregion_size);
+u32 xmhf_dmaprot_earlyinitialize(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size,
+	spa_t memregionbase_paddr, size_t memregion_size);
 
 //"normal" DMA protection initialization to setup required
 //structures for DMA protection
 //return 1 on success 0 on failure
-u32 xmhf_dmaprot_initialize(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size);
+u32 xmhf_dmaprot_initialize(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size);
 
 // Call memprot to protect DRHD pages. Should be called by each CPU after
 // xmhf_dmaprot_initialize().
@@ -162,8 +162,8 @@ void xmhf_dmaprot_protect_drhd(VCPU *vcpu);
 // chance to modify XMHF binary between the function <xmhf_dmaprot_initialize> and <xmhf_dmaprot_protect> inside 
 // <xmhf_runtime_entry>
 //return 1 on success 0 on failure
-u32 xmhf_dmaprot_enable(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size);
+u32 xmhf_dmaprot_enable(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size);
 
 //DMA protect a given region of memory, start_paddr is
 //assumed to be page aligned physical memory address
@@ -177,14 +177,14 @@ extern void xmhf_dmaprot_invalidate_cache(void);
 //ARCH. BACKENDS
 //----------------------------------------------------------------------
 u32 xmhf_dmaprot_arch_getbuffersize(u64 physical_memory_limit);
-u32 xmhf_dmaprot_arch_earlyinitialize(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size,
-	u64 memregionbase_paddr, u32 memregion_size);
-u32 xmhf_dmaprot_arch_initialize(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size);
+u32 xmhf_dmaprot_arch_earlyinitialize(spa_t protectedbuffer_paddr, 
+    hva_t protectedbuffer_vaddr, size_t protectedbuffer_size, 
+    spa_t memregionbase_paddr, size_t memregion_size);
+u32 xmhf_dmaprot_arch_initialize(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size);
 void xmhf_dmaprot_arch_protect_drhd(VCPU *vcpu);
-u32 xmhf_dmaprot_arch_enable(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size);
+u32 xmhf_dmaprot_arch_enable(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size);
 void xmhf_dmaprot_arch_protect(spa_t start_paddr, size_t size);
 
 extern void xmhf_dmaprot_arch_unprotect(spa_t start_paddr, size_t size);
@@ -206,9 +206,9 @@ struct dmap_vmx_cap
 //----------------------------------------------------------------------
 //vmx SUBARCH. INTERFACES
 //----------------------------------------------------------------------
-u32 xmhf_dmaprot_arch_x86_vmx_earlyinitialize(sla_t protectedbuffer_paddr,
-	sla_t protectedbuffer_vaddr, size_t protectedbuffer_size,
-	sla_t memregionbase_paddr, u32 memregion_size);
+u32 xmhf_dmaprot_arch_x86_vmx_earlyinitialize(spa_t protectedbuffer_paddr,
+                                      hva_t protectedbuffer_vaddr, size_t protectedbuffer_size,
+                                      spa_t memregionbase_paddr, size_t memregion_size);
 u32 xmhf_dmaprot_arch_x86_vmx_initialize(spa_t protectedbuffer_paddr,
 	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size);
 void xmhf_dmaprot_arch_x86_vmx_protect_drhd(VCPU *vcpu);
@@ -246,11 +246,11 @@ extern void xmhf_dmaprot_arch_x86_vmx_print_tes(char* s);
 //----------------------------------------------------------------------
 //svm SUBARCH. INTERFACES
 //----------------------------------------------------------------------
-u32 xmhf_dmaprot_arch_x86_svm_earlyinitialize(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size,
-	u64 memregionbase_paddr, u32 memregion_size);
-u32 xmhf_dmaprot_arch_x86_svm_initialize(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size);
+u32 xmhf_dmaprot_arch_x86_svm_earlyinitialize(spa_t protectedbuffer_paddr,
+                                      hva_t protectedbuffer_vaddr, size_t protectedbuffer_size,
+                                      spa_t memregionbase_paddr, size_t memregion_size);
+u32 xmhf_dmaprot_arch_x86_svm_initialize(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size);
 void xmhf_dmaprot_arch_x86_svm_protect(u32 start_paddr, u32 size);
 extern void xmhf_dmaprot_arch_x86_svm_invalidate_cache(void);
 

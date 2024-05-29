@@ -197,7 +197,7 @@ static u32 vmx_eap_initialize_early(
 //"early" DMA protection initialization to setup minimal
 // structures to protect a range of physical memory
 // return 1 on success 0 on failure
-u32 xmhf_dmaprot_arch_x86_vmx_earlyinitialize(sla_t protectedbuffer_paddr, sla_t protectedbuffer_vaddr, size_t protectedbuffer_size, sla_t __attribute__((unused)) memregionbase_paddr, u32 __attribute__((unused)) memregion)
+u32 xmhf_dmaprot_arch_x86_vmx_earlyinitialize(spa_t protectedbuffer_paddr, hva_t protectedbuffer_vaddr, size_t protectedbuffer_size, spa_t __attribute__((unused)) memregionbase_paddr, size_t __attribute__((unused)) memregion)
 {
     u32 vmx_eap_vtd_ret_paddr, vmx_eap_vtd_ret_vaddr;
 

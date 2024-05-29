@@ -110,9 +110,9 @@ u64 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb)
     u64 totalsize;
 
     // Force totalsize to be MAX_PHYS_ADDR
-    totalsize = MAX_PHYS_ADDR;
+    totalsize = rpb->platform_mem_max_phy_space;
 
-    printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space: 0x%lx\n",
+    printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space size: 0x%lx\n",
          __FUNCTION__, totalsize);
 
     xpml4= hva2sla((void *)rpb->XtVmmPml4Base);
@@ -166,7 +166,7 @@ u32 xmhf_sl_arch_x86_setup_runtime_paging(RPB *rpb)
 
   // Force totalsize to be ADDR_4GB
   totalsize = ADDR_4GB;
-  printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space: %08x\n",
+  printf("SL (%s): Create identical mapping PT for xmhf-runtime. physical address space size: %08x\n",
          __FUNCTION__, totalsize);
 
   xpdpt= hva2sla((void *)rpb->XtVmmPdptBase);
@@ -293,9 +293,9 @@ void xmhf_sl_arch_early_dmaprot_init(u32 runtime_size)
 {
     spa_t protectedbuffer_paddr;
     sla_t protectedbuffer_vaddr;
-    u32 protectedbuffer_size;
+    size_t protectedbuffer_size;
     spa_t memregionbase_paddr;
-    u32 memregion_size;
+    size_t memregion_size;
     u32 cpu_vendor = get_cpu_vendor_or_die();
 
     HALT_ON_ERRORCOND(cpu_vendor == CPU_VENDOR_AMD || cpu_vendor == CPU_VENDOR_INTEL);

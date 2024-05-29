@@ -52,7 +52,8 @@
 
 //return size (in bytes) of the memory buffer required for
 //DMA protection for a given physical memory limit
-u32 xmhf_dmaprot_arch_getbuffersize(u64 physical_memory_limit){
+u32 xmhf_dmaprot_arch_getbuffersize(u64 physical_memory_limit)
+{
 	u32 cpu_vendor = get_cpu_vendor_or_die();	//determine CPU vendor
 	HALT_ON_ERRORCOND( physical_memory_limit <= PA_PAGE_SIZE_512G ); 	//we only support 512GB physical memory currently
 	HALT_ON_ERRORCOND( physical_memory_limit <= DMAPROT_PHY_ADDR_SPACE_SIZE ); 	//we only support <DMAPROT_PHY_ADDR_SPACE_SIZE> physical memory currently
@@ -67,12 +68,13 @@ u32 xmhf_dmaprot_arch_getbuffersize(u64 physical_memory_limit){
 //"normal" DMA protection initialization to setup required
 //structures for DMA protection
 //return 1 on success 0 on failure
-u32 xmhf_dmaprot_arch_initialize(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size){
+u32 xmhf_dmaprot_arch_initialize(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size)
+{
 	u32 cpu_vendor = get_cpu_vendor_or_die();	//determine CPU vendor
 
 	if(cpu_vendor == CPU_VENDOR_AMD){
-	  return xmhf_dmaprot_arch_x86_svm_initialize(protectedbuffer_paddr,	protectedbuffer_vaddr, protectedbuffer_size);
+	  return xmhf_dmaprot_arch_x86_svm_initialize(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size);
 	}else{	//CPU_VENDOR_INTEL
 		return xmhf_dmaprot_arch_x86_vmx_initialize(protectedbuffer_paddr, protectedbuffer_vaddr, protectedbuffer_size);
 	//   return 1; //we use Vtd PMRs to protect the SL + runtime during SL launch
@@ -91,8 +93,9 @@ void xmhf_dmaprot_arch_protect_drhd(VCPU *vcpu){
 	}
 }
 
-u32 xmhf_dmaprot_arch_enable(u64 protectedbuffer_paddr,
-	u32 protectedbuffer_vaddr, u32 protectedbuffer_size){
+u32 xmhf_dmaprot_arch_enable(spa_t protectedbuffer_paddr,
+	hva_t protectedbuffer_vaddr, size_t protectedbuffer_size)
+{
 	u32 cpu_vendor = get_cpu_vendor_or_die();	//determine CPU vendor
 
 	if(cpu_vendor == CPU_VENDOR_AMD){

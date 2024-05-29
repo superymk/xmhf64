@@ -52,6 +52,6 @@
 //"early" DMA protection initialization to setup minimal
 //structures to protect a range of physical memory
 //return 1 on success 0 on failure
-u32 xmhf_dmaprot_earlyinitialize(u64 protectedbuffer_paddr,	u32 protectedbuffer_vaddr, u32 protectedbuffer_size, u64 memregionbase_paddr, u32 memregion_size){
+u32 xmhf_dmaprot_earlyinitialize(spa_t protectedbuffer_paddr, hva_t protectedbuffer_vaddr, size_t protectedbuffer_size, spa_t memregionbase_paddr, size_t memregion_size){
 	return xmhf_dmaprot_arch_earlyinitialize(protectedbuffer_paddr,	protectedbuffer_vaddr, protectedbuffer_size, memregionbase_paddr, memregion_size);
 }

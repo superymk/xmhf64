@@ -50,10 +50,6 @@
 
 #include "efi/header.h"
 
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
-extern uintptr_t xmhf_runtime_bss_high;
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
-
 /*
  * Configuration file for XMHF bootloader.
  *
@@ -68,6 +64,12 @@ typedef struct {
 	char *runtime_file;
 	char *sinit_module;
 } xmhf_efi_config;
+
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+extern uintptr_t xmhf_runtime_bss_high;
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
+static u64 _platform_mem_max_phy_space = 0;
 
 /*
  * Convert char string to wchar_t string.
@@ -114,13 +116,20 @@ static wchar_t *xmhf_efi_bs2wcs(const char *src)
  *
  * This function never returns when MAX_PHYS_ADDR is too low.
  */
-static void xmhf_efi_check_max_phys_mem(void)
+static void xmhf_efi_check_max_phys_mem(u64* out_platform_mem_max_phy_space)
 {
 	UINTN buf_size = 0;
 	UINT8 *memory_map;
 	UINTN map_key;
 	UINTN desc_size;
 	UINT32 desc_ver;
+    UINT64 maxPhysEnd = 0;
+
+#ifdef __X86__
+    // On x86, physical address space must be >= 4 GiB. Memory mapping in UEFI/BIOS reports system memory and MMIO 
+    // memory regions, but not memory spaces reserved by CPUs (e.g., LAPICs, IOAPICs) in <= 4 GiB space.
+    maxPhysEnd = ADDR_4GB; 
+#endif // __X86__
 
 	/* Get buffer size */
 	{
@@ -189,11 +198,21 @@ static void xmhf_efi_check_max_phys_mem(void)
 				error_flag = true;
 			}
 			HALT_ON_ERRORCOND(PhysEnd <= MAX_PHYS_ADDR);
+
+            // Update <maxPhysEnd> to be the end of physical memory space of the machine (discovered so far)
+            if(PhysEnd >= maxPhysEnd)
+            {
+                maxPhysEnd = PhysEnd;
+            }
 		}
 		printf("End UEFI GetMemoryMap result\n");
         Print(L"End UEFI GetMemoryMap result\n");
 
 		HALT_ON_ERRORCOND(!error_flag && "MAX_PHYS_ADDR too small");
+
+        // Output the physical memory space of the machine
+        if(out_platform_mem_max_phy_space)
+            *out_platform_mem_max_phy_space = maxPhysEnd;
 	}
 
 	/* Free buffer */
@@ -782,7 +801,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 	/* Check maximum physical memory */
 	{
-		xmhf_efi_check_max_phys_mem();
+		xmhf_efi_check_max_phys_mem(&_platform_mem_max_phy_space);
 	}
 
 	/* Read command line arguments from file */
@@ -869,3 +888,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	return EFI_SUCCESS;
 }
 
+u64 efi_get_mem_max_phy_space(void)
+{
+    return _platform_mem_max_phy_space;
+}
