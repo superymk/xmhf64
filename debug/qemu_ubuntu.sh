@@ -64,12 +64,18 @@ run_qemu() {
             -drive media=cdrom,file=../uefi_flashdrive_img/grub/fat.img,index=1 \
             -drive media=disk,file=debian11efi.qcow2,index=2"
     else
+        # We need to put "-bios bios.bin" (bios.bin is Seabios compiled with SMM mode disabled). Otherwise, qemu crashes 
+        # with the parameter "-machine q35 -device intel-iommu".
+        # See the details of the issue in https://github.com/lxylxy123456/uberxmhf/tree/notes/bug_077 and
+        # https://bugzilla.kernel.org/show_bug.cgi?id=216046
         qemu_command+="qemu-system-x86_64 \
             -m $mem \
             -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::2222-:22 \
             -gdb tcp::1234 \
             -smp $cores \
             -cpu Haswell,vmx=yes \
+            -machine q35 -device intel-iommu \
+            -bios bios.bin \
             -enable-kvm \
             -serial stdio \
             -drive media=disk,file=../grub/c.img,index=0 \
