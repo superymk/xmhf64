@@ -133,15 +133,15 @@ AS_IF([test "x${enable_debug_qemu}" != "xno"],
       [DEBUG_QEMU=y],
       [DEBUG_QEMU=n])
 
-# QEMU: disable runtime PIE for easier debugging.
-AC_SUBST([QEMU_DISABLE_RUNTIME_PIE])
-AC_ARG_ENABLE([qemu_runtime_pie],
-        AS_HELP_STRING([--disable-qemu-runtime-pie@<:@=yes|no@:>@],
+# Debug: disable runtime PIE for easier debugging.
+AC_SUBST([DEBUG_DISABLE_RUNTIME_PIE])
+AC_ARG_ENABLE([debug_runtime_pie],
+        AS_HELP_STRING([--disable-debug-runtime-pie@<:@=yes|no@:>@],
                 [disable runtime PIE for easier debugging]),
-                , [disable_qemu_runtime_pie=no])
-AS_IF([test "x${disable_qemu_runtime_pie}" != "xno"],
-      [QEMU_DISABLE_RUNTIME_PIE=y],
-      [QEMU_DISABLE_RUNTIME_PIE=n])
+                , [disable_debug_runtime_pie=no])
+AS_IF([test "x${disable_debug_runtime_pie}" != "xno"],
+      [DEBUG_DISABLE_RUNTIME_PIE=y],
+      [DEBUG_DISABLE_RUNTIME_PIE=n])
 
 AC_SUBST([QEMU_USE_VM_LARGE])
 AC_ARG_ENABLE([qemu_use_vm_large],
@@ -350,7 +350,7 @@ AS_IF([test "x${enable_uefi_allocate_runtime_bss_high}" != "xno"],
 AC_SUBST([SL_BASE])
 AC_ARG_WITH([sl_base],
         AS_HELP_STRING([--with-sl-base=@<:@SL_BASE@:>@],
-                [select base address of SL and runtime (e.g. 0x10000000)]),
+                [select base address of SL and runtime, must be 2 MiB aligned (e.g. 0x10000000)]),
                 , [with_sl_base=0x10000000])
 SL_BASE=$[]with_sl_base
 
