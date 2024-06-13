@@ -144,6 +144,21 @@ static void xmhf_sl_handle_rt_rela_dyn(void)
 }
 #endif /* __XMHF_PIE_RUNTIME__ */
 
+/// @brief Return if [v1, (v1 + sz1)) overlaps with the region [v2, (v2 + sz2)). MEM_REGION_OVERLAP is architecture 
+/// specific because (v1 + sz1) or (v2 + sz2) could equal to 2^32 and hence overflows the uint type of the architecture.
+static inline bool MEM_REGION_OVERLAP(ulong_t v1, size_t sz1, ulong_t v2, size_t sz2)
+{
+    uint64_t base1 = v1;
+    uint64_t end1 = base1 + sz1;
+    uint64_t base2 = v2;
+    uint64_t end2 = base2 + sz2;
+
+    if((((base1) >= (base2)) && ((base1) < (end2))) || (((base2) >= (base1)) && ((base2) < (end1))))
+        return true;
+
+    return false;
+}
+
 //we get here from sl-*-entry.S
 // rdtsc_* are valid only if PERF_CRIT is not defined.  slheader.S
 // sets them to 0 otherwise.
@@ -311,6 +326,24 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
 	#ifndef __XMHF_VERIFICATION__
 		strncpy(rpb->cmdline, slpb.cmdline, sizeof(slpb.cmdline));
 	#endif
+
+
+    #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+        // Check: The memory region [rpb->XtVmmRuntimeBSSHighBegin, rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE) 
+        // must not overlap with the memory  [rpb->XtVmmRuntimePhysBase, rpb->XtVmmRuntimePhysBase + rpb->XtVmmRuntimeSize)
+        HALT_ON_ERRORCOND(
+            !MEM_REGION_OVERLAP(slpb.runtime_bss_high_base, XMHF_RUNTIME_LARGE_BSS_DATA_SIZE, rpb->XtVmmRuntimePhysBase, rpb->XtVmmRuntimeSize)
+        );
+
+        // Set <rpb->XtVmmRuntimeBSSHighBegin>
+        {
+            void* rt_bss_high = spa2hva((spa_t)slpb.runtime_bss_high_base);
+            rpb->XtVmmRuntimeBSSHighBegin = (hva_t)rt_bss_high;
+
+            printf("SL: xmhf-runtime's high BSS data:[0x%lX, 0x%lX)\n", 
+                rpb->XtVmmRuntimeBSSHighBegin, rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE);
+        }
+    #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
 	}
 

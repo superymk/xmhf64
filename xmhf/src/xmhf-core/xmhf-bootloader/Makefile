@@ -4,35 +4,32 @@
 CFLAGS := $(BCFLAGS)
 ASFLAGS := $(BASFLAGS)
 CCLIB := $(BCCLIB)
+current_dir = $(shell pwd)
 
 # source files
-ifeq ($(TARGET_UEFI), y)
-AS_SOURCES = efi2init.S initsup_uefi.S
-else
-AS_SOURCES = header.S initsup_bios.S
-endif
-C_SOURCES = init.c smp.c cmdline.c
+C_SOURCES =
+AS_SOURCES =
+
+# DRT
 ifeq ($(DRT), y)
 C_SOURCES += txt.c txt_acmod.c txt_heap.c txt_hash.c
 endif
 
+C_SOURCES += common/init.c smp.c cmdline.c
+
+
 OBJECTS = $(patsubst %.S, %.o, $(AS_SOURCES))
 OBJECTS += $(patsubst %.c, %.o, $(C_SOURCES))
 
-# current_dir = $(shell pwd)
+
 
 # LibTPM
-OBJECTS += ./libtpm/tpm_12.o ./libtpm/tpm_20.o ./libtpm/tpm.o
 # CFLAGS += -I$(current_dir)/libtpm
 
-# Hash
-OBJECTS += ./hash/sha1.o ./hash/sha2.o ./hash/hash.o
 
 ifeq ($(TARGET_UEFI), y)
 OBJECTS += $(GNUEFI_BUILD)/x86_64/gnuefi/crt0-efi-x86_64.o
-# Note: efi.o is compiled differently with other object files
-OBJECTS += efi.o
-OBJECTS += ./efi/utils_fs.o ./efi/os_bootloader.o 
+# Note: entry-efi.o is compiled differently with other object files
 endif
 
 OBJECTS_PRECOMPILED = ../xmhf-runtime/xmhf-debug/lib.a
@@ -60,12 +57,13 @@ endif
 
 # FIXME: This is overly general; init/ doesn't need all of these
 CFLAGS += $(ADDL_INCLUDES_BOOTLOADER)
+CFLAGS += -I$(current_dir)/include
 
 # separate from OBJECTS_PRECOMPILED becasue needs to come after libs on link line
 OBJECTS_PRECOMPILED_LIBBACKENDS = ../xmhf-runtime/xmhf-xmhfcbackend/xmhfc-putchar.o
 OBJECTS_PRECOMPILED_LIBBACKENDS += ../xmhf-runtime/xmhf-debug/lib.a
 
-I_SOURCES =  $(wildcard $(INCLUDEDIR)/*.h)
+I_SOURCES = $(wildcard $(INCLUDEDIR)/*.h)
 
 
 # If runtime is amd64, bootloader need to switch to precompiled object files
@@ -105,22 +103,13 @@ all: init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin
 endif
 
 # FIXME: ADDL_LIBS is overly general; init/ doesn't need all of them
-init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin: $(OBJECTS) $(OBJECTS_PRECOMPILED) init.lds.S
-	$(LD) $(LDFLAGS) -T init.lds.S -o init.exe $(OBJECTS) $(OBJECTS_PRECOMPILED) $(ADDL_LIBS_BOOTLOADER) $(OBJECTS_PRECOMPILED_LIBBACKENDS) -L$(CCLIB) -lgcc
+init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin: libtpm hash bios $(OBJECTS) $(OBJECTS_PRECOMPILED) init.lds.S
+	$(LD) $(LDFLAGS) -T init.lds.S -o init.exe $(OBJECTS) $(OBJECTS_PRECOMPILED) ./libtpm/libtpm.a ./hash/lib-hash.a ./bios/lib-bios.a $(ADDL_LIBS_BOOTLOADER) $(OBJECTS_PRECOMPILED_LIBBACKENDS) -L$(CCLIB) -lgcc
 	$(CP) init.exe init_syms.exe
 	$(STRIP) -s init.exe
 	$(OBJCOPY) --output-format=binary init.exe init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).bin
 
 ifeq ($(TARGET_UEFI), y)
-
-# CFLAGS from gnu-efi tutorial
-EFI_CFLAGS = -I$(GNUEFI_SRC)/inc
-EFI_CFLAGS += -Wall -Werror
-EFI_CFLAGS += -g
-EFI_CFLAGS += -fpic -ffreestanding -fno-stack-protector -fno-stack-check
-EFI_CFLAGS += -fshort-wchar -mno-red-zone -maccumulate-outgoing-args
-EFI_CFLAGS += $(BCFLAGS)
-EFI_CFLAGS += -Wno-strict-prototypes
 
 # LD flags from gnu-efi tutorial
 EFI_LDFLAGS = -shared -Bsymbolic -L$(GNUEFI_BUILD)/x86_64/lib
@@ -132,15 +121,9 @@ OBJCOPY_FLAGS = -j .text -j .sdata -j .data -j .dynamic -j .dynsym  -j .rel
 OBJCOPY_FLAGS += -j .rela -j .rel.* -j .rela.* -j .reloc
 OBJCOPY_FLAGS += --target efi-app-x86_64 --subsystem=12
 
-./efi/utils_fs.o: ./efi/utils_fs.c
-	$(CC) $(EFI_CFLAGS) -c $< -o $@
-./efi/os_bootloader.o: ./efi/os_bootloader.c
-	$(CC) $(EFI_CFLAGS) -c $< -o $@
-efi.o: efi.c
-	$(CC) $(EFI_CFLAGS) -c $< -o $@
 
-init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).so: $(OBJECTS) $(OBJECTS_PRECOMPILED) $(GNUEFI_SRC)/gnuefi/elf_x86_64_efi.lds
-	$(LD) $(EFI_LDFLAGS) -T$(GNUEFI_SRC)/gnuefi/elf_x86_64_efi.lds $(OBJECTS) $(OBJECTS_PRECOMPILED) $(ADDL_LIBS_BOOTLOADER) $(OBJECTS_PRECOMPILED_LIBBACKENDS) $(EFI_LDLIBS) -o $@
+init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).so: libtpm hash efi $(OBJECTS) $(OBJECTS_PRECOMPILED) $(GNUEFI_SRC)/gnuefi/elf_x86_64_efi.lds
+	$(LD) $(EFI_LDFLAGS) -T$(GNUEFI_SRC)/gnuefi/elf_x86_64_efi.lds $(OBJECTS) $(OBJECTS_PRECOMPILED) ./libtpm/libtpm.a ./hash/lib-hash.a ./efi/lib-efi.a $(ADDL_LIBS_BOOTLOADER) $(OBJECTS_PRECOMPILED_LIBBACKENDS) $(EFI_LDLIBS) -o $@
 	chmod -x $@
 
 init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).efi: init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).so
@@ -148,6 +131,23 @@ init-$(TARGET_HWPLATFORM)-$(TARGET_SUBARCH).efi: init-$(TARGET_HWPLATFORM)-$(TAR
 	chmod -x $@
 
 endif
+
+
+.PHONY: libtpm
+libtpm:
+	@$(MAKE) -C ./libtpm all
+
+.PHONY: hash
+hash:
+	@$(MAKE) -C ./hash all
+
+.PHONY: bios
+bios:
+	@$(MAKE) -C ./bios all
+
+.PHONY: efi
+efi:
+	@$(MAKE) -C ./efi all
 
 .PHONY: clean
 clean:
@@ -159,6 +159,6 @@ clean:
 	$(RM) -rf *.efi
 	
 	cd libtpm && $(MAKE) -w clean
-	$(RM) -rf ./hash/*.o
-	$(RM) -rf ./efi/*.o
-
+	cd hash && $(MAKE) -w clean
+	cd bios && $(MAKE) -w clean
+	cd efi && $(MAKE) -w clean

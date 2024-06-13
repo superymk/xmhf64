@@ -50,6 +50,16 @@
 //---includes-------------------------------------------------------------------
 #include <xmhf.h>
 
+static bool _runtime_check_rpb(void)
+{
+#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+    // Clear the memory region [rpb->XtVmmRuntimeBSSHighBegin, rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE)
+    memset((void*)rpb->XtVmmRuntimeBSSHighBegin, 0, XMHF_RUNTIME_LARGE_BSS_DATA_SIZE);
+#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
+
+    return true;
+}
+
 //---runtime main---------------------------------------------------------------
 void xmhf_runtime_entry(void){
 	u32 cpu_vendor;
@@ -60,6 +70,9 @@ void xmhf_runtime_entry(void){
 
 	//initialize Runtime Parameter Block (rpb)
 	rpb = (RPB *)&arch_rpb;
+
+    // Check: <rpb> must be valid
+    HALT_ON_ERRORCOND(_runtime_check_rpb());
 
 	//setup debugging
 	xmhf_debug_init((char *)&rpb->RtmUartConfig);

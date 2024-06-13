@@ -44,40 +44,43 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-// efi2init.S - Call from efi.c to init.c for UEFI
-// author: Eric Li (xiaoyili@andrew.cmu.edu)
+//init.c - EMHF early initialization blob functionality
+//author: amit vasudevan (amitvasudevan@acm.org)
+
+#ifndef XMHF_BOOTLOADER_COMMON_INIT
+#define XMHF_BOOTLOADER_COMMON_INIT
 
 #include <xmhf.h>
 
-/*
- * Save all GPRs in this function.
- * Save RSP to memory pointed by RSI.
- * Save RIP to memory pointed by RDX.
- * Save RFLAGS to memory pointed by RCX.
- * Call cstartup with argument RDI.
- * Restore
- */
-.global efi2init
-efi2init:
+#ifndef __ASSEMBLY__
 
-	/* Save GPRs */
-	PUSHAQ
-	movq	%rsp, (%rsi)
+extern uintptr_t hypervisor_image_baseaddress;    //2M aligned highest physical memory address
 
-	/* Save RIP */
-	leaq	1f(%rip), %rax
-	movq	%rax, (%rdx)
+//size of SL + runtime in bytes
+extern size_t sl_rt_size;
+extern uint64_t sl_rt_base_spaddr;
 
-	/* Save RFLAGS */
-	pushfq
-	popq	(%rcx)
+extern SL_PARAMETER_BLOCK *slpb;
 
-	/* Call init.c */
-	call	cstartup
 
-1:
-	/* Restore GPRs */
-	POPAQ
+/// @brief MP config table handling
+/// @param uefi_rsdp 
+/// @param out_pcpus 
+/// @param out_pcpus_numentries 
+extern void dealwithMP(void *uefi_rsdp, PCPU* out_pcpus, u32* out_pcpus_numentries);
 
-	ret
+/// @brief 
+/// @param cpu_vendor cpu_vendor = intel or amd
+/// @param midtable 
+/// @param midtable_numentries 
+extern void setupvcpus(u32 cpu_vendor, MIDTAB *midtable, u32 midtable_numentries);
 
+/// @brief Set the <_midtable_numentries> used by internal init functions.
+/// @param midtable_numentries 
+extern void midtable_set_numentries(u32 midtable_numentries);
+
+
+extern void wakeupAPs(void);
+
+#endif // __ASSEMBLY__
+#endif // XMHF_BOOTLOADER_COMMON_INIT

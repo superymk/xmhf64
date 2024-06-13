@@ -331,7 +331,7 @@ void xmhf_sl_arch_early_dmaprot_init(u32 runtime_size)
     // Protect xmhf-runtime's BSS high memory
     {
         memregionbase_paddr = slpb.runtime_bss_high_base;
-        memregion_size = slpb.runtime_bss_high_size;
+        memregion_size = XMHF_RUNTIME_LARGE_BSS_DATA_SIZE;
 
         if(!xmhf_dmaprot_earlyinitialize(protectedbuffer_paddr,
             protectedbuffer_vaddr, protectedbuffer_size,

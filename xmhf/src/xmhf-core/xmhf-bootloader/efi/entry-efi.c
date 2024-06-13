@@ -45,10 +45,10 @@
  * @XMHF_LICENSE_HEADER_END@
  */
 
-//efi.c - XMHF UEFI entry point
+//entry-efi.c - XMHF UEFI entry point
 //author: Eric Li (xiaoyili@andrew.cmu.edu)
 
-#include "efi/header.h"
+#include "header.h"
 
 /*
  * Configuration file for XMHF bootloader.

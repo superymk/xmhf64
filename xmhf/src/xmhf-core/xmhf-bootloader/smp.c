@@ -64,7 +64,7 @@ u32 _ACPIGetRSDPComputeChecksum(uintptr_t spaddr, size_t size);
 //inputs: array of type PCPU and pointer to u32 which will
 //receive the number of cores/CPUs in the system
 //uefi_rsdp: RSDP pointer from UEFI, or NULL
-//returns: 1 on succes, 0 on any failure
+//returns: 1 on success, 0 on any failure
 u32 smp_getinfo(PCPU *pcpus, u32 *num_pcpus, void *uefi_rsdp){
 	MPFP *mpfp;
 	MPCONFTABLE *mpctable;
