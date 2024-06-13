@@ -186,23 +186,6 @@ void cstartup(xmhf_efi_info_t *xei)
 		HALT_ON_ERRORCOND((u64)sl_rt_size == size64);
 	}
 
-#ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
-    {
-        RPB *rpb = NULL;
-
-        if(!xmhf_runtime_bss_high)
-        {
-            printf("INIT(early): Allocate memory for xmhf-runtime's high BSS data error!\n");
-            HALT();
-        }
-
-        rpb = (RPB *) (hypervisor_image_baseaddress + PA_PAGE_SIZE_2M);
-        rpb->XtVmmRuntimeBSSHighBegin = xmhf_runtime_bss_high;
-        printf("INIT(early): xmhf-runtime's high BSS data:[0x%lX, 0x%lX)\n", 
-            (uintptr_t)rpb->XtVmmRuntimeBSSHighBegin, (uintptr_t)rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE);
-    }
-#endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
-
     HALT_ON_ERRORCOND(sl_rt_size > 0x200000); /* 2M */
 
 #ifndef __SKIP_BOOTLOADER_HASH__
