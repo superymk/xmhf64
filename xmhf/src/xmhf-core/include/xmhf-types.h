@@ -187,7 +187,6 @@ typedef struct __packed _sl_parameter_block {
 #endif /* __XMHF_PIE_RUNTIME__ */
 #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     u64     runtime_bss_high_base;
-    u64     runtime_bss_high_size;
 #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
     
     u64     uefi_acpi_rsdp;             // APIC RSDP when boot with UEFI, or 0

@@ -249,7 +249,6 @@ void cstartup(xmhf_efi_info_t *xei)
 #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
         {
             slpb->runtime_bss_high_base = xmhf_runtime_bss_high;
-            slpb->runtime_bss_high_size = XMHF_RUNTIME_LARGE_BSS_DATA_SIZE;
         }
 #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
