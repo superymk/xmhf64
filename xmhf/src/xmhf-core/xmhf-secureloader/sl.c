@@ -362,17 +362,24 @@ void xmhf_sl_main(u32 cpu_vendor, u32 baseaddr, u32 rdtsc_eax, u32 rdtsc_edx)
     #ifdef __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
         // Check: The memory region [rpb->XtVmmRuntimeBSSHighBegin, rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE) 
         // must not overlap with the memory  [rpb->XtVmmRuntimePhysBase, rpb->XtVmmRuntimePhysBase + rpb->XtVmmRuntimeSize)
-        HALT_ON_ERRORCOND(
-            !MEM_REGION_OVERLAP(slpb.runtime_bss_high_base, XMHF_RUNTIME_LARGE_BSS_DATA_SIZE, rpb->XtVmmRuntimePhysBase, rpb->XtVmmRuntimeSize)
-        );
-
-        // Set <rpb->XtVmmRuntimeBSSHighBegin>
         {
-            void* rt_bss_high = spa2hva((spa_t)slpb.runtime_bss_high_base);
-            rpb->XtVmmRuntimeBSSHighBegin = (hva_t)rt_bss_high;
+            int ret = 0;
 
-            printf("SL: xmhf-runtime's high BSS data:[0x%lX, 0x%lX)\n", 
-                rpb->XtVmmRuntimeBSSHighBegin, rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE);
+            ret = MEM_REGION_OVERLAP(slpb.runtime_bss_high_base, XMHF_RUNTIME_LARGE_BSS_DATA_SIZE, rpb->XtVmmRuntimePhysBase, rpb->XtVmmRuntimeSize);
+            if(ret != 0)
+            {
+                printf("Invalid runtime high BSS memory!\n");
+                HALT();
+            }
+
+            // Set <rpb->XtVmmRuntimeBSSHighBegin>
+            {
+                void* rt_bss_high = spa2hva((spa_t)slpb.runtime_bss_high_base);
+                rpb->XtVmmRuntimeBSSHighBegin = (hva_t)rt_bss_high;
+
+                printf("SL: xmhf-runtime's high BSS data:[0x%lX, 0x%lX)\n", 
+                    rpb->XtVmmRuntimeBSSHighBegin, rpb->XtVmmRuntimeBSSHighBegin + XMHF_RUNTIME_LARGE_BSS_DATA_SIZE);
+            }
         }
     #endif // __UEFI_ALLOCATE_XMHF_RUNTIME_BSS_HIGH__
 
