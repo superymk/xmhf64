@@ -144,19 +144,50 @@ static void xmhf_sl_handle_rt_rela_dyn(void)
 }
 #endif /* __XMHF_PIE_RUNTIME__ */
 
-/// @brief Return if [v1, (v1 + sz1)) overlaps with the region [v2, (v2 + sz2)). MEM_REGION_OVERLAP is architecture 
-/// specific because (v1 + sz1) or (v2 + sz2) could equal to 2^32 and hence overflows the uint type of the architecture.
-static inline bool MEM_REGION_OVERLAP(ulong_t v1, size_t sz1, ulong_t v2, size_t sz2)
+// Returns true if add does not overflow.
+static inline bool safe_add(uint64_t *out, uint64_t op1, uint64_t op2)
 {
-    uint64_t base1 = v1;
-    uint64_t end1 = base1 + sz1;
-    uint64_t base2 = v2;
-    uint64_t end2 = base2 + sz2;
+	if (op1 <= UINT64_MAX - op2) {
+		*out = op1 + op2;
+		return true;
+	} else {
+		return false;
+	}
+}
 
-    if((((base1) >= (base2)) && ((base1) < (end2))) || (((base2) >= (base1)) && ((base2) < (end1))))
-        return true;
+// [TODO][Issue 149] Double check the definitions of address regions: representing with a pair of (base, size) is better 
+// than (base, end) because <end> may overflow to 0.
+/// @brief 
+/// @param v1 
+/// @param sz1 
+/// @param v2 
+/// @param sz2 
+/// @return Return 0 if the two memory regions do not overlap.
+///         Return 1 if overlap.
+///         Return -1 if a memory region is invalid (i.e., no size or overflow).
+static inline int MEM_REGION_OVERLAP(uint64_t v1, uint64_t sz1, uint64_t v2, uint64_t sz2)
+{
+	uint64_t base1 = v1;
+	uint64_t end1;
+	uint64_t base2 = v2;
+	uint64_t end2;
 
-    return false;
+	if (sz1 == 0 || sz2 == 0) {
+		return -1;
+	}
+	
+	if (!safe_add(&end1, base1, sz1 - 1)) {
+		return -1;
+	}
+
+	if (!safe_add(&end2, base2, sz2 - 1)) {
+		return -1;
+	}
+
+	if(base1 <= end2 && base2 <= end1)
+        return 1;
+    else
+        return 0;
 }
 
 //we get here from sl-*-entry.S
