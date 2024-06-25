@@ -189,9 +189,9 @@ static void serial_write_reg(uint8_t val, int offset)
     if (!serial_is_mem_mapped)
         outb(val, IOBASE + offset);
     else if (cb_serial.regwidth == 4)
-        write32(val & 0xff, MEMBASE + offset);
+        write32((MEMBASE + offset), val & 0xff);
     else
-        write8(val, MEMBASE + offset);
+        write8((MEMBASE + offset), val);
 }
 
 // 8250 Programming manual: https://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming
