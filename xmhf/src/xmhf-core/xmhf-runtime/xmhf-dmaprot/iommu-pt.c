@@ -160,6 +160,7 @@ iommu_pt_t xmhf_iommu_pt_create(IOMMU_PT_TYPE type)
         if (pt_info->used_mem)
             xmhfstl_list_clear_destroy(pt_info->used_mem);
         xmhf_mm_free(pt_info);
+        return IOMMU_PT_INVALID;
     }
 	pt_info->iommu_pt_id = pt_handle;
     pt_info->type = type;
